@@ -1,21 +1,69 @@
 import { useState, useEffect } from 'react'
-import { fetchActiveAgencies } from '../utils/api'
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
+import { fetchActiveAgencies, addAgencyToList, removeAgencyFromList } from '../utils/api'
 
 function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPath, onBack, onReset }) {
-        const handleRemoveAgency = (agenceId) => {
-            setAddedAgencies(prev => prev.filter(a => String(a.agenceId) !== String(agenceId)))
-        }
     const [agencies, setAgencies] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
     const [loading, setLoading] = useState(true)
     const [addedAgencies, setAddedAgencies] = useState([])
+    const [isAdding, setIsAdding] = useState(false)
+    const [removingId, setRemovingId] = useState(null)
+    const [errorOpen, setErrorOpen] = useState(false)
+    const [errorMessage, setErrorMessage] = useState('')
 
-    const handleAddAgency = () => {
+    const handleAddAgency = async () => {
         if (!selectedAgency) return
-        // Prevent duplicates
         if (addedAgencies.some(a => String(a.agenceId) === String(selectedAgency))) return
-        const agency = agencies.find(a => String(a.agenceId) === String(selectedAgency))
-        if (agency) setAddedAgencies(prev => [...prev, agency])
+        setIsAdding(true)
+        try {
+            // derive zone info from selectedRegion
+            const deriveZoneId = (region, level) => {
+                console.log('region===========>', region);
+                console.log('level===========>', level);
+                
+                if (!region || !region.properties) return null
+                const p = region.properties
+                // Extract the correct id based on the level
+                if (level === 'municipality') return p.gov_id || null
+                if (level === 'sector') return p.sec_uid || p.mun_uid || null
+                return null
+            }
+
+            const zoneType = currentLevel
+            const zoneId = deriveZoneId(selectedRegion, currentLevel)
+
+            await addAgencyToList(selectedAgency, zoneType, zoneId)
+
+            const agency = agencies.find(a => String(a.agenceId) === String(selectedAgency))
+            if (agency) {
+                // store zone info with the agency entry so removal can reuse it
+                setAddedAgencies(prev => [...prev, { ...agency, zoneType, zoneId }])
+                setSelectedAgency('')
+            }
+        } catch (err) {
+            setErrorMessage(err?.message || 'Failed to add agency')
+            setErrorOpen(true)
+        } finally {
+            setIsAdding(false)
+        }
+    }
+
+    const handleRemoveAgency = async (agenceId) => {
+        setRemovingId(agenceId)
+        try {
+            const existing = addedAgencies.find(a => String(a.agenceId) === String(agenceId)) || {}
+            const zoneType = existing.zoneType || currentLevel
+            const zoneId = existing.zoneId || (selectedRegion && selectedRegion.properties?.id) || null
+
+            await removeAgencyFromList(agenceId, zoneType, zoneId)
+            setAddedAgencies(prev => prev.filter(a => String(a.agenceId) !== String(agenceId)))
+        } catch (err) {
+            setErrorMessage(err?.message || 'Failed to remove agency')
+            setErrorOpen(true)
+        } finally {
+            setRemovingId(null)
+        }
     }
 
     useEffect(() => {
@@ -242,7 +290,7 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
                 <button
                     type="button"
                     onClick={handleAddAgency}
-                    disabled={!selectedAgency || loading}
+                    disabled={!selectedAgency || loading || isAdding}
                     style={{
                         padding: '8px 12px',
                         fontSize: '18px',
@@ -250,7 +298,7 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
                         background: 'var(--primary, #007bff)',
                         color: 'white',
                         border: 'none',
-                        cursor: (!selectedAgency || loading) ? 'not-allowed' : 'pointer',
+                        cursor: (!selectedAgency || loading || isAdding) ? 'not-allowed' : 'pointer',
                         boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
                     }}
                     aria-label="Add agency"
@@ -282,6 +330,7 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
                                 <button
                                     type="button"
                                     onClick={() => handleRemoveAgency(agency.agenceId)}
+                                    disabled={String(removingId) === String(agency.agenceId)}
                                     style={{
                                         marginLeft: '12px',
                                         padding: '2px 8px',
@@ -290,7 +339,7 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
                                         background: '#e74c3c',
                                         color: 'white',
                                         border: 'none',
-                                        cursor: 'pointer',
+                                        cursor: String(removingId) === String(agency.agenceId) ? 'not-allowed' : 'pointer',
                                         boxShadow: '0 1px 2px rgba(0,0,0,0.06)'
                                     }}
                                     aria-label={`Remove ${agency.nomAge || agency.agenceName || agency.agence_name || agency.nom || `Agency ${agency.agenceId}`}`}
@@ -302,6 +351,17 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
                     )}
                 </ul>
             </div>
+
+            {/* Error Dialog */}
+            <Dialog open={errorOpen} onClose={() => setErrorOpen(false)}>
+                <DialogTitle>Error</DialogTitle>
+                <DialogContent>
+                    <div style={{ minWidth: 240 }}>{errorMessage}</div>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setErrorOpen(false)}>Close</Button>
+                </DialogActions>
+            </Dialog>
 
             {/* Navigation Buttons */}
             <div className="btn-group">

@@ -52,3 +52,35 @@ export async function fetchActiveAgencies() {
     }
     return response.json()
 }
+
+export async function addAgencyToList(agencyId, workingZoneType, workingZoneId) {
+    const payload = { agencyId, workingZoneType, workingZoneId }
+
+    const response = await fetch(`${API_BASE_URL}/agency-working-zone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(text || 'Failed to add agency')
+    }
+
+    return response.json()
+}
+
+export async function removeAgencyFromList(agencyWorkingZoneId) {
+    const params = new URLSearchParams()
+
+    const url = `${API_BASE_URL}/agency-working-zone/${agencyWorkingZoneId}`
+
+    const response = await fetch(url, { method: 'DELETE' })
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(text || 'Failed to remove agency')
+    }
+
+    return response.json()
+}
