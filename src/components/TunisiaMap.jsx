@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
 import { fetchGovernorates, fetchMunicipalities, fetchSectors } from '../utils/api'
+import * as turf from '@turf/turf'
 
 // Bounds fitter component
 function BoundsFitter({ bounds }) {
@@ -170,7 +171,80 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
         return [[30.2, 7.5], [37.5, 11.6]]
     }, [])
 
-    // Get features for the current level (API already returns aggregated/filtered data)
+    // Aggregate governorates by gov_id and union their geometries
+    const aggregatedGovernorates = useMemo(() => {
+        if (!governorates) return null
+
+        console.log('Aggregating governorates...')
+        // Group features by gov_id
+        const govMap = new Map()
+        governorates.features.forEach(feature => {
+            const govId = feature.properties.gov_id
+            if (!govMap.has(govId)) {
+                govMap.set(govId, [])
+            }
+            govMap.get(govId).push(feature)
+        })
+
+        const aggregatedFeatures = []
+        govMap.forEach((features, govId) => {
+            try {
+                // Use turf.union to merge all municipalities in this governorate
+                let unified = features[0]
+                if (features.length > 1) {
+                    const fc = turf.featureCollection(features)
+                    unified = turf.union(fc)
+                }
+
+                if (unified) {
+                    aggregatedFeatures.push({
+                        ...unified,
+                        properties: {
+                            gov_id: govId,
+                            gov_en: features[0].properties.gov_en,
+                            gov_ar: features[0].properties.gov_ar,
+                            reg: features[0].properties.reg,
+                            reg_en: features[0].properties.reg_en,
+                            reg_ar: features[0].properties.reg_ar
+                        }
+                    })
+                }
+            } catch (err) {
+                console.error(`Error merging features for gov_id ${govId}:`, err)
+                // Fallback to simpler aggregation if union fails
+                const multiPolygonCoords = []
+                features.forEach(f => {
+                    if (f.geometry.type === 'Polygon') {
+                        multiPolygonCoords.push(f.geometry.coordinates)
+                    } else if (f.geometry.type === 'MultiPolygon') {
+                        f.geometry.coordinates.forEach(poly => {
+                            multiPolygonCoords.push(poly)
+                        })
+                    }
+                })
+                aggregatedFeatures.push({
+                    type: 'Feature',
+                    properties: {
+                        gov_id: govId,
+                        gov_en: features[0].properties.gov_en,
+                        gov_ar: features[0].properties.gov_ar
+                    },
+                    geometry: {
+                        type: 'MultiPolygon',
+                        coordinates: multiPolygonCoords
+                    }
+                })
+            }
+        })
+
+        console.log('Aggregation complete. Total governorates:', aggregatedFeatures.length)
+        return {
+            type: 'FeatureCollection',
+            features: aggregatedFeatures
+        }
+    }, [governorates])
+
+    // Filter features based on current level and selection
     const filteredFeatures = useMemo(() => {
         console.log('filteredFeatures called. Level:', currentLevel)
         
