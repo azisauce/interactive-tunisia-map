@@ -1,0 +1,191 @@
+function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPath, onBack, onReset }) {
+    const getLevelInfo = () => {
+        switch (currentLevel) {
+            case 'governorate':
+                return { label: 'Governorates', icon: '🏛️', count: 24 }
+            case 'municipality':
+                return { label: 'Municipalities', icon: '🏘️', count: null }
+            case 'sector':
+                return { label: 'Sectors', icon: '📍', count: null }
+            default:
+                return { label: 'Regions', icon: '🗺️', count: null }
+        }
+    }
+
+    const levelInfo = getLevelInfo()
+
+    // Get the correct name based on the level context
+    const getRegionNameForLevel = (region, level) => {
+        if (!region) return null
+        const props = region.properties
+        
+        if (level === 'governorate') {
+            return {
+                en: props.gov_en || 'Unknown',
+                ar: props.gov_ar || ''
+            }
+        } else if (level === 'municipality') {
+            return {
+                en: props.mun_en || 'Unknown',
+                ar: props.mun_ar || ''
+            }
+        } else if (level === 'sector') {
+            return {
+                en: props.sec_en || 'Unknown',
+                ar: props.sec_ar || ''
+            }
+        }
+        
+        return {
+            en: props.gov_en || props.mun_en || props.sec_en || 'Unknown',
+            ar: props.gov_ar || props.mun_ar || props.sec_ar || ''
+        }
+    }
+
+    const getRegionType = (level) => {
+        if (level === 'governorate') return 'Governorate'
+        if (level === 'municipality') return 'Municipality'
+        if (level === 'sector') return 'Sector'
+        return 'Region'
+    }
+
+    const selectedName = selectedRegion ? getRegionNameForLevel(selectedRegion, currentLevel === 'governorate' ? 'governorate' : (currentLevel === 'municipality' ? 'governorate' : 'municipality')) : null
+    const hoveredName = hoveredRegion ? getRegionNameForLevel(hoveredRegion, currentLevel) : null
+    const hoveredType = hoveredRegion ? getRegionType(currentLevel) : null
+
+    // Get parent info for breadcrumb
+    const getBreadcrumbs = () => {
+        const crumbs = [{ label: 'Tunisia', level: 'country' }]
+
+        navigationPath.forEach(item => {
+            const name = getRegionNameForLevel(item.region, item.level)
+            if (name) {
+                crumbs.push({
+                    label: name.en,
+                    level: item.level,
+                    region: item.region
+                })
+            }
+        })
+
+        return crumbs
+    }
+
+    const breadcrumbs = getBreadcrumbs()
+
+    return (
+        <div className="control-card">
+            {/* Header */}
+            <div className="control-card__header">
+                <div className="control-card__icon">🇹🇳</div>
+                <div>
+                    <div className="control-card__title">Tunisia Map</div>
+                    <div className="control-card__subtitle">Interactive Administrative Map</div>
+                </div>
+            </div>
+
+            {/* Breadcrumb Navigation */}
+            {breadcrumbs.length > 1 && (
+                <div className="breadcrumb">
+                    {breadcrumbs.map((crumb, index) => (
+                        <div key={index} className="breadcrumb__item">
+                            {index > 0 && <span className="breadcrumb__separator">›</span>}
+                            {index === breadcrumbs.length - 1 ? (
+                                <span className="breadcrumb__current">{crumb.label}</span>
+                            ) : (
+                                <button
+                                    className="breadcrumb__link"
+                                    onClick={index === 0 ? onReset : undefined}
+                                >
+                                    {crumb.label}
+                                </button>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+
+            {/* Current Level Badge */}
+            <div className={`level-badge level-badge--${currentLevel}`}>
+                <span>{levelInfo.icon}</span>
+                <span>Viewing {levelInfo.label}</span>
+            </div>
+
+            {/* Hovered Region Info */}
+            {hoveredName && (
+                <div className="region-info region-info--hover">
+                    <div className="region-info__label">Hovering: {hoveredType}</div>
+                    <div className="region-info__name">{hoveredName.en}</div>
+                    <div className="region-info__name-ar">{hoveredName.ar}</div>
+                </div>
+            )}
+
+            {/* Selected Region Info - show when not hovering or when at sector level */}
+            {selectedName && (!hoveredName || currentLevel === 'sector') && (
+                <div className={`region-info ${hoveredName ? 'region-info--selected-small' : ''}`}>
+                    <div className="region-info__label">
+                        {currentLevel === 'sector' ? 'Selected Sector' : 'Selected Region'}
+                    </div>
+                    <div className="region-info__name">{selectedName.en}</div>
+                    <div className="region-info__name-ar">{selectedName.ar}</div>
+                </div>
+            )}
+
+            {/* Instruction */}
+            {currentLevel !== 'sector' && (
+                <p style={{
+                    fontSize: '13px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '16px',
+                    lineHeight: '1.5'
+                }}>
+                    {currentLevel === 'governorate'
+                        ? 'Click on a governorate to explore its municipalities'
+                        : 'Click on a municipality to explore its sectors'
+                    }
+                </p>
+            )}
+
+            {currentLevel === 'sector' && (
+                <p style={{
+                    fontSize: '13px',
+                    color: 'var(--text-secondary)',
+                    marginBottom: '16px',
+                    lineHeight: '1.5'
+                }}>
+                    Viewing sectors. Click to select.
+                </p>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="btn-group">
+                {navigationPath.length > 0 && (
+                    <button className="btn btn--secondary" onClick={onBack}>
+                        ← Back
+                    </button>
+                )}
+                {navigationPath.length > 0 && (
+                    <button className="btn btn--primary" onClick={onReset}>
+                        🏠 Home
+                    </button>
+                )}
+            </div>
+
+            {/* Stats */}
+            {currentLevel === 'governorate' && (
+                <div className="stats">
+                    <div className="stat">
+                        <div className="stat__value">24</div>
+                        <div className="stat__label">Governorates</div>
+                    </div>
+                    <div className="stat">
+                        <div className="stat__value">357</div>
+                        <div className="stat__label">Municipalities</div>
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
+export default ControlCard
