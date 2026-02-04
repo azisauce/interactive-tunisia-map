@@ -44,3 +44,11 @@ export async function fetchStats() {
     }
     return response.json()
 }
+
+export async function fetchActiveAgencies() {
+    const response = await fetch(`${API_BASE_URL}/active-agencies`)
+    if (!response.ok) {
+        throw new Error('Failed to fetch active agencies')
+    }
+    return response.json()
+}

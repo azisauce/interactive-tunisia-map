@@ -1,4 +1,38 @@
+import { useState, useEffect } from 'react'
+import { fetchActiveAgencies } from '../utils/api'
+
 function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPath, onBack, onReset }) {
+        const handleRemoveAgency = (agenceId) => {
+            setAddedAgencies(prev => prev.filter(a => String(a.agenceId) !== String(agenceId)))
+        }
+    const [agencies, setAgencies] = useState([])
+    const [selectedAgency, setSelectedAgency] = useState('')
+    const [loading, setLoading] = useState(true)
+    const [addedAgencies, setAddedAgencies] = useState([])
+
+    const handleAddAgency = () => {
+        if (!selectedAgency) return
+        // Prevent duplicates
+        if (addedAgencies.some(a => String(a.agenceId) === String(selectedAgency))) return
+        const agency = agencies.find(a => String(a.agenceId) === String(selectedAgency))
+        if (agency) setAddedAgencies(prev => [...prev, agency])
+    }
+
+    useEffect(() => {
+        async function loadAgencies() {
+            try {
+                setLoading(true)
+                const data = await fetchActiveAgencies()
+                setAgencies(data)
+            } catch (error) {
+                console.error('Error fetching agencies:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadAgencies()
+    }, [])
+
     const getLevelInfo = () => {
         switch (currentLevel) {
             case 'governorate':
@@ -165,6 +199,109 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
                     Viewing sectors. Click to select.
                 </p>
             )}
+
+            {/* Agency Selector + Add Button */}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', marginBottom: '16px' }}>
+                <div style={{ flex: 1 }}>
+                    <label htmlFor="agency-select" style={{
+                        display: 'block',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        color: 'var(--text-primary)',
+                        marginBottom: '8px'
+                    }}>
+                        Select Agency
+                    </label>
+                    <select
+                        id="agency-select"
+                        value={selectedAgency}
+                        onChange={(e) => setSelectedAgency(e.target.value)}
+                        disabled={loading}
+                        style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            fontSize: '14px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color, #ddd)',
+                            backgroundColor: 'var(--bg-secondary, white)',
+                            color: 'black',
+                            cursor: 'pointer',
+                            transition: 'border-color 0.2s'
+                        }}
+                    >
+                        <option value="">
+                            {loading ? 'Loading agencies...' : 'All Agencies'}
+                        </option>
+                        {agencies.map((agency) => (
+                            <option key={agency.agenceId} value={agency.agenceId}>
+                                {agency.nomAge || agency.agenceName || agency.agence_name || `Agency ${agency.agenceId}`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <button
+                    type="button"
+                    onClick={handleAddAgency}
+                    disabled={!selectedAgency || loading}
+                    style={{
+                        padding: '8px 12px',
+                        fontSize: '18px',
+                        borderRadius: '6px',
+                        background: 'var(--primary, #007bff)',
+                        color: 'white',
+                        border: 'none',
+                        cursor: (!selectedAgency || loading) ? 'not-allowed' : 'pointer',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+                    }}
+                    aria-label="Add agency"
+                >
+                    +
+                </button>
+            </div>
+
+            {/* Added Agencies List */}
+            <div style={{ marginBottom: '16px' }}>
+                <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '8px' }}>Selected Agencies:</div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    {addedAgencies.length === 0 ? (
+                        <li style={{ color: '#888', fontSize: '13px' }}>No agencies added yet.</li>
+                    ) : (
+                        addedAgencies.map((agency) => (
+                            <li key={agency.agenceId} style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                padding: '6px 0',
+                                borderBottom: '1px solid #eee',
+                                fontSize: '14px',
+                                color: 'var(--text-primary)'
+                            }}>
+                                <span>
+                                    {agency.nomAge || agency.agenceName || agency.agence_name || agency.nom || `Agency ${agency.agenceId}`}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => handleRemoveAgency(agency.agenceId)}
+                                    style={{
+                                        marginLeft: '12px',
+                                        padding: '2px 8px',
+                                        fontSize: '16px',
+                                        borderRadius: '4px',
+                                        background: '#e74c3c',
+                                        color: 'white',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        boxShadow: '0 1px 2px rgba(0,0,0,0.06)'
+                                    }}
+                                    aria-label={`Remove ${agency.nomAge || agency.agenceName || agency.agence_name || agency.nom || `Agency ${agency.agenceId}`}`}
+                                >
+                                    -
+                                </button>
+                            </li>
+                        ))
+                    )}
+                </ul>
+            </div>
 
             {/* Navigation Buttons */}
             <div className="btn-group">
