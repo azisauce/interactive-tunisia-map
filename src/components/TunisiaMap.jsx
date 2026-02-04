@@ -1,19 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
-
-import governoratesData from '../../geojson/governorates.geojson?raw'
-import municipalitiesData from '../../geojson/municipalities.geojson?raw'
-import sectorsData from '../../geojson/sectors.geojson?raw'
-
-// Parse GeoJSON data
-const parseGeoJSON = (data) => {
-    try {
-        return JSON.parse(data)
-    } catch (e) {
-        console.error('Error parsing GeoJSON:', e)
-        return null
-    }
-}
+import { fetchGovernorates, fetchMunicipalities, fetchSectors } from '../utils/api'
 
 // Bounds fitter component
 function BoundsFitter({ bounds }) {
@@ -113,111 +100,94 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
     const [governorates, setGovernorates] = useState(null)
     const [municipalities, setMunicipalities] = useState(null)
     const [sectors, setSectors] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
     const [bounds, setBounds] = useState(null)
     const [mapKey, setMapKey] = useState(0)
     const geoJsonRef = useRef()
     const layersRef = useRef(new Map())
 
-    // Load GeoJSON data
+    // Load governorates on mount
     useEffect(() => {
-        setGovernorates(parseGeoJSON(governoratesData))
-        setMunicipalities(parseGeoJSON(municipalitiesData))
-        setSectors(parseGeoJSON(sectorsData))
+        const loadGovernorates = async () => {
+            try {
+                setLoading(true)
+                const data = await fetchGovernorates()
+                setGovernorates(data)
+                setError(null)
+            } catch (err) {
+                console.error('Error loading governorates:', err)
+                setError('Failed to load map data')
+            } finally {
+                setLoading(false)
+            }
+        }
+        loadGovernorates()
     }, [])
+
+    // Load municipalities when drilling down to municipality level
+    useEffect(() => {
+        const loadMunicipalities = async () => {
+            if (currentLevel === 'municipality' && selectedRegion) {
+                try {
+                    setLoading(true)
+                    const data = await fetchMunicipalities(selectedRegion.properties.gov_id)
+                    setMunicipalities(data)
+                    setError(null)
+                } catch (err) {
+                    console.error('Error loading municipalities:', err)
+                    setError('Failed to load municipalities')
+                } finally {
+                    setLoading(false)
+                }
+            }
+        }
+        loadMunicipalities()
+    }, [currentLevel, selectedRegion?.properties?.gov_id])
+
+    // Load sectors when drilling down to sector level
+    useEffect(() => {
+        const loadSectors = async () => {
+            if (currentLevel === 'sector' && selectedRegion) {
+                try {
+                    setLoading(true)
+                    const data = await fetchSectors(selectedRegion.properties.mun_uid)
+                    setSectors(data)
+                    setError(null)
+                } catch (err) {
+                    console.error('Error loading sectors:', err)
+                    setError('Failed to load sectors')
+                } finally {
+                    setLoading(false)
+                }
+            }
+        }
+        loadSectors()
+    }, [currentLevel, selectedRegion?.properties?.mun_uid])
 
     // Calculate bounds for Tunisia
     const tunisiaBounds = useMemo(() => {
-        if (!governorates) return null
         return [[30.2, 7.5], [37.5, 11.6]]
-    }, [governorates])
+    }, [])
 
-    // Aggregate governorates by gov_id (create one representative polygon per governorate)
-    const aggregatedGovernorates = useMemo(() => {
-        if (!governorates) return null
-
-        // Group features by gov_id and take only unique governorates
-        const govMap = new Map()
-        governorates.features.forEach(feature => {
-            const govId = feature.properties.gov_id
-            if (!govMap.has(govId)) {
-                govMap.set(govId, [])
-            }
-            govMap.get(govId).push(feature)
-        })
-
-        // Create aggregated features - combine all polygons for each governorate
-        const aggregatedFeatures = []
-        govMap.forEach((features, govId) => {
-            // Build MultiPolygon coordinates properly
-            const multiPolygonCoords = []
-            features.forEach(f => {
-                if (f.geometry.type === 'Polygon') {
-                    multiPolygonCoords.push(f.geometry.coordinates)
-                } else if (f.geometry.type === 'MultiPolygon') {
-                    f.geometry.coordinates.forEach(poly => {
-                        multiPolygonCoords.push(poly)
-                    })
-                }
-            })
-
-            aggregatedFeatures.push({
-                type: 'Feature',
-                properties: {
-                    gov_id: govId,
-                    gov_en: features[0].properties.gov_en,
-                    gov_ar: features[0].properties.gov_ar,
-                    reg: features[0].properties.reg,
-                    reg_en: features[0].properties.reg_en,
-                    reg_ar: features[0].properties.reg_ar
-                },
-                geometry: {
-                    type: 'MultiPolygon',
-                    coordinates: multiPolygonCoords
-                }
-            })
-        })
-
-        return {
-            type: 'FeatureCollection',
-            features: aggregatedFeatures
-        }
-    }, [governorates])
-
-    // Filter features based on current level and selection
+    // Get features for the current level (API already returns aggregated/filtered data)
     const filteredFeatures = useMemo(() => {
-        console.log('filteredFeatures called. Level:', currentLevel, 'Selected:', selectedRegion?.properties?.gov_en || selectedRegion?.properties?.mun_en)
-        if (!governorates || !municipalities || !sectors) return null
-
+        console.log('filteredFeatures called. Level:', currentLevel)
+        
         if (currentLevel === 'governorate') {
-            // Show aggregated governorates, not individual municipality polygons
-            return aggregatedGovernorates
+            return governorates
         }
 
-        if (currentLevel === 'municipality' && selectedRegion) {
-            const govId = selectedRegion.properties.gov_id
-            return {
-                type: 'FeatureCollection',
-                features: municipalities.features.filter(
-                    f => f.properties.gov_id === govId
-                )
-            }
+        if (currentLevel === 'municipality') {
+            return municipalities
         }
 
-        if (currentLevel === 'sector' && selectedRegion) {
-            const munId = selectedRegion.properties.mun_uid
-            console.log('Filtering sectors for munId:', munId)
-            const filtered = sectors.features.filter(
-                f => f.properties.mun_uid === munId
-            )
-            console.log('Found sectors:', filtered.length)
-            return {
-                type: 'FeatureCollection',
-                features: filtered
-            }
+        if (currentLevel === 'sector') {
+            return sectors
         }
 
         return governorates
-    }, [currentLevel, selectedRegion, governorates, municipalities, sectors])
+    }, [currentLevel, governorates, municipalities, sectors])
 
     // Parent region for context display
     const parentFeatures = useMemo(() => {
@@ -364,7 +334,16 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
         })
     }, [currentLevel, onRegionSelect, onRegionHover, selectedRegion])
 
-    if (!governorates) {
+    if (error) {
+        return (
+            <div className="loading">
+                <span style={{ color: '#ef4444' }}>⚠️ {error}</span>
+                <p style={{ fontSize: '14px', color: '#6b7280' }}>Make sure the backend server is running</p>
+            </div>
+        )
+    }
+
+    if (!governorates || loading) {
         return (
             <div className="loading">
                 <div className="loading__spinner"></div>
