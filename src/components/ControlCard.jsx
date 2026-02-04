@@ -49,7 +49,16 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
         return 'Region'
     }
 
-    const selectedName = selectedRegion ? getRegionNameForLevel(selectedRegion, currentLevel === 'governorate' ? 'governorate' : (currentLevel === 'municipality' ? 'governorate' : 'municipality')) : null
+    // Get the selected region name - show the parent region name for drill-down levels
+    // or the selected item itself for sectors
+    const selectedName = selectedRegion ? (
+        currentLevel === 'governorate' 
+            ? getRegionNameForLevel(selectedRegion, 'governorate')
+            : currentLevel === 'municipality'
+            ? getRegionNameForLevel(selectedRegion, 'governorate')
+            : getRegionNameForLevel(selectedRegion, 'sector') // Show sector name at sector level
+    ) : null
+    
     const hoveredName = hoveredRegion ? getRegionNameForLevel(hoveredRegion, currentLevel) : null
     const hoveredType = hoveredRegion ? getRegionType(currentLevel) : null
 

@@ -116,6 +116,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
     const [bounds, setBounds] = useState(null)
     const [mapKey, setMapKey] = useState(0)
     const geoJsonRef = useRef()
+    const layersRef = useRef(new Map())
 
     // Load GeoJSON data
     useEffect(() => {
@@ -266,6 +267,17 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
         setMapKey(prev => prev + 1)
     }, [currentLevel, selectedRegion])
 
+    // Update layer styles when selection changes (especially for sectors)
+    useEffect(() => {
+        if (currentLevel === 'sector' && layersRef.current.size > 0) {
+            const levelStyles = styles.sector
+            layersRef.current.forEach((layer, featureId) => {
+                const isSelected = selectedRegion && selectedRegion.properties.sec_uid === featureId
+                layer.setStyle(isSelected ? levelStyles.selected : levelStyles.default)
+            })
+        }
+    }, [selectedRegion, currentLevel])
+
     // Get style function for current level - highlights selected sector
     const getStyle = useCallback((feature) => {
         const levelStyles = styles[currentLevel] || styles.governorate
@@ -293,6 +305,10 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
     // Event handlers for each feature
     const onEachFeature = useCallback((feature, layer) => {
         const levelStyles = styles[currentLevel] || styles.governorate
+        
+        // Store layer reference for later updates
+        const featureId = feature.properties.sec_uid || feature.properties.mun_uid || feature.properties.gov_id
+        layersRef.current.set(featureId, layer)
 
         // Get the correct name based on current level
         let nameEn, nameAr
@@ -326,7 +342,10 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
             },
             mouseout: (e) => {
                 const target = e.target
-                target.setStyle(levelStyles.default)
+                // Restore the correct style (selected or default)
+                const isSelected = currentLevel === 'sector' && selectedRegion && 
+                    (selectedRegion.properties.sec_uid === feature.properties.sec_uid)
+                target.setStyle(isSelected ? levelStyles.selected : levelStyles.default)
                 // Clear hover state
                 onRegionHover(null)
             },
@@ -338,12 +357,12 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
                     const clickedBounds = e.target.getBounds()
                     setBounds(clickedBounds)
                 } else {
-                    // For sectors, just show selection without drill-down
+                    // For sectors, show selection without drill-down
                     onRegionSelect(feature, currentLevel)
                 }
             }
         })
-    }, [currentLevel, onRegionSelect, onRegionHover])
+    }, [currentLevel, onRegionSelect, onRegionHover, selectedRegion])
 
     if (!governorates) {
         return (
@@ -363,7 +382,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
         >
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
             />
 
             <BoundsFitter bounds={bounds || tunisiaBounds} />
