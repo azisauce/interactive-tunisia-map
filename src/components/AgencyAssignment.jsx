@@ -244,7 +244,7 @@ function AgencyAssignment({ currentLevel, selectedRegion }) {
                                     backgroundColor: 'var(--bg-secondary, #f8f9fa)',
                                     border: '1px solid var(--border-color, #e9ecef)',
                                     fontSize: '14px',
-                                    color: 'var(--text-primary)'
+                                    color: 'black'
                                 }}>
                                     <span style={{ fontWeight: '500' }}>
                                         {agency.nomAge || agency.agenceName || `Agency ${agency.agenceId}`}
