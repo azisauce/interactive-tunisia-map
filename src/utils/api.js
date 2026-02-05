@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/tunisia-regions'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3007/api/tunisia-regions'
 
 export async function fetchGovernorates() {
     const response = await fetch(`${API_BASE_URL}/governorates`)
@@ -82,5 +82,19 @@ export async function removeAgencyFromList(agencyWorkingZoneId) {
         throw new Error(text || 'Failed to remove agency')
     }
 
+    return response.json()
+}
+
+export async function fetchAssignedAgencies(workingZoneType, workingZoneId) {
+    const params = new URLSearchParams()
+    params.append('workingZoneType', workingZoneType)
+    params.append('workingZoneId', workingZoneId)
+    
+    const url = `${API_BASE_URL}/assigned-agencies?${params.toString()}`
+    
+    const response = await fetch(url)
+    if (!response.ok) {
+        throw new Error('Failed to fetch assigned agencies')
+    }
     return response.json()
 }
