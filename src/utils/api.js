@@ -1,7 +1,23 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3007/api/tunisia-regions'
 
+/**
+ * Helper to get headers with accessToken from localStorage
+ */
+const getAuthHeaders = (headers = {}) => {
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+        return {
+            ...headers,
+            'Authorization': `Bearer ${token}`
+        }
+    }
+    return headers
+}
+
 export async function fetchGovernorates() {
-    const response = await fetch(`${API_BASE_URL}/governorates`)
+    const response = await fetch(`${API_BASE_URL}/governorates`, {
+        headers: getAuthHeaders()
+    })
     if (!response.ok) {
         throw new Error('Failed to fetch governorates')
     }
@@ -13,7 +29,9 @@ export async function fetchMunicipalities(govId = null) {
         ? `${API_BASE_URL}/municipalities?gov_id=${govId}`
         : `${API_BASE_URL}/municipalities`
     
-    const response = await fetch(url)
+    const response = await fetch(url, {
+        headers: getAuthHeaders()
+    })
     if (!response.ok) {
         throw new Error('Failed to fetch municipalities')
     }
@@ -30,7 +48,9 @@ export async function fetchSectors(munUid = null, govId = null) {
         ? `${API_BASE_URL}/sectors?${queryString}`
         : `${API_BASE_URL}/sectors`
     
-    const response = await fetch(url)
+    const response = await fetch(url, {
+        headers: getAuthHeaders()
+    })
     if (!response.ok) {
         throw new Error('Failed to fetch sectors')
     }
@@ -38,7 +58,9 @@ export async function fetchSectors(munUid = null, govId = null) {
 }
 
 export async function fetchStats() {
-    const response = await fetch(`${API_BASE_URL}/stats`)
+    const response = await fetch(`${API_BASE_URL}/stats`, {
+        headers: getAuthHeaders()
+    })
     if (!response.ok) {
         throw new Error('Failed to fetch stats')
     }
@@ -46,7 +68,9 @@ export async function fetchStats() {
 }
 
 export async function fetchActiveAgencies() {
-    const response = await fetch(`${API_BASE_URL}/active-agencies`)
+    const response = await fetch(`${API_BASE_URL}/active-agencies`, {
+        headers: getAuthHeaders()
+    })
     if (!response.ok) {
         throw new Error('Failed to fetch active agencies')
     }
@@ -58,7 +82,7 @@ export async function addAgencyToList(agencyId, workingZoneType, workingZoneId) 
 
     const response = await fetch(`${API_BASE_URL}/agency-working-zone`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload)
     })
 
@@ -71,11 +95,12 @@ export async function addAgencyToList(agencyId, workingZoneType, workingZoneId) 
 }
 
 export async function removeAgencyFromList(agencyWorkingZoneId) {
-    const params = new URLSearchParams()
-
     const url = `${API_BASE_URL}/agency-working-zone/${agencyWorkingZoneId}`
 
-    const response = await fetch(url, { method: 'DELETE' })
+    const response = await fetch(url, { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    })
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
@@ -92,7 +117,9 @@ export async function removeAgencyFromList(agencyWorkingZoneId) {
     
 //     const url = `${API_BASE_URL}/assigned-agencies?${params.toString()}`
     
-//     const response = await fetch(url)
+//     const response = await fetch(url, {
+//         headers: getAuthHeaders()
+//     })
 //     if (!response.ok) {
 //         throw new Error('Failed to fetch assigned agencies')
 //     }
