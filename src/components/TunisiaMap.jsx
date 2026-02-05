@@ -40,104 +40,104 @@ function BoundsFitter({ bounds }) {
     return null
 }
 
-// Style configurations
+// Style configurations - unified light-green baseline
 const styles = {
     governorate: {
         default: {
-            fillColor: '#22c55e',
+            fillColor: '#dcfce7', // very light green
             weight: 2,
             opacity: 1,
-            color: '#16a34a',
-            fillOpacity: 0.3
+            color: '#86efac',
+            fillOpacity: 0.35
         },
         withAgencies: {
-            fillColor: '#16a34a',
+            fillColor: '#34d399', // stronger green when agencies present
             weight: 4,
             opacity: 1,
-            color: '#15803d',
-            fillOpacity: 0.5
+            color: '#059669',
+            fillOpacity: 0.65
         },
         hover: {
-            fillOpacity: 0.5,
+            fillOpacity: 0.6,
             weight: 3,
             color: '#4ade80'
         },
         inactive: {
-            fillColor: '#64748b',
+            fillColor: '#e6eef0',
             weight: 1,
             opacity: 0.5,
-            color: '#475569',
-            fillOpacity: 0.15
+            color: '#b6c1bf',
+            fillOpacity: 0.12
         },
         selected: {
-            fillColor: '#22c55e',
+            fillColor: '#10b981',
             weight: 3,
             opacity: 1,
-            color: '#4ade80',
-            fillOpacity: 0.4
+            color: '#059669',
+            fillOpacity: 0.75
         }
     },
     municipality: {
         default: {
-            fillColor: '#3b82f6',
+            fillColor: '#dcfce7',
             weight: 2,
             opacity: 1,
-            color: '#2563eb',
-            fillOpacity: 0.3
+            color: '#86efac',
+            fillOpacity: 0.32
         },
         withAgencies: {
-            fillColor: '#2563eb',
-            weight: 4,
+            fillColor: '#34d399',
+            weight: 3.5,
             opacity: 1,
-            color: '#1e40af',
-            fillOpacity: 0.5
+            color: '#059669',
+            fillOpacity: 0.6
         },
         hover: {
-            fillOpacity: 0.5,
+            fillOpacity: 0.55,
             weight: 3,
-            color: '#60a5fa'
+            color: '#4ade80'
         },
         inactive: {
-            fillColor: '#64748b',
+            fillColor: '#e6eef0',
             weight: 1,
             opacity: 0.5,
-            color: '#475569',
-            fillOpacity: 0.15
+            color: '#b6c1bf',
+            fillOpacity: 0.12
         },
         selected: {
-            fillColor: '#3b82f6',
+            fillColor: '#10b981',
             weight: 3,
             opacity: 1,
-            color: '#60a5fa',
-            fillOpacity: 0.4
+            color: '#059669',
+            fillOpacity: 0.7
         }
     },
     sector: {
         default: {
-            fillColor: '#f59e0b',
+            fillColor: '#dcfce7',
             weight: 1.5,
             opacity: 1,
-            color: '#d97706',
-            fillOpacity: 0.3
+            color: '#86efac',
+            fillOpacity: 0.28
         },
         withAgencies: {
-            fillColor: '#d97706',
-            weight: 3.5,
+            fillColor: '#34d399',
+            weight: 3,
             opacity: 1,
-            color: '#b45309',
-            fillOpacity: 0.5
+            color: '#059669',
+            fillOpacity: 0.55
         },
         hover: {
             fillOpacity: 0.5,
             weight: 2,
-            color: '#fbbf24'
+            color: '#4ade80'
         },
         selected: {
-            fillColor: '#f59e0b',
+            fillColor: '#10b981',
             weight: 3,
             opacity: 1,
-            color: '#fbbf24',
-            fillOpacity: 0.6
+            color: '#059669',
+            fillOpacity: 0.78
         }
     }
 }
@@ -345,25 +345,28 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         }
     }, [selectedRegion, currentLevel])
 
-    // Get style function for current level - highlights selected sector
+    // Get style function for current level - highlights selected sector and checks for direct, inherited or child agencies
     const getStyle = useCallback((feature) => {
         const levelStyles = styles[currentLevel] || styles.governorate
 
-        // Check if this feature is the selected one at sector level
-        if (currentLevel === 'sector' && selectedRegion) {
-            const selectedId = selectedRegion.properties.sec_uid || selectedRegion.properties.mun_uid
-            const featureId = feature.properties.sec_uid || feature.properties.mun_uid
+        // Selected feature (prefer sector id then municipality)
+        if (selectedRegion) {
+            const selectedId = selectedRegion.properties.sec_uid || selectedRegion.properties.mun_uid || selectedRegion.properties.gov_id
+            const featureId = feature.properties.sec_uid || feature.properties.mun_uid || feature.properties.gov_id
             if (selectedId === featureId) {
                 return levelStyles.selected
             }
         }
 
-        // Check if feature has assigned agencies (direct or inherited) OR has children with agencies
-        const hasAgencies = feature.properties.assigned_agencies && 
-                           feature.properties.assigned_agencies.length > 0
-        const hasChildrenWithAgencies = feature.properties.has_children_with_agencies === true
-        
-        if (hasAgencies || hasChildrenWithAgencies) {
+        // Helper: check a few possible property names for assigned/inherited agencies
+        const props = feature.properties || {}
+        const hasDirectAgencies = Array.isArray(props.assigned_agencies) && props.assigned_agencies.length > 0
+        const hasInheritedAgencies = (Array.isArray(props.inherited_agencies) && props.inherited_agencies.length > 0)
+            || (Array.isArray(props.inherited_assigned_agencies) && props.inherited_assigned_agencies.length > 0)
+            || (Array.isArray(props.parent_assigned_agencies) && props.parent_assigned_agencies.length > 0)
+        const hasChildrenWithAgencies = props.has_children_with_agencies === true || (Number(props.children_with_agencies_count) > 0)
+
+        if (hasDirectAgencies || hasInheritedAgencies || hasChildrenWithAgencies) {
             return levelStyles.withAgencies
         }
 
