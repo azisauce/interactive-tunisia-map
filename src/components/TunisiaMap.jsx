@@ -379,11 +379,12 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
             }
         }
 
-        // Check if feature has assigned agencies (direct or inherited)
+        // Check if feature has assigned agencies (direct or inherited) OR has children with agencies
         const hasAgencies = feature.properties.assigned_agencies && 
                            feature.properties.assigned_agencies.length > 0
+        const hasChildrenWithAgencies = feature.properties.has_children_with_agencies === true
         
-        if (hasAgencies) {
+        if (hasAgencies || hasChildrenWithAgencies) {
             return levelStyles.withAgencies
         }
 
