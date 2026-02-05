@@ -118,138 +118,26 @@ const styles = {
     }
 }
 
-// Helper to aggregate features by gov_id and union their geometries
-const aggregateGovernorates = (data) => {
-    if (!data || !data.features) return data
 
-    console.log('Aggregating governorates from', data.features.length, 'features...')
-    // Group features by gov_id
-    const govMap = new Map()
-    data.features.forEach(feature => {
-        const govId = feature.properties.gov_id
-        if (!govMap.has(govId)) {
-            govMap.set(govId, [])
-        }
-        govMap.get(govId).push(feature)
-    })
 
-    const aggregatedFeatures = []
-    govMap.forEach((features, govId) => {
-        try {
-            // 1. Clean up coordinates to fix precision issues that prevent merging
-            // 6 decimal places is ~10cm precision, enough for administrative boundaries
-            const cleanedFeatures = features.map(f => turf.truncate(f, { precision: 6 }))
-            
-            // 2. Extract only Polygon/MultiPolygon features and flatten them
-            // This ensures we have a clean collection of individual polygons for merging
-            const polygons = []
-            cleanedFeatures.forEach(f => {
-                const flattened = turf.flatten(f)
-                flattened.features.forEach(poly => {
-                    if (poly.geometry && (poly.geometry.type === 'Polygon' || poly.geometry.type === 'MultiPolygon')) {
-                        polygons.push(poly)
-                    }
-                })
-            })
-
-            let unified = null
-            if (polygons.length > 0) {
-                if (polygons.length === 1) {
-                    unified = polygons[0]
-                } else {
-                    // 3. Perform the union on the collection of polygons
-                    const fc = turf.featureCollection(polygons)
-                    unified = turf.union(fc)
-                }
-            }
-
-            if (unified) {
-                aggregatedFeatures.push({
-                    ...unified,
-                    properties: {
-                        gov_id: govId,
-                        gov_en: features[0].properties.gov_en,
-                        gov_ar: features[0].properties.gov_ar,
-                        reg: features[0].properties.reg,
-                        reg_en: features[0].properties.reg_en,
-                        reg_ar: features[0].properties.reg_ar
-                    }
-                })
-            } else {
-                console.warn(`Could not unify features for gov_id ${govId}, no valid polygons found`)
-            }
-        } catch (err) {
-            console.error(`Error merging features for gov_id ${govId}:`, err)
-            // Fallback: create a MultiPolygon manually (will have internal borders)
-            const multiPolygonCoords = []
-            features.forEach(f => {
-                if (f.geometry.type === 'Polygon') {
-                    multiPolygonCoords.push(f.geometry.coordinates)
-                } else if (f.geometry.type === 'MultiPolygon') {
-                    f.geometry.coordinates.forEach(poly => {
-                        multiPolygonCoords.push(poly)
-                    })
-                }
-            })
-            aggregatedFeatures.push({
-                type: 'Feature',
-                properties: {
-                    gov_id: govId,
-                    gov_en: features[0].properties.gov_en,
-                    gov_ar: features[0].properties.gov_ar
-                },
-                geometry: {
-                    type: 'MultiPolygon',
-                    coordinates: multiPolygonCoords
-                }
-            })
-        }
-    })
-
-    console.log('Aggregation complete. Total governorates:', aggregatedFeatures.length)
-    return {
-        type: 'FeatureCollection',
-        features: aggregatedFeatures
-    }
-}
-
-function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSelect, onRegionHover }) {
-    const [governorates, setGovernorates] = useState(null)
+function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates, onRegionSelect, onRegionHover }) {
     const [municipalities, setMunicipalities] = useState(null)
     const [sectors, setSectors] = useState(null)
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [bounds, setBounds] = useState(null)
     const [mapKey, setMapKey] = useState(0)
     const geoJsonRef = useRef()
     const layersRef = useRef(new Map())
 
-    // Load governorates on mount
-    useEffect(() => {
-        const loadGovernorates = async () => {
-            try {
-                setLoading(true)
-                const data = await fetchGovernorates()
-                // Process data to merge delegations into governorates
-                setGovernorates(aggregateGovernorates(data))
-                setError(null)
-            } catch (err) {
-                console.error('Error loading governorates:', err)
-                setError('Failed to load map data')
-            } finally {
-                setLoading(false)
-            }
-        }
-        loadGovernorates()
-    }, [])
-
-    // Load municipalities when drilling down to municipality level
+    // Load municipalities when drilling down or switching level
     useEffect(() => {
         const loadMunicipalities = async () => {
-            if (currentLevel === 'municipality' && selectedRegion) {
+            if (currentLevel === 'municipality') {
                 try {
                     setLoading(true)
-                    const data = await fetchMunicipalities(selectedRegion.properties.gov_id)
+                    const govId = selectedRegion?.properties?.gov_id
+                    const data = await fetchMunicipalities(govId)
                     setMunicipalities(data)
                     setError(null)
                 } catch (err) {
@@ -263,13 +151,15 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
         loadMunicipalities()
     }, [currentLevel, selectedRegion?.properties?.gov_id])
 
-    // Load sectors when drilling down to sector level
+    // Load sectors when drilling down or switching level
     useEffect(() => {
         const loadSectors = async () => {
-            if (currentLevel === 'sector' && selectedRegion) {
+            if (currentLevel === 'sector') {
                 try {
                     setLoading(true)
-                    const data = await fetchSectors(selectedRegion.properties.mun_uid)
+                    const munUid = selectedRegion?.properties?.mun_uid
+                    const govId = selectedRegion?.properties?.gov_id
+                    const data = await fetchSectors(munUid, govId)
                     setSectors(data)
                     setError(null)
                 } catch (err) {
@@ -281,7 +171,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
             }
         }
         loadSectors()
-    }, [currentLevel, selectedRegion?.properties?.mun_uid])
+    }, [currentLevel, selectedRegion?.properties?.mun_uid, selectedRegion?.properties?.gov_id])
 
     // Calculate bounds for Tunisia
     const tunisiaBounds = useMemo(() => {

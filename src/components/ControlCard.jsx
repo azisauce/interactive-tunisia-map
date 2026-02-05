@@ -1,6 +1,6 @@
 import AgencyAssignment from './AgencyAssignment'
 
-function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPath, onBack, onReset }) {
+function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPath, onBack, onReset, onNavigate, onLevelChange }) {
     const getLevelInfo = () => {
         switch (currentLevel) {
             case 'governorate':
@@ -106,7 +106,7 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
                             ) : (
                                 <button
                                     className="breadcrumb__link"
-                                    onClick={index === 0 ? onReset : undefined}
+                                    onClick={() => onNavigate(index)}
                                 >
                                     {crumb.label}
                                 </button>
@@ -139,6 +139,33 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
                     </div>
                     <div className="region-info__name">{selectedName.en}</div>
                     <div className="region-info__name-ar">{selectedName.ar}</div>
+                </div>
+            )}
+
+            {/* Level Selector - only in big view */}
+            {navigationPath.length === 0 && (
+                <div className="view-selector">
+                    <div className="view-selector__label">Split Map By:</div>
+                    <div className="view-selector__group">
+                        <button 
+                            className={`view-selector__btn ${currentLevel === 'governorate' ? 'view-selector__btn--active' : ''}`}
+                            onClick={() => onLevelChange('governorate')}
+                        >
+                            🏛️ Governorates
+                        </button>
+                        <button 
+                            className={`view-selector__btn ${currentLevel === 'municipality' ? 'view-selector__btn--active' : ''}`}
+                            onClick={() => onLevelChange('municipality')}
+                        >
+                            🏘️ Municipalities
+                        </button>
+                        <button 
+                            className={`view-selector__btn ${currentLevel === 'sector' ? 'view-selector__btn--active' : ''}`}
+                            onClick={() => onLevelChange('sector')}
+                        >
+                            📍 Sectors
+                        </button>
+                    </div>
                 </div>
             )}
 
