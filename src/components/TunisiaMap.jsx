@@ -256,40 +256,6 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         }
     }, [selectedRegion, currentLevel])
 
-    // Listen for assignment changes and refresh governorates/municipalities/sectors
-    useEffect(() => {
-        let mounted = true
-
-        const handler = async (e) => {
-            try {
-                // Always refresh governorates so parent flags update
-                // Parent App will refresh governorates; refresh local municipalities/sectors as needed
-                if (currentLevel === 'municipality' || currentLevel === 'sector') {
-                    const govId = selectedRegion?.properties?.gov_id
-                    const munData = await fetchMunicipalities(govId)
-                    if (!mounted) return
-                    setMunicipalities(munData)
-                }
-
-                if (currentLevel === 'sector') {
-                    const munUid = selectedRegion?.properties?.mun_uid
-                    const govId = selectedRegion?.properties?.gov_id
-                    const secData = await fetchSectors(munUid, govId)
-                    if (!mounted) return
-                    setSectors(secData)
-                }
-            } catch (err) {
-                // ignore
-            }
-        }
-
-        window.addEventListener('agencies:updated', handler)
-        return () => {
-            mounted = false
-            window.removeEventListener('agencies:updated', handler)
-        }
-    }, [currentLevel, selectedRegion])
-
     // Get style function for current level - highlights selected sector
     const getStyle = useCallback((feature) => {
         const levelStyles = styles[currentLevel] || styles.governorate
@@ -307,12 +273,6 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         const hasAgencies = feature.properties.assigned_agencies && 
                            feature.properties.assigned_agencies.length > 0
         const hasChildrenWithAgencies = feature.properties.has_children_with_agencies === true
-
-        // Debug logging for governorate coloring issues
-        if (currentLevel === 'governorate') {
-            // eslint-disable-next-line no-console
-            console.log('Governorate feature:', feature.properties.gov_id, 'hasAgencies:', hasAgencies, 'hasChildrenWithAgencies:', hasChildrenWithAgencies)
-        }
         
         if (hasAgencies || hasChildrenWithAgencies) {
             return levelStyles.withAgencies
@@ -321,20 +281,12 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         return levelStyles.default
     }, [currentLevel, selectedRegion])
 
-    // Get style for parent/context layer (feature-aware)
-    const getParentStyle = useCallback((feature) => {
+    // Get style for parent/context layer
+    const getParentStyle = useCallback(() => {
         const levelStyles = currentLevel === 'municipality'
             ? styles.governorate
             : styles.municipality
-
-        const hasAgencies = feature.properties.assigned_agencies && feature.properties.assigned_agencies.length > 0
-        const hasChildrenWithAgencies = feature.properties.has_children_with_agencies === true
-
-        if (hasAgencies || hasChildrenWithAgencies) {
-            return levelStyles.withAgencies
-        }
-
-        return levelStyles.default
+        return levelStyles.selected
     }, [currentLevel])
 
     // Event handlers for each feature
