@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents, Marker } from 'react-leaflet'
 import { fetchGovernorates, fetchMunicipalities, fetchSectors, fetchPickupPoints } from '../utils/api'
 import PickupPointPopup from './PickupPointPopup'
@@ -157,10 +157,61 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
     const [pickupPopupPosition, setPickupPopupPosition] = useState(null)
     const [pickupPoints, setPickupPoints] = useState([])
 
-    // Handle map click for pickup points
+    // Parent region for context display (needed for click validation)
+    const parentFeatures = useMemo(() => {
+        if (!governorates) return null
+
+        if (currentLevel === 'municipality' && navigationPath.length > 0) {
+            const selectedGov = navigationPath.find(p => p.level === 'governorate')
+            if (selectedGov) {
+                return {
+                    type: 'FeatureCollection',
+                    features: governorates.features.filter(
+                        f => f.properties.gov_id === selectedGov.region.properties.gov_id
+                    )
+                }
+            }
+        }
+
+        if (currentLevel === 'sector' && navigationPath.length > 1) {
+            const selectedMun = navigationPath.find(p => p.level === 'municipality')
+            if (selectedMun && municipalities) {
+                return {
+                    type: 'FeatureCollection',
+                    features: municipalities.features.filter(
+                        f => f.properties.mun_uid === selectedMun.region.properties.mun_uid
+                    )
+                }
+            }
+        }
+
+        return null
+    }, [currentLevel, navigationPath, governorates, municipalities])
+
+    // Handle map click for pickup points - now with validation
     const handleMapClick = useCallback((latlng) => {
+        if (currentLevel !== 'sector') return
+
+        // If we are in a specific municipality view, check if click is inside it
+        if (parentFeatures && parentFeatures.features.length > 0) {
+            const pt = turf.point([latlng.lng, latlng.lat])
+            let isInside = false
+            
+            for (const feat of parentFeatures.features) {
+                if (turf.booleanPointInPolygon(pt, feat)) {
+                    isInside = true
+                    break
+                }
+            }
+            
+            if (!isInside) {
+                console.log('Click outside active municipality, ignoring')
+                return
+            }
+        }
+
         setPickupPopupPosition({ lat: latlng.lat, lng: latlng.lng })
-    }, [])
+    }, [currentLevel, parentFeatures])
 
     // Close popup
     const handleClosePopup = useCallback(() => {
@@ -259,36 +310,6 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         return governorates
     }, [currentLevel, governorates, municipalities, sectors])
 
-    // Parent region for context display
-    const parentFeatures = useMemo(() => {
-        if (!governorates) return null
-
-        if (currentLevel === 'municipality' && navigationPath.length > 0) {
-            const selectedGov = navigationPath.find(p => p.level === 'governorate')
-            if (selectedGov) {
-                return {
-                    type: 'FeatureCollection',
-                    features: governorates.features.filter(
-                        f => f.properties.gov_id === selectedGov.region.properties.gov_id
-                    )
-                }
-            }
-        }
-
-        if (currentLevel === 'sector' && navigationPath.length > 1) {
-            const selectedMun = navigationPath.find(p => p.level === 'municipality')
-            if (selectedMun && municipalities) {
-                return {
-                    type: 'FeatureCollection',
-                    features: municipalities.features.filter(
-                        f => f.properties.mun_uid === selectedMun.region.properties.mun_uid
-                    )
-                }
-            }
-        }
-
-        return null
-    }, [currentLevel, navigationPath, governorates, municipalities])
 
     // Update bounds when selection changes
     useEffect(() => {
@@ -302,10 +323,12 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         }
     }, [selectedRegion, tunisiaBounds])
 
-    // Update map key to force re-render on level change
+    // Update map key to force re-render ONLY on level change
     useEffect(() => {
         setMapKey(prev => prev + 1)
-    }, [currentLevel, selectedRegion])
+        // Reset pickup popup on level change too
+        setPickupPopupPosition(null)
+    }, [currentLevel])
 
     // Update layer styles when selection changes (especially for sectors)
     useEffect(() => {
@@ -412,14 +435,18 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                 onRegionHover(null)
             },
             click: (e) => {
+                // If we are at sector level, we want to allow the map click to fire
+                // so the user can add a pickup point. If we are NOT at sector level,
+                // we stop propagation to avoid weird bubble issues.
                 if (currentLevel !== 'sector') {
+                    L.DomEvent.stopPropagation(e)
                     onRegionSelect(feature, currentLevel)
 
                     // Fit to clicked feature bounds
                     const clickedBounds = e.target.getBounds()
                     setBounds(clickedBounds)
                 } else {
-                    // For sectors, show selection without drill-down
+                    // For sectors, don't stop propagation so map click still works for pickup points
                     onRegionSelect(feature, currentLevel)
                 }
             }
@@ -501,4 +528,4 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
     )
 }
 
-export default TunisiaMap
+export default memo(TunisiaMap)
