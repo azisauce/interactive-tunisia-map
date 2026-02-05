@@ -1,14 +1,24 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Popup } from 'react-leaflet'
+import L from 'leaflet'
 import { fetchActiveAgencies, createPickupPoint } from '../utils/api'
 
 function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
+    const containerRef = useRef(null)
     const [agencies, setAgencies] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
     const [pickupPointName, setPickupPointName] = useState('')
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState(null)
+
+    // Prevent map interactions when inside the popup
+    useEffect(() => {
+        if (containerRef.current) {
+            L.DomEvent.disableClickPropagation(containerRef.current)
+            L.DomEvent.disableScrollPropagation(containerRef.current)
+        }
+    }, [])
 
     // Load agencies on mount
     useEffect(() => {
@@ -67,7 +77,11 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
         }
     }
 
-    const handleCancel = () => {
+    const handleCancel = (e) => {
+        if (e) {
+            e.stopPropagation()
+            e.preventDefault()
+        }
         onClose()
     }
 
@@ -79,7 +93,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
             autoClose={false}
             className="pickup-point-popup"
         >
-            <div className="pickup-popup-content">
+            <div className="pickup-popup-content" ref={containerRef}>
                 <h3 className="pickup-popup-title">
                     📍 Add Pickup Point
                 </h3>

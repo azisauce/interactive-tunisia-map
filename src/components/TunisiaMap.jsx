@@ -188,9 +188,10 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         return null
     }, [currentLevel, navigationPath, governorates, municipalities])
 
-    // Handle map click for pickup points - now with validation
+    // Handle map click for pickup points - now even more strictly validated
     const handleMapClick = useCallback((latlng) => {
-        if (currentLevel !== 'sector') return
+        // If popup is already open, don't update position (prevents re-renders while typing)
+        if (pickupPopupPosition || currentLevel !== 'sector') return
 
         // If we are in a specific municipality view, check if click is inside it
         if (parentFeatures && parentFeatures.features.length > 0) {
@@ -409,8 +410,11 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                 const target = e.target
                 target.setStyle(levelStyles.hover)
                 target.bringToFront()
-                // Notify parent about hover
-                onRegionHover(feature)
+                // Notify parent about hover - but only if no popup is open to avoid re-rendering
+                // which causes input focus issues
+                if (!pickupPopupPosition) {
+                    onRegionHover(feature)
+                }
             },
             mouseout: (e) => {
                 const target = e.target
@@ -432,7 +436,9 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                     target.setStyle(levelStyles.default)
                 }
                 // Clear hover state
-                onRegionHover(null)
+                if (!pickupPopupPosition) {
+                    onRegionHover(null)
+                }
             },
             click: (e) => {
                 // If we are at sector level, we want to allow the map click to fire
@@ -451,7 +457,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                 }
             }
         })
-    }, [currentLevel, onRegionSelect, onRegionHover, selectedRegion])
+    }, [currentLevel, onRegionSelect, onRegionHover, selectedRegion, pickupPopupPosition])
 
     if (error) {
         return (
@@ -519,6 +525,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
             {/* Pickup point popup */}
             {pickupPopupPosition && currentLevel === 'sector' && (
                 <PickupPointPopup
+                    key={`pickup-${pickupPopupPosition.lat}-${pickupPopupPosition.lng}`}
                     position={pickupPopupPosition}
                     onClose={handleClosePopup}
                     onPickupPointCreated={handlePickupPointCreated}
