@@ -51,7 +51,9 @@ const aggregateGovernorates = (data) => {
                         gov_ar: features[0].properties.gov_ar,
                         reg: features[0].properties.reg,
                         reg_en: features[0].properties.reg_en,
-                        reg_ar: features[0].properties.reg_ar
+                        reg_ar: features[0].properties.reg_ar,
+                        assigned_agencies: features[0].properties.assigned_agencies || [],
+                        has_children_with_agencies: features[0].properties.has_children_with_agencies || false
                     }
                 })
             }

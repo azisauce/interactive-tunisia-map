@@ -439,23 +439,10 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
             },
             mouseout: (e) => {
                 const target = e.target
-                // Restore the correct style (selected, withAgencies, or default)
-                const isSelected = currentLevel === 'sector' && selectedRegion && 
-                    (selectedRegion.properties.sec_uid === feature.properties.sec_uid)
-
-                const hasAgencies = feature.properties.assigned_agencies && 
-                                   feature.properties.assigned_agencies.length > 0
-
-                const hasChildrenWithAgencies = feature.properties.has_children_with_agencies === true
-
-                if (isSelected) {
-                    target.setStyle(levelStyles.selected)
-                } else if (hasAgencies || hasChildrenWithAgencies) {
-                    // Keep parent regions colored if any child has agencies
-                    target.setStyle(levelStyles.withAgencies)
-                } else {
-                    target.setStyle(levelStyles.default)
-                }
+                // Reset to the original style computed by getStyle
+                const originalStyle = getStyle(feature)
+                target.setStyle(originalStyle)
+                
                 // Clear hover state
                 if (!pickupPopupPosition) {
                     onRegionHover(null)
