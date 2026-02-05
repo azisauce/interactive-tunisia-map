@@ -75,15 +75,20 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
             onClose={onClose}
             maxWidth="sm"
             fullWidth
+            PaperProps={{ className: 'control-card pickup-control-card' }}
+            BackdropProps={{ invisible: true }}
         >
-            <DialogTitle style={{ 
-                borderBottom: '1px solid var(--border-color)',
-                paddingBottom: '12px'
-            }}>
-                📍 Add Pickup Point
+            <DialogTitle style={{ padding: 0 }}>
+                <div className="control-card__header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
+                    <div className="control-card__icon">📍</div>
+                    <div>
+                        <div className="control-card__title">Add Pickup Point</div>
+                        <div className="control-card__subtitle">Assign an agency to this location</div>
+                    </div>
+                </div>
             </DialogTitle>
-            
-            <DialogContent style={{ paddingTop: '20px' }}>
+
+            <DialogContent style={{ paddingTop: '16px' }}>
                 {loading ? (
                     <div style={{ 
                         display: 'flex', 
@@ -117,15 +122,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                                 onChange={(e) => setPickupPointName(e.target.value)}
                                 placeholder="Enter pickup point name"
                                 autoFocus
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    fontSize: '14px',
-                                    borderRadius: '6px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'white',
-                                    color: 'black'
-                                }}
+                                className="pickup-popup-input"
                             />
                         </div>
 
@@ -147,16 +144,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                                 value={selectedAgency}
                                 onChange={(e) => setSelectedAgency(e.target.value)}
                                 required
-                                style={{
-                                    width: '100%',
-                                    padding: '10px 12px',
-                                    fontSize: '14px',
-                                    borderRadius: '6px',
-                                    border: '1px solid var(--border-color)',
-                                    backgroundColor: 'white',
-                                    color: 'black',
-                                    cursor: 'pointer'
-                                }}
+                                className="pickup-popup-select"
                             >
                                 <option value="">Select an agency...</option>
                                 {agencies.map((agency) => (
@@ -194,10 +182,11 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                 )}
             </DialogContent>
             
-            <DialogActions style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)' }}>
+            <DialogActions style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)' }}>
                 <Button 
                     onClick={handleCancel}
                     disabled={submitting}
+                    className="pickup-popup-btn cancel"
                     style={{ textTransform: 'none' }}
                 >
                     Cancel
@@ -206,6 +195,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                     onClick={handleSubmit}
                     disabled={submitting || !selectedAgency || loading}
                     variant="contained"
+                    className="pickup-popup-btn submit"
                     style={{ textTransform: 'none' }}
                 >
                     {submitting ? 'Adding...' : 'Add Pickup Point'}

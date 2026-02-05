@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents, Marker } from 'react-leaflet'
-import { fetchGovernorates, fetchMunicipalities, fetchSectors, fetchPickupPoints } from '../utils/api'
+import { fetchGovernorates, fetchMunicipalities, fetchSectors, fetchPickupPoints, deletePickupPoint } from '../utils/api'
 import PickupPointPopup from './PickupPointPopup'
+import PickupPointDetails from './PickupPointDetails'
 import L from 'leaflet'
 import * as turf from '@turf/turf'
 
@@ -156,6 +157,8 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
     // Pickup point states
     const [pickupPopupPosition, setPickupPopupPosition] = useState(null)
     const [pickupPoints, setPickupPoints] = useState([])
+    const [selectedPickupPoint, setSelectedPickupPoint] = useState(null)
+    const [deletingPickupId, setDeletingPickupId] = useState(null)
 
     // Parent region for context display (needed for click validation)
     const parentFeatures = useMemo(() => {
@@ -519,6 +522,9 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                     key={point.id || index}
                     position={[point.latitude, point.longitude]}
                     icon={pickupIcon}
+                    eventHandlers={{
+                        click: () => setSelectedPickupPoint(point)
+                    }}
                 />
             ))}
 
@@ -529,6 +535,16 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                     position={pickupPopupPosition}
                     onClose={handleClosePopup}
                     onPickupPointCreated={handlePickupPointCreated}
+                />
+            )}
+
+            {/* Pickup point details dialog for existing points */}
+            {selectedPickupPoint && (
+                <PickupPointDetails
+                    point={selectedPickupPoint}
+                    open={true}
+                    onClose={() => setSelectedPickupPoint(null)}
+                    onDeleted={(id) => setPickupPoints(prev => prev.filter(p => String(p.id) !== String(id)))}
                 />
             )}
         </MapContainer>

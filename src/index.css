@@ -66,6 +66,27 @@ body {
   border-color: rgba(148, 163, 184, 0.3);
 }
 
+/* Control-card variant for Dialog Paper (popups) */
+.pickup-control-card {
+  /* Dialog paper should look like a control card but not be absolutely positioned */
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  margin: 20px auto !important;
+  z-index: 1400; /* above map but below any global modal */
+  min-width: 300px !important;
+  max-width: 420px !important;
+  padding: 16px !important;
+  border-radius: 24px !important;
+}
+
+/* Use the requested background for pickup dialogs and keep borders readable */
+.pickup-control-card {
+  background: #313747 !important;
+  border-color: rgba(148, 163, 184, 0.18) !important;
+  backdrop-filter: blur(12px) !important;
+}
+
 .control-card__header {
   display: flex;
   align-items: center;
@@ -598,7 +619,7 @@ body {
   flex: 1;
   padding: 10px 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: 16px;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
