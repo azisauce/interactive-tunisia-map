@@ -64,19 +64,27 @@ function AgencyAssignment({ currentLevel, selectedRegion }) {
         
         const p = region.properties
         
-        // For governorate level
-        if (level === 'governorate') {
+        // Navigation pattern:
+        // - When currentLevel is 'municipality', selectedRegion contains the governorate
+        // - When currentLevel is 'sector', selectedRegion contains either:
+        //   - The municipality (when we just drilled down from municipality)
+        //   - A sector (when a specific sector was clicked)
+        
+        if (level === 'municipality') {
+            // At municipality level, we're viewing municipalities of a governorate
+            // So assign agencies to the selected governorate
             return { zoneType: 'governorate', zoneId: p.gov_id }
         }
         
-        // For municipality level
-        if (level === 'municipality') {
-            return { zoneType: 'municipality', zoneId: p.mun_uid }
-        }
-        
-        // For sector level
         if (level === 'sector') {
-            return { zoneType: 'sector', zoneId: p.sec_uid }
+            // At sector level, check if a specific sector was selected
+            if (p.sec_uid) {
+                // A sector was selected, assign to the sector
+                return { zoneType: 'sector', zoneId: p.sec_uid }
+            } else if (p.mun_uid) {
+                // We drilled down from municipality, assign to the municipality
+                return { zoneType: 'municipality', zoneId: p.mun_uid }
+            }
         }
         
         return { zoneType: null, zoneId: null }
