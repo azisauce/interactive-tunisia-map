@@ -161,6 +161,37 @@ export async function deletePickupPoint(pickupPointId) {
     return response.json()
 }
 
+export async function addAgencyToPickupPoint(pickupPointId, agencyId) {
+    const response = await fetch(`${API_BASE_URL}/pickup-points/add-agency`, {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ pickupPointId, agencyId })
+    })
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(text || 'Failed to add agency to pickup point')
+    }
+
+    return response.json()
+}
+
+export async function removeAgencyFromPickupPoint(pickupPointAgencyId) {
+    const url = `${API_BASE_URL}/pickup-points/remove-agency/${pickupPointAgencyId}`
+
+    const response = await fetch(url, { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    })
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(text || 'Failed to remove agency from pickup point')
+    }
+
+    return response.json()
+}
+
 // export async function fetchAssignedAgencies(workingZoneType, workingZoneId) {
 //     const params = new URLSearchParams()
 //     params.append('workingZoneType', workingZoneType)

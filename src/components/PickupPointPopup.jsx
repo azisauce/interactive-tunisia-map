@@ -46,13 +46,19 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
 
             const result = await createPickupPoint(pickupPointData)
             
-            // Notify parent of new pickup point
+            // Notify parent of new pickup point with agencies array
             if (onPickupPointCreated) {
                 const agency = agencies.find(a => String(a.agenceId) === String(selectedAgency))
+                // Note: The backend returns the pickup point without agencies, 
+                // so we need to refresh the data or construct it manually
+                // For now, we'll trigger a refresh by closing and letting the parent reload
                 onPickupPointCreated({
                     ...result,
-                    ...pickupPointData,
-                    agencyName: agency?.nomAge || 'Unknown Agency'
+                    latitude: pickupPointData.latitude,
+                    longitude: pickupPointData.longitude,
+                    name: pickupPointData.name,
+                    agencies: [], // Parent should refresh pickup points to get full data
+                    needsRefresh: true
                 })
             }
             

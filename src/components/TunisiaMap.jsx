@@ -238,8 +238,16 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
     }, [])
 
     // Handle new pickup point created
-    const handlePickupPointCreated = useCallback((newPickupPoint) => {
-        setPickupPoints(prev => [...prev, newPickupPoint])
+    const handlePickupPointCreated = useCallback(async (newPickupPoint) => {
+        // Refresh all pickup points to get the full data with agencies
+        try {
+            const data = await fetchPickupPoints()
+            setPickupPoints(data || [])
+        } catch (err) {
+            console.error('Error refreshing pickup points:', err)
+            // Fallback: add the point without agencies
+            setPickupPoints(prev => [...prev, newPickupPoint])
+        }
     }, [])
 
     // Load pickup points when at sector level
@@ -550,6 +558,12 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                     open={true}
                     onClose={() => setSelectedPickupPoint(null)}
                     onDeleted={(id) => setPickupPoints(prev => prev.filter(p => String(p.id) !== String(id)))}
+                    onUpdated={(updatedPoint) => {
+                        setPickupPoints(prev => prev.map(p => 
+                            String(p.id) === String(updatedPoint.id) ? updatedPoint : p
+                        ))
+                        setSelectedPickupPoint(updatedPoint)
+                    }}
                 />
             )}
         </MapContainer>
