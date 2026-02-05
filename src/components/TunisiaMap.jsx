@@ -16,11 +16,26 @@ const pickupIcon = L.divIcon({
 })
 
 // Component to handle map click events
-function MapClickHandler({ currentLevel, onMapClick }) {
+function MapClickHandler({ currentLevel, onMapClick, selectedRegion }) {
     useMapEvents({
         click: (e) => {
             if (currentLevel === 'sector') {
-                onMapClick(e.latlng)
+                // Only allow creating pickup points inside the selected sector
+                if (selectedRegion && selectedRegion.type === 'Feature') {
+                    const pt = turf.point([e.latlng.lng, e.latlng.lat])
+                    try {
+                        if (turf.booleanPointInPolygon(pt, selectedRegion)) {
+                            onMapClick(e.latlng)
+                        } else {
+                            console.log('Click outside selected sector, ignoring')
+                        }
+                    } catch (err) {
+                        console.warn('Error checking point-in-polygon:', err)
+                    }
+                } else {
+                    // No sector selected => ignore clicks for pickup creation
+                    console.log('No sector selected, ignoring click')
+                }
             }
         }
     })
@@ -498,7 +513,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
             <BoundsFitter bounds={bounds || tunisiaBounds} />
 
             {/* Map click handler for pickup points */}
-            <MapClickHandler currentLevel={currentLevel} onMapClick={handleMapClick} />
+            <MapClickHandler currentLevel={currentLevel} onMapClick={handleMapClick} selectedRegion={selectedRegion} />
 
             {/* Parent/context layer */}
             {parentFeatures && (
