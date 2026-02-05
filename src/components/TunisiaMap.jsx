@@ -26,6 +26,13 @@ const styles = {
             color: '#16a34a',
             fillOpacity: 0.3
         },
+        withAgencies: {
+            fillColor: '#16a34a',
+            weight: 4,
+            opacity: 1,
+            color: '#15803d',
+            fillOpacity: 0.5
+        },
         hover: {
             fillOpacity: 0.5,
             weight: 3,
@@ -54,6 +61,13 @@ const styles = {
             color: '#2563eb',
             fillOpacity: 0.3
         },
+        withAgencies: {
+            fillColor: '#2563eb',
+            weight: 4,
+            opacity: 1,
+            color: '#1e40af',
+            fillOpacity: 0.5
+        },
         hover: {
             fillOpacity: 0.5,
             weight: 3,
@@ -81,6 +95,13 @@ const styles = {
             opacity: 1,
             color: '#d97706',
             fillOpacity: 0.3
+        },
+        withAgencies: {
+            fillColor: '#d97706',
+            weight: 3.5,
+            opacity: 1,
+            color: '#b45309',
+            fillOpacity: 0.5
         },
         hover: {
             fillOpacity: 0.5,
@@ -358,6 +379,14 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
             }
         }
 
+        // Check if feature has assigned agencies (direct or inherited)
+        const hasAgencies = feature.properties.assigned_agencies && 
+                           feature.properties.assigned_agencies.length > 0
+        
+        if (hasAgencies) {
+            return levelStyles.withAgencies
+        }
+
         return levelStyles.default
     }, [currentLevel, selectedRegion])
 
@@ -409,10 +438,20 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, onRegionSele
             },
             mouseout: (e) => {
                 const target = e.target
-                // Restore the correct style (selected or default)
+                // Restore the correct style (selected, withAgencies, or default)
                 const isSelected = currentLevel === 'sector' && selectedRegion && 
                     (selectedRegion.properties.sec_uid === feature.properties.sec_uid)
-                target.setStyle(isSelected ? levelStyles.selected : levelStyles.default)
+                
+                const hasAgencies = feature.properties.assigned_agencies && 
+                                   feature.properties.assigned_agencies.length > 0
+                
+                if (isSelected) {
+                    target.setStyle(levelStyles.selected)
+                } else if (hasAgencies) {
+                    target.setStyle(levelStyles.withAgencies)
+                } else {
+                    target.setStyle(levelStyles.default)
+                }
                 // Clear hover state
                 onRegionHover(null)
             },
