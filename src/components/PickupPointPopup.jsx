@@ -1,24 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
-import { Popup } from 'react-leaflet'
-import L from 'leaflet'
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
 import { fetchActiveAgencies, createPickupPoint } from '../utils/api'
 
 function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
-    const containerRef = useRef(null)
     const [agencies, setAgencies] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
     const [pickupPointName, setPickupPointName] = useState('')
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState(null)
-
-    // Prevent map interactions when inside the popup
-    useEffect(() => {
-        if (containerRef.current) {
-            L.DomEvent.disableClickPropagation(containerRef.current)
-            L.DomEvent.disableScrollPropagation(containerRef.current)
-        }
-    }, [])
 
     // Load agencies on mount
     useEffect(() => {
@@ -37,9 +27,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
         loadAgencies()
     }, [])
 
-    const handleSubmit = async (e) => {
-        e.preventDefault()
-        
+    const handleSubmit = async () => {
         if (!selectedAgency) {
             setError('Please select an agency')
             return
@@ -77,54 +65,98 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
         }
     }
 
-    const handleCancel = (e) => {
-        if (e) {
-            e.stopPropagation()
-            e.preventDefault()
-        }
+    const handleCancel = () => {
         onClose()
     }
 
     return (
-        <Popup
-            position={[position.lat, position.lng]}
+        <Dialog 
+            open={true} 
             onClose={onClose}
-            closeOnClick={false}
-            autoClose={false}
-            className="pickup-point-popup"
+            maxWidth="sm"
+            fullWidth
         >
-            <div className="pickup-popup-content" ref={containerRef}>
-                <h3 className="pickup-popup-title">
-                    📍 Add Pickup Point
-                </h3>
-                
+            <DialogTitle style={{ 
+                borderBottom: '1px solid var(--border-color)',
+                paddingBottom: '12px'
+            }}>
+                📍 Add Pickup Point
+            </DialogTitle>
+            
+            <DialogContent style={{ paddingTop: '20px' }}>
                 {loading ? (
-                    <div className="pickup-popup-loading">
+                    <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px', 
+                        padding: '20px 0',
+                        justifyContent: 'center' 
+                    }}>
                         <div className="loading__spinner small"></div>
                         <span>Loading agencies...</span>
                     </div>
                 ) : (
-                    <form onSubmit={handleSubmit} className="pickup-popup-form">
-                        <div className="pickup-popup-field">
-                            <label htmlFor="pickupName">Name (optional)</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div>
+                            <label 
+                                htmlFor="pickupName" 
+                                style={{ 
+                                    display: 'block',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    marginBottom: '8px',
+                                    color: 'var(--text-primary)'
+                                }}
+                            >
+                                Name (optional)
+                            </label>
                             <input
                                 id="pickupName"
                                 type="text"
                                 value={pickupPointName}
                                 onChange={(e) => setPickupPointName(e.target.value)}
                                 placeholder="Enter pickup point name"
-                                className="pickup-popup-input"
+                                autoFocus
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 12px',
+                                    fontSize: '14px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)',
+                                    backgroundColor: 'white',
+                                    color: 'black'
+                                }}
                             />
                         </div>
 
-                        <div className="pickup-popup-field">
-                            <label htmlFor="agencySelect">Assign Agency *</label>
+                        <div>
+                            <label 
+                                htmlFor="agencySelect" 
+                                style={{ 
+                                    display: 'block',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    marginBottom: '8px',
+                                    color: 'var(--text-primary)'
+                                }}
+                            >
+                                Assign Agency *
+                            </label>
                             <select
                                 id="agencySelect"
                                 value={selectedAgency}
                                 onChange={(e) => setSelectedAgency(e.target.value)}
-                                className="pickup-popup-select"
                                 required
+                                style={{
+                                    width: '100%',
+                                    padding: '10px 12px',
+                                    fontSize: '14px',
+                                    borderRadius: '6px',
+                                    border: '1px solid var(--border-color)',
+                                    backgroundColor: 'white',
+                                    color: 'black',
+                                    cursor: 'pointer'
+                                }}
                             >
                                 <option value="">Select an agency...</option>
                                 {agencies.map((agency) => (
@@ -135,37 +167,51 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                             </select>
                         </div>
 
-                        <div className="pickup-popup-coordinates">
-                            <span>📌 {position.lat.toFixed(6)}, {position.lng.toFixed(6)}</span>
+                        <div style={{
+                            fontSize: '12px',
+                            color: 'var(--text-secondary)',
+                            padding: '8px',
+                            backgroundColor: 'rgba(0, 0, 0, 0.03)',
+                            borderRadius: '6px',
+                            textAlign: 'center'
+                        }}>
+                            📌 {position.lat.toFixed(6)}, {position.lng.toFixed(6)}
                         </div>
 
                         {error && (
-                            <div className="pickup-popup-error">
+                            <div style={{
+                                padding: '10px',
+                                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                borderRadius: '8px',
+                                color: '#ef4444',
+                                fontSize: '13px'
+                            }}>
                                 ⚠️ {error}
                             </div>
                         )}
-
-                        <div className="pickup-popup-actions">
-                            <button 
-                                type="button" 
-                                onClick={handleCancel}
-                                className="pickup-popup-btn cancel"
-                                disabled={submitting}
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                type="submit" 
-                                className="pickup-popup-btn submit"
-                                disabled={submitting || !selectedAgency}
-                            >
-                                {submitting ? 'Adding...' : 'Add Pickup Point'}
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 )}
-            </div>
-        </Popup>
+            </DialogContent>
+            
+            <DialogActions style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)' }}>
+                <Button 
+                    onClick={handleCancel}
+                    disabled={submitting}
+                    style={{ textTransform: 'none' }}
+                >
+                    Cancel
+                </Button>
+                <Button 
+                    onClick={handleSubmit}
+                    disabled={submitting || !selectedAgency || loading}
+                    variant="contained"
+                    style={{ textTransform: 'none' }}
+                >
+                    {submitting ? 'Adding...' : 'Add Pickup Point'}
+                </Button>
+            </DialogActions>
+        </Dialog>
     )
 }
 
