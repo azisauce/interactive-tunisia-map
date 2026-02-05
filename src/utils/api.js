@@ -110,6 +110,57 @@ export async function removeAgencyFromList(agencyWorkingZoneId) {
     return response.json()
 }
 
+// ========== Pickup Points API ==========
+
+export async function fetchPickupPoints(sectorId = null) {
+    const params = new URLSearchParams()
+    if (sectorId) params.append('sec_uid', sectorId)
+    
+    const queryString = params.toString()
+    const url = queryString 
+        ? `${API_BASE_URL}/pickup-points?${queryString}`
+        : `${API_BASE_URL}/pickup-points`
+    
+    const response = await fetch(url, {
+        headers: getAuthHeaders()
+    })
+    if (!response.ok) {
+        throw new Error('Failed to fetch pickup points')
+    }
+    return response.json()
+}
+
+export async function createPickupPoint(pickupPointData) {
+    const response = await fetch(`${API_BASE_URL}/pickup-points`, {
+        method: 'POST',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(pickupPointData)
+    })
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(text || 'Failed to create pickup point')
+    }
+
+    return response.json()
+}
+
+export async function deletePickupPoint(pickupPointId) {
+    const url = `${API_BASE_URL}/pickup-points/${pickupPointId}`
+
+    const response = await fetch(url, { 
+        method: 'DELETE',
+        headers: getAuthHeaders()
+    })
+
+    if (!response.ok) {
+        const text = await response.text().catch(() => '')
+        throw new Error(text || 'Failed to delete pickup point')
+    }
+
+    return response.json()
+}
+
 // export async function fetchAssignedAgencies(workingZoneType, workingZoneId) {
 //     const params = new URLSearchParams()
 //     params.append('workingZoneType', workingZoneType)

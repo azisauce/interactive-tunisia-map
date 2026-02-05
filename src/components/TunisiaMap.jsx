@@ -1,7 +1,30 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
-import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet'
-import { fetchGovernorates, fetchMunicipalities, fetchSectors } from '../utils/api'
+import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents, Marker } from 'react-leaflet'
+import { fetchGovernorates, fetchMunicipalities, fetchSectors, fetchPickupPoints } from '../utils/api'
+import PickupPointPopup from './PickupPointPopup'
+import L from 'leaflet'
 import * as turf from '@turf/turf'
+
+// Custom marker icon for pickup points
+const pickupIcon = L.divIcon({
+    className: 'pickup-marker-icon',
+    html: '<div class="pickup-marker">📍</div>',
+    iconSize: [30, 30],
+    iconAnchor: [15, 30],
+    popupAnchor: [0, -30]
+})
+
+// Component to handle map click events
+function MapClickHandler({ currentLevel, onMapClick }) {
+    useMapEvents({
+        click: (e) => {
+            if (currentLevel === 'sector') {
+                onMapClick(e.latlng)
+            }
+        }
+    })
+    return null
+}
 
 // Bounds fitter component
 function BoundsFitter({ bounds }) {
@@ -129,6 +152,45 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
     const [mapKey, setMapKey] = useState(0)
     const geoJsonRef = useRef()
     const layersRef = useRef(new Map())
+    
+    // Pickup point states
+    const [pickupPopupPosition, setPickupPopupPosition] = useState(null)
+    const [pickupPoints, setPickupPoints] = useState([])
+
+    // Handle map click for pickup points
+    const handleMapClick = useCallback((latlng) => {
+        setPickupPopupPosition({ lat: latlng.lat, lng: latlng.lng })
+    }, [])
+
+    // Close popup
+    const handleClosePopup = useCallback(() => {
+        setPickupPopupPosition(null)
+    }, [])
+
+    // Handle new pickup point created
+    const handlePickupPointCreated = useCallback((newPickupPoint) => {
+        setPickupPoints(prev => [...prev, newPickupPoint])
+    }, [])
+
+    // Load pickup points when at sector level
+    useEffect(() => {
+        const loadPickupPoints = async () => {
+            if (currentLevel === 'sector') {
+                try {
+                    const data = await fetchPickupPoints()
+                    setPickupPoints(data || [])
+                } catch (err) {
+                    console.error('Error loading pickup points:', err)
+                }
+            }
+        }
+        loadPickupPoints()
+    }, [currentLevel])
+
+    // Clear pickup popup when level changes
+    useEffect(() => {
+        setPickupPopupPosition(null)
+    }, [currentLevel])
 
     // Load municipalities when drilling down or switching level
     useEffect(() => {
@@ -396,6 +458,9 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
 
             <BoundsFitter bounds={bounds || tunisiaBounds} />
 
+            {/* Map click handler for pickup points */}
+            <MapClickHandler currentLevel={currentLevel} onMapClick={handleMapClick} />
+
             {/* Parent/context layer */}
             {parentFeatures && (
                 <GeoJSON
@@ -412,6 +477,24 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                     data={filteredFeatures}
                     style={getStyle}
                     onEachFeature={onEachFeature}
+                />
+            )}
+
+            {/* Existing pickup point markers */}
+            {currentLevel === 'sector' && pickupPoints.map((point, index) => (
+                <Marker
+                    key={point.id || index}
+                    position={[point.latitude, point.longitude]}
+                    icon={pickupIcon}
+                />
+            ))}
+
+            {/* Pickup point popup */}
+            {pickupPopupPosition && currentLevel === 'sector' && (
+                <PickupPointPopup
+                    position={pickupPopupPosition}
+                    onClose={handleClosePopup}
+                    onPickupPointCreated={handlePickupPointCreated}
                 />
             )}
         </MapContainer>

@@ -478,3 +478,181 @@ body {
 .view-selector__btn--active:hover {
   background: rgba(37, 99, 235, 0.3);
 }
+
+/* Pickup Point Popup Styles */
+.pickup-point-popup .leaflet-popup-content-wrapper {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 0;
+  min-width: 280px;
+}
+
+.pickup-point-popup .leaflet-popup-content {
+  margin: 0;
+  width: 100% !important;
+}
+
+.pickup-point-popup .leaflet-popup-tip {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.pickup-popup-content {
+  padding: 16px;
+}
+
+.pickup-popup-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pickup-popup-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 0;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.loading__spinner.small {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.pickup-popup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pickup-popup-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pickup-popup-field label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.pickup-popup-input,
+.pickup-popup-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.pickup-popup-input:focus,
+.pickup-popup-select:focus {
+  border-color: var(--primary-light);
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.pickup-popup-select option {
+  background: #1e293b;
+  color: var(--text-primary);
+}
+
+.pickup-popup-coordinates {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.pickup-popup-error {
+  padding: 10px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  color: #f87171;
+  font-size: 13px;
+}
+
+.pickup-popup-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pickup-popup-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pickup-popup-btn.cancel {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.pickup-popup-btn.cancel:hover {
+  background: rgba(148, 163, 184, 0.25);
+  color: var(--text-primary);
+}
+
+.pickup-popup-btn.submit {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  color: white;
+}
+
+.pickup-popup-btn.submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
+  transform: translateY(-1px);
+}
+
+.pickup-popup-btn.submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Pickup Marker Styles */
+.pickup-marker-icon {
+  background: transparent;
+  border: none;
+}
+
+.pickup-marker {
+  font-size: 24px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  animation: marker-bounce 0.3s ease-out;
+}
+
+@keyframes marker-bounce {
+  0% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
