@@ -85,16 +85,16 @@ export async function removeAgencyFromList(agencyWorkingZoneId) {
     return response.json()
 }
 
-export async function fetchAssignedAgencies(workingZoneType, workingZoneId) {
-    const params = new URLSearchParams()
-    params.append('workingZoneType', workingZoneType)
-    params.append('workingZoneId', workingZoneId)
+// export async function fetchAssignedAgencies(workingZoneType, workingZoneId) {
+//     const params = new URLSearchParams()
+//     params.append('workingZoneType', workingZoneType)
+//     params.append('workingZoneId', workingZoneId)
     
-    const url = `${API_BASE_URL}/assigned-agencies?${params.toString()}`
+//     const url = `${API_BASE_URL}/assigned-agencies?${params.toString()}`
     
-    const response = await fetch(url)
-    if (!response.ok) {
-        throw new Error('Failed to fetch assigned agencies')
-    }
-    return response.json()
-}
+//     const response = await fetch(url)
+//     if (!response.ok) {
+//         throw new Error('Failed to fetch assigned agencies')
+//     }
+//     return response.json()
+// }
