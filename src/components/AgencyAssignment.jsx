@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
-import { fetchActiveAgencies, addAgencyToList, removeAgencyFromList, fetchAssignedAgencies } from '../utils/api'
+import { fetchActiveAgencies, addAgencyToList, removeAgencyFromList } from '../utils/api'
 
 function AgencyAssignment({ currentLevel, selectedRegion }) {
     const [allAgencies, setAllAgencies] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
     const [loadingAgencies, setLoadingAgencies] = useState(true)
     const [assignedAgencies, setAssignedAgencies] = useState([])
-    const [loadingAssigned, setLoadingAssigned] = useState(false)
     const [isAdding, setIsAdding] = useState(false)
     const [removingId, setRemovingId] = useState(null)
     const [errorOpen, setErrorOpen] = useState(false)
@@ -33,30 +32,18 @@ function AgencyAssignment({ currentLevel, selectedRegion }) {
 
     // Load assigned agencies when region changes
     useEffect(() => {
-        async function loadAssignedAgencies() {
-            if (!selectedRegion) {
-                setAssignedAgencies([])
-                return
-            }
-
-            try {
-                setLoadingAssigned(true)
-                const { zoneType, zoneId } = deriveZoneInfo(selectedRegion, currentLevel)
-                if (!zoneId) {
-                    setAssignedAgencies([])
-                    return
-                }
-                
-                const data = await fetchAssignedAgencies(zoneType, zoneId)
-                setAssignedAgencies(data)
-            } catch (error) {
-                console.error('Error fetching assigned agencies:', error)
-                setAssignedAgencies([])
-            } finally {
-                setLoadingAssigned(false)
-            }
+        if (!selectedRegion) {
+            setAssignedAgencies([])
+            return
         }
-        loadAssignedAgencies()
+
+        // Use embedded agencies from region properties if available
+        const embeddedAgencies = selectedRegion.properties?.assigned_agencies
+        if (embeddedAgencies && Array.isArray(embeddedAgencies)) {
+            setAssignedAgencies(embeddedAgencies)
+        } else {
+            setAssignedAgencies([])
+        }
     }, [selectedRegion, currentLevel])
 
     const deriveZoneInfo = (region, level) => {
@@ -113,12 +100,24 @@ function AgencyAssignment({ currentLevel, selectedRegion }) {
             const agency = allAgencies.find(a => String(a.agenceId) === String(selectedAgency))
             if (agency) {
                 // Add the new assignment with the returned id
-                setAssignedAgencies(prev => [...prev, { 
+                const newAgency = {
                     ...agency, 
                     agencyWorkingZoneId: result.id,
                     zoneType, 
-                    zoneId 
-                }])
+                    zoneId,
+                    inherited: false
+                }
+                
+                setAssignedAgencies(prev => [...prev, newAgency])
+                
+                // Also update the embedded data in selectedRegion to keep it in sync
+                if (selectedRegion && selectedRegion.properties) {
+                    if (!selectedRegion.properties.assigned_agencies) {
+                        selectedRegion.properties.assigned_agencies = []
+                    }
+                    selectedRegion.properties.assigned_agencies.push(newAgency)
+                }
+                
                 setSelectedAgency('')
             }
         } catch (err) {
@@ -134,6 +133,13 @@ function AgencyAssignment({ currentLevel, selectedRegion }) {
         try {
             await removeAgencyFromList(agencyWorkingZoneId)
             setAssignedAgencies(prev => prev.filter(a => a.agencyWorkingZoneId !== agencyWorkingZoneId))
+            
+            // Also update the embedded data in selectedRegion to keep it in sync
+            if (selectedRegion && selectedRegion.properties && selectedRegion.properties.assigned_agencies) {
+                selectedRegion.properties.assigned_agencies = selectedRegion.properties.assigned_agencies.filter(
+                    a => a.agencyWorkingZoneId !== agencyWorkingZoneId
+                )
+            }
         } catch (err) {
             setErrorMessage(err?.message || 'Failed to remove agency')
             setErrorOpen(true)
@@ -224,10 +230,7 @@ function AgencyAssignment({ currentLevel, selectedRegion }) {
                 <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '8px', color: 'var(--text-primary)' }}>
                     Assigned Agencies:
                 </div>
-                {loadingAssigned ? (
-                    <div style={{ color: '#888', fontSize: '13px', padding: '8px 0' }}>Loading...</div>
-                ) : (
-                    <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                         {assignedAgencies.length === 0 ? (
                             <li style={{ color: '#888', fontSize: '13px', padding: '8px 0' }}>
                                 No agencies assigned to this region yet.
@@ -241,40 +244,53 @@ function AgencyAssignment({ currentLevel, selectedRegion }) {
                                     padding: '8px 12px',
                                     marginBottom: '4px',
                                     borderRadius: '4px',
-                                    backgroundColor: 'var(--bg-secondary, #f8f9fa)',
-                                    border: '1px solid var(--border-color, #e9ecef)',
+                                    backgroundColor: agency.inherited ? 'var(--bg-inherited, #fff3cd)' : 'var(--bg-secondary, #f8f9fa)',
+                                    border: `1px solid ${agency.inherited ? '#ffc107' : 'var(--border-color, #e9ecef)'}`,
                                     fontSize: '14px',
                                     color: 'black'
                                 }}>
-                                    <span style={{ fontWeight: '500' }}>
+                                    <span style={{ fontWeight: '500', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         {agency.nomAge || agency.agenceName || `Agency ${agency.agenceId}`}
+                                        {agency.inherited && (
+                                            <span style={{ 
+                                                fontSize: '11px', 
+                                                padding: '2px 6px', 
+                                                backgroundColor: '#ffc107',
+                                                color: '#000',
+                                                borderRadius: '3px',
+                                                fontWeight: '600'
+                                            }}>
+                                                INHERITED
+                                            </span>
+                                        )}
                                     </span>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleRemoveAgency(agency.agencyWorkingZoneId, agency.agenceId)}
-                                        disabled={String(removingId) === String(agency.agenceId)}
-                                        style={{
-                                            marginLeft: '12px',
-                                            padding: '4px 12px',
-                                            fontSize: '13px',
-                                            fontWeight: '500',
-                                            borderRadius: '4px',
-                                            background: String(removingId) === String(agency.agenceId) ? '#ccc' : '#e74c3c',
-                                            color: 'white',
-                                            border: 'none',
-                                            cursor: String(removingId) === String(agency.agenceId) ? 'not-allowed' : 'pointer',
-                                            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
-                                            transition: 'background 0.2s'
-                                        }}
-                                        aria-label={`Remove ${agency.nomAge || `Agency ${agency.agenceId}`}`}
-                                    >
-                                        {String(removingId) === String(agency.agenceId) ? 'Removing...' : 'Delete'}
-                                    </button>
+                                    {!agency.inherited && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveAgency(agency.agencyWorkingZoneId, agency.agenceId)}
+                                            disabled={String(removingId) === String(agency.agenceId)}
+                                            style={{
+                                                marginLeft: '12px',
+                                                padding: '4px 12px',
+                                                fontSize: '13px',
+                                                fontWeight: '500',
+                                                borderRadius: '4px',
+                                                background: String(removingId) === String(agency.agenceId) ? '#ccc' : '#e74c3c',
+                                                color: 'white',
+                                                border: 'none',
+                                                cursor: String(removingId) === String(agency.agenceId) ? 'not-allowed' : 'pointer',
+                                                boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                                                transition: 'background 0.2s'
+                                            }}
+                                            aria-label={`Remove ${agency.nomAge || `Agency ${agency.agenceId}`}`}
+                                        >
+                                            {String(removingId) === String(agency.agenceId) ? 'Removing...' : 'Delete'}
+                                        </button>
+                                    )}
                                 </li>
                             ))
                         )}
                     </ul>
-                )}
             </div>
 
             {/* Error Dialog */}
