@@ -74,7 +74,7 @@ function App() {
     const [hoveredRegion, setHoveredRegion] = useState(null)
     const [navigationPath, setNavigationPath] = useState([])
     const [governorates, setGovernorates] = useState(null)
-    const [showPickupPoints, setShowPickupPoints] = useState(true)
+    const [showLocations, setShowLocations] = useState(true)
 
     // Load governorates once at app level
     useEffect(() => {
@@ -199,7 +199,7 @@ function App() {
                 governorates={governorates}
                 onRegionSelect={handleRegionSelect}
                 onRegionHover={handleRegionHover}
-                showPickupPoints={showPickupPoints}
+                showLocations={showLocations}
             />
             <ControlCard
                 currentLevel={currentLevel}
@@ -210,8 +210,8 @@ function App() {
                 onReset={handleReset}
                 onNavigate={handleNavigate}
                 onLevelChange={handleLevelChange}
-                showPickupPoints={showPickupPoints}
-                onTogglePickupPoints={() => setShowPickupPoints(prev => !prev)}
+                showLocations={showLocations}
+                onToggleLocations={() => setShowLocations(prev => !prev)}
             />
         </div>
     )

@@ -194,7 +194,7 @@ const styles = {
 
 
 
-function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates, onRegionSelect, onRegionHover, showPickupPoints = true }) {
+function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates, onRegionSelect, onRegionHover, showLocations = true }) {
     const [municipalities, setMunicipalities] = useState(null)
     const [sectors, setSectors] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -604,7 +604,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
             )}
 
             {/* Existing location markers (visible for current view) */}
-            {showPickupPoints && locations.filter(isPointVisible).map((point, index) => (
+            {showLocations && locations.filter(isPointVisible).map((point, index) => (
                 <Marker
                     key={point.id || index}
                     position={[point.latitude, point.longitude]}
