@@ -108,16 +108,18 @@ function AgencyAssignment({ currentLevel, selectedRegion }) {
                     inherited: false
                 }
                 
-                setAssignedAgencies(prev => [...prev, newAgency])
-                
-                // Also update the embedded data in selectedRegion to keep it in sync
-                if (selectedRegion && selectedRegion.properties) {
-                    if (!selectedRegion.properties.assigned_agencies) {
-                        selectedRegion.properties.assigned_agencies = []
+                // Create a new array for assigned agencies (avoid mutating the
+                // embedded `selectedRegion.properties.assigned_agencies` which may
+                // be the same reference as component state). Use functional update
+                // to ensure we operate on the latest state.
+                setAssignedAgencies(prev => {
+                    const newAssigned = [...prev, newAgency]
+                    if (selectedRegion && selectedRegion.properties) {
+                        selectedRegion.properties.assigned_agencies = newAssigned
                     }
-                    selectedRegion.properties.assigned_agencies.push(newAgency)
-                }
-                
+                    return newAssigned
+                })
+
                 setSelectedAgency('')
             }
         } catch (err) {
