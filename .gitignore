@@ -28,7 +28,7 @@ lerna-debug.log*
 *.sw?
 
 # Build outputs
-dist
+# dist
 dist-ssr
 *.local
 

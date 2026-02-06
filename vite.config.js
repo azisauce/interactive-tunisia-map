@@ -4,4 +4,8 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
     base: '/map/',
     plugins: [react()],
+    build: {
+        outDir: '../administrator-server/public/map',
+        emptyOutDir: true,
+    }
 })
