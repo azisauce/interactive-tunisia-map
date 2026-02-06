@@ -390,6 +390,16 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         const featureId = feature.properties.sec_uid || feature.properties.mun_uid || feature.properties.gov_id
         layersRef.current.set(featureId, layer)
 
+        // Compute and store the base style for this layer so hover can merge
+        try {
+            const base = getStyle(feature) || levelStyles.default
+            // store it directly on the layer so event handlers can access a reliable baseline
+            layer.__baseStyle = base
+            layer.setStyle(base)
+        } catch (err) {
+            // ignore style set errors
+        }
+
         // Get the correct name based on current level
         let nameEn, nameAr
         if (currentLevel === 'governorate') {
@@ -417,8 +427,11 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         layer.on({
             mouseover: (e) => {
                 const target = e.target
-                target.setStyle(levelStyles.hover)
-                target.bringToFront()
+                const baseStyle = target.__baseStyle || getStyle(feature) || levelStyles.default
+                const hoverStyle = Object.assign({}, baseStyle, levelStyles.hover || {})
+                try { target.setStyle(hoverStyle) } catch (err) {}
+                try { target.bringToFront() } catch (err) {}
+                try { target.openTooltip() } catch (err) {}
                 // Notify parent about hover - but only if no popup is open to avoid re-rendering
                 // which causes input focus issues
                 if (!pickupPopupPosition) {
@@ -427,10 +440,10 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
             },
             mouseout: (e) => {
                 const target = e.target
-                // Reset to the original style computed by getStyle
-                const originalStyle = getStyle(feature)
-                target.setStyle(originalStyle)
-                
+                const originalStyle = target.__baseStyle || getStyle(feature) || levelStyles.default
+                try { target.setStyle(originalStyle) } catch (err) {}
+                try { target.closeTooltip() } catch (err) {}
+
                 // Clear hover state
                 if (!pickupPopupPosition) {
                     onRegionHover(null)
