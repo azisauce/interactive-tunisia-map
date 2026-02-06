@@ -1,6 +1,6 @@
 import AgencyAssignment from './AgencyAssignment'
 
-function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPath, onBack, onReset, onNavigate, onLevelChange }) {
+function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPath, onBack, onReset, onNavigate, onLevelChange, showPickupPoints = true, onTogglePickupPoints }) {
     const getLevelInfo = () => {
         switch (currentLevel) {
             case 'governorate':
@@ -168,6 +168,16 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
                     </div>
                 </div>
             )}
+
+            {/* Pickup points toggle */}
+            <div style={{ marginTop: '12px' }}>
+                <button
+                    className={`btn ${showPickupPoints ? 'btn--primary' : 'btn--secondary'}`}
+                    onClick={onTogglePickupPoints}
+                >
+                    {showPickupPoints ? 'Hide Pickup Points' : 'Show Pickup Points'}
+                </button>
+            </div>
 
             {/* Instruction */}
             {currentLevel !== 'sector' && (

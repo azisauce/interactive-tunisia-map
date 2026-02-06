@@ -16,26 +16,24 @@ const pickupIcon = L.divIcon({
 })
 
 // Component to handle map click events
-function MapClickHandler({ currentLevel, onMapClick, selectedRegion }) {
+function MapClickHandler({ onMapClick, selectedRegion }) {
     useMapEvents({
         click: (e) => {
-            if (currentLevel === 'sector') {
-                // Only allow creating pickup points inside the selected sector
-                if (selectedRegion && selectedRegion.type === 'Feature') {
-                    const pt = turf.point([e.latlng.lng, e.latlng.lat])
-                    try {
-                        if (turf.booleanPointInPolygon(pt, selectedRegion)) {
-                            onMapClick(e.latlng)
-                        } else {
-                            console.log('Click outside selected sector, ignoring')
-                        }
-                    } catch (err) {
-                        console.warn('Error checking point-in-polygon:', err)
+            // Allow creating pickup points when a region is selected (any level).
+            if (selectedRegion && selectedRegion.type === 'Feature') {
+                const pt = turf.point([e.latlng.lng, e.latlng.lat])
+                try {
+                    if (turf.booleanPointInPolygon(pt, selectedRegion)) {
+                        onMapClick(e.latlng)
+                    } else {
+                        console.log('Click outside selected region, ignoring')
                     }
-                } else {
-                    // No sector selected => ignore clicks for pickup creation
-                    console.log('No sector selected, ignoring click')
+                } catch (err) {
+                    console.warn('Error checking point-in-polygon:', err)
                 }
+            } else {
+                // No region selected => ignore clicks for pickup creation
+                console.log('No region selected, ignoring click')
             }
         }
     })
@@ -159,7 +157,7 @@ const styles = {
 
 
 
-function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates, onRegionSelect, onRegionHover }) {
+function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates, onRegionSelect, onRegionHover, showPickupPoints = true }) {
     const [municipalities, setMunicipalities] = useState(null)
     const [sectors, setSectors] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -208,28 +206,11 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
     // Handle map click for pickup points - now even more strictly validated
     const handleMapClick = useCallback((latlng) => {
         // If popup is already open, don't update position (prevents re-renders while typing)
-        if (pickupPopupPosition || currentLevel !== 'sector') return
+        if (pickupPopupPosition) return
 
-        // If we are in a specific municipality view, check if click is inside it
-        if (parentFeatures && parentFeatures.features.length > 0) {
-            const pt = turf.point([latlng.lng, latlng.lat])
-            let isInside = false
-            
-            for (const feat of parentFeatures.features) {
-                if (turf.booleanPointInPolygon(pt, feat)) {
-                    isInside = true
-                    break
-                }
-            }
-            
-            if (!isInside) {
-                console.log('Click outside active municipality, ignoring')
-                return
-            }
-        }
-
+        // MapClickHandler already validates the click is inside the selected region.
         setPickupPopupPosition({ lat: latlng.lat, lng: latlng.lng })
-    }, [currentLevel, parentFeatures])
+    }, [pickupPopupPosition])
 
     // Close popup
     const handleClosePopup = useCallback(() => {
@@ -249,20 +230,18 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         }
     }, [])
 
-    // Load pickup points when at sector level
+    // Load pickup points once (we'll filter them by view when rendering)
     useEffect(() => {
         const loadPickupPoints = async () => {
-            if (currentLevel === 'sector') {
-                try {
-                    const data = await fetchPickupPoints()
-                    setPickupPoints(data || [])
-                } catch (err) {
-                    console.error('Error loading pickup points:', err)
-                }
+            try {
+                const data = await fetchPickupPoints()
+                setPickupPoints(data || [])
+            } catch (err) {
+                console.error('Error loading pickup points:', err)
             }
         }
         loadPickupPoints()
-    }, [currentLevel])
+    }, [])
 
     // Clear pickup popup when level changes
     useEffect(() => {
@@ -433,6 +412,8 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
             className: 'custom-tooltip'
         })
 
+        const addableLevels = new Set(['sector', 'municipality', 'governorate'])
+
         layer.on({
             mouseover: (e) => {
                 const target = e.target
@@ -456,10 +437,8 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                 }
             },
             click: (e) => {
-                // If we are at sector level, we want to allow the map click to fire
-                // so the user can add a pickup point. If we are NOT at sector level,
-                // we stop propagation to avoid weird bubble issues.
-                if (currentLevel !== 'sector') {
+                // Allow map clicks to propagate for addable levels so pickup creation works
+                if (!addableLevels.has(currentLevel)) {
                     L.DomEvent.stopPropagation(e)
                     onRegionSelect(feature, currentLevel)
 
@@ -467,12 +446,40 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                     const clickedBounds = e.target.getBounds()
                     setBounds(clickedBounds)
                 } else {
-                    // For sectors, don't stop propagation so map click still works for pickup points
+                    // For addable levels (sector/municipality/governorate), allow propagation
                     onRegionSelect(feature, currentLevel)
                 }
             }
         })
     }, [currentLevel, onRegionSelect, onRegionHover, selectedRegion, pickupPopupPosition])
+
+    // Helper: determine if a pickup point should be visible given the current view
+    const isPointVisible = useCallback((point) => {
+        try {
+            if (!point || !point.longitude || !point.latitude) return false
+            const pt = turf.point([Number(point.longitude), Number(point.latitude)])
+
+            // If a single region is selected, show only points inside it
+            if (selectedRegion && selectedRegion.type === 'Feature') {
+                return turf.booleanPointInPolygon(pt, selectedRegion)
+            }
+
+            // Otherwise, if we have filteredFeatures (the current visible features),
+            // check whether the point is inside any of them
+            if (filteredFeatures && filteredFeatures.type === 'FeatureCollection') {
+                for (const feat of filteredFeatures.features || []) {
+                    if (turf.booleanPointInPolygon(pt, feat)) return true
+                }
+                return false
+            }
+
+            // Fallback: show the point
+            return true
+        } catch (err) {
+            console.warn('Error checking pickup visibility:', err)
+            return false
+        }
+    }, [selectedRegion, filteredFeatures])
 
     if (error) {
         return (
@@ -528,8 +535,8 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                 />
             )}
 
-            {/* Existing pickup point markers */}
-            {currentLevel === 'sector' && pickupPoints.map((point, index) => (
+            {/* Existing pickup point markers (visible for current view) */}
+            {showPickupPoints && pickupPoints.filter(isPointVisible).map((point, index) => (
                 <Marker
                     key={point.id || index}
                     position={[point.latitude, point.longitude]}
@@ -541,7 +548,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
             ))}
 
             {/* Pickup point popup */}
-            {pickupPopupPosition && currentLevel === 'sector' && (
+            {pickupPopupPosition && (
                 <PickupPointPopup
                     key={`pickup-${pickupPopupPosition.lat}-${pickupPopupPosition.lng}`}
                     position={pickupPopupPosition}
