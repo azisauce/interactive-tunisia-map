@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton } from '@mui/material'
-import { deletePickupPoint, addAgencyToPickupPoint, removeAgencyFromPickupPoint, fetchActiveAgencies } from '../utils/api'
+import { deletePickupPoint, addAgencyToPickupPoint, removeAgencyFromPickupPoint, fetchActiveAgenciesCached as fetchActiveAgencies } from '../utils/api'
 
 function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated }) {
     const [loading, setLoading] = useState(false)

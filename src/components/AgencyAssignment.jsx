@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
-import { fetchActiveAgencies, addAgencyToList, removeAgencyFromList } from '../utils/api'
+import { fetchActiveAgenciesCached as fetchActiveAgencies, addAgencyToList, removeAgencyFromList } from '../utils/api'
 
 function AgencyAssignment({ currentLevel, selectedRegion }) {
     const [allAgencies, setAllAgencies] = useState([])

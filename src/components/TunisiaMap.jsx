@@ -173,7 +173,6 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
     const [pickupPopupPosition, setPickupPopupPosition] = useState(null)
     const [pickupPoints, setPickupPoints] = useState([])
     const [selectedPickupPoint, setSelectedPickupPoint] = useState(null)
-    const [deletingPickupId, setDeletingPickupId] = useState(null)
 
     // Parent region for context display (needed for click validation)
     const parentFeatures = useMemo(() => {

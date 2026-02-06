@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
-import { fetchActiveAgencies, createPickupPoint } from '../utils/api'
+import { fetchActiveAgenciesCached as fetchActiveAgencies, createPickupPoint } from '../utils/api'
 
 function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
     const [agencies, setAgencies] = useState([])

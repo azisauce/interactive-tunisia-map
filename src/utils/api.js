@@ -68,6 +68,7 @@ export async function fetchStats() {
 }
 
 export async function fetchActiveAgencies() {
+    // Simple passthrough; a cached implementation is available via fetchActiveAgenciesCached
     const response = await fetch(`${API_BASE_URL}/active-agencies`, {
         headers: getAuthHeaders()
     })
@@ -75,6 +76,52 @@ export async function fetchActiveAgencies() {
         throw new Error('Failed to fetch active agencies')
     }
     return response.json()
+}
+
+// ========== Cached Active Agencies ==========
+// Module-level cache to avoid repeated network calls from multiple components.
+let _activeAgenciesCache = null
+let _activeAgenciesPromise = null
+let _activeAgenciesLastFetched = 0
+const ACTIVE_AGENCIES_TTL = 1000 * 60 * 5 // 5 minutes
+
+export async function fetchActiveAgenciesCached({ forceRefresh = false } = {}) {
+    const now = Date.now()
+
+    if (!forceRefresh && _activeAgenciesCache && (now - _activeAgenciesLastFetched) < ACTIVE_AGENCIES_TTL) {
+        return _activeAgenciesCache
+    }
+
+    if (!forceRefresh && _activeAgenciesPromise) {
+        return _activeAgenciesPromise
+    }
+
+    _activeAgenciesPromise = (async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/active-agencies`, {
+                headers: getAuthHeaders()
+            })
+            if (!response.ok) throw new Error('Failed to fetch active agencies')
+            const data = await response.json()
+            _activeAgenciesCache = data
+            _activeAgenciesLastFetched = Date.now()
+            return data
+        } finally {
+            _activeAgenciesPromise = null
+        }
+    })()
+
+    return _activeAgenciesPromise
+}
+
+export function invalidateActiveAgenciesCache() {
+    _activeAgenciesCache = null
+    _activeAgenciesLastFetched = 0
+}
+
+export async function refreshActiveAgencies() {
+    invalidateActiveAgenciesCache()
+    return fetchActiveAgenciesCached({ forceRefresh: true })
 }
 
 export async function addAgencyToList(agencyId, workingZoneType, workingZoneId) {
