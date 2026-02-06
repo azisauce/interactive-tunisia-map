@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents, Marker } from 'react-leaflet'
-import { fetchGovernorates, fetchMunicipalities, fetchSectors, fetchPickupPoints, deletePickupPoint } from '../utils/api'
+import { fetchMunicipalities, fetchSectors, fetchPickupPoints, deletePickupPoint } from '../utils/api'
 import PickupPointPopup from './PickupPointPopup'
 import PickupPointDetails from './PickupPointDetails'
 import L from 'leaflet'
@@ -70,6 +70,13 @@ const styles = {
             color: '#15803d',
             fillOpacity: 0.5
         },
+        selectedWithAgencies: {
+            fillColor: '#15803d',
+            weight: 4,
+            opacity: 1,
+            color: '#4ade80',
+            fillOpacity: 0.6
+        },
         hover: {
             fillOpacity: 0.5,
             weight: 3,
@@ -105,6 +112,13 @@ const styles = {
             color: '#1e40af',
             fillOpacity: 0.5
         },
+        selectedWithAgencies: {
+            fillColor: '#1e40af',
+            weight: 4,
+            opacity: 1,
+            color: '#60a5fa',
+            fillOpacity: 0.6
+        },
         hover: {
             fillOpacity: 0.5,
             weight: 3,
@@ -139,6 +153,13 @@ const styles = {
             opacity: 1,
             color: '#b45309',
             fillOpacity: 0.5
+        },
+        selectedWithAgencies: {
+            fillColor: '#b45309',
+            weight: 3.5,
+            opacity: 1,
+            color: '#fbbf24',
+            fillOpacity: 0.7
         },
         hover: {
             fillOpacity: 0.5,
@@ -335,44 +356,66 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         setPickupPopupPosition(null)
     }, [currentLevel])
 
-    // Update layer styles when selection changes (especially for sectors)
-    useEffect(() => {
-        if (currentLevel === 'sector' && layersRef.current.size > 0) {
-            const levelStyles = styles.sector
-            layersRef.current.forEach((layer, featureId) => {
-                const isSelected = selectedRegion && selectedRegion.properties.sec_uid === featureId
-                layer.setStyle(isSelected ? levelStyles.selected : levelStyles.default)
-            })
-        }
-    }, [selectedRegion, currentLevel])
-
-    // Get style function for current level - highlights selected sector and checks for direct, inherited or child agencies
-    const getStyle = useCallback((feature) => {
-        const levelStyles = styles[currentLevel] || styles.governorate
-
-        // Selected feature (prefer sector id then municipality)
-        if (selectedRegion) {
-            const selectedId = selectedRegion.properties.sec_uid || selectedRegion.properties.mun_uid || selectedRegion.properties.gov_id
-            const featureId = feature.properties.sec_uid || feature.properties.mun_uid || feature.properties.gov_id
-            if (selectedId === featureId) {
-                return levelStyles.selected
-            }
-        }
-
-        // Helper: check a few possible property names for assigned/inherited agencies
+    // Helper: check if a feature has agencies (direct, inherited, or via children)
+    const checkHasAgencies = useCallback((feature) => {
         const props = feature.properties || {}
         const hasDirectAgencies = Array.isArray(props.assigned_agencies) && props.assigned_agencies.length > 0
         const hasInheritedAgencies = (Array.isArray(props.inherited_agencies) && props.inherited_agencies.length > 0)
             || (Array.isArray(props.inherited_assigned_agencies) && props.inherited_assigned_agencies.length > 0)
             || (Array.isArray(props.parent_assigned_agencies) && props.parent_assigned_agencies.length > 0)
         const hasChildrenWithAgencies = props.has_children_with_agencies === true || (Number(props.children_with_agencies_count) > 0)
+        return hasDirectAgencies || hasInheritedAgencies || hasChildrenWithAgencies
+    }, [])
 
-        if (hasDirectAgencies || hasInheritedAgencies || hasChildrenWithAgencies) {
+    // Update layer styles when selection changes (especially for sectors)
+    useEffect(() => {
+        if (currentLevel === 'sector' && layersRef.current.size > 0 && filteredFeatures) {
+            const levelStyles = styles.sector
+            layersRef.current.forEach((layer, featureId) => {
+                // Find the feature data for this layer to check agencies
+                const feature = filteredFeatures.features?.find(f => {
+                    const fid = f.properties.sec_uid || f.properties.mun_uid || f.properties.gov_id
+                    return fid === featureId
+                })
+                const hasAgencies = feature ? checkHasAgencies(feature) : false
+                const isSelected = selectedRegion && selectedRegion.properties.sec_uid === featureId
+
+                let newStyle
+                if (isSelected && hasAgencies) {
+                    newStyle = levelStyles.selectedWithAgencies
+                } else if (isSelected) {
+                    newStyle = levelStyles.selected
+                } else if (hasAgencies) {
+                    newStyle = levelStyles.withAgencies
+                } else {
+                    newStyle = levelStyles.default
+                }
+                layer.setStyle(newStyle)
+                layer.__baseStyle = newStyle
+            })
+        }
+    }, [selectedRegion, currentLevel, filteredFeatures, checkHasAgencies])
+
+    // Get style function for current level - highlights selected sector and checks for direct, inherited or child agencies
+    const getStyle = useCallback((feature) => {
+        const levelStyles = styles[currentLevel] || styles.governorate
+        const hasAgencies = checkHasAgencies(feature)
+
+        // Check if this feature is the selected one
+        if (selectedRegion) {
+            const selectedId = selectedRegion.properties.sec_uid || selectedRegion.properties.mun_uid || selectedRegion.properties.gov_id
+            const featureId = feature.properties.sec_uid || feature.properties.mun_uid || feature.properties.gov_id
+            if (selectedId === featureId) {
+                return hasAgencies ? levelStyles.selectedWithAgencies : levelStyles.selected
+            }
+        }
+
+        if (hasAgencies) {
             return levelStyles.withAgencies
         }
 
         return levelStyles.default
-    }, [currentLevel, selectedRegion])
+    }, [currentLevel, selectedRegion, checkHasAgencies])
 
     // Get style for parent/context layer
     const getParentStyle = useCallback(() => {
@@ -467,18 +510,14 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
     }, [currentLevel, onRegionSelect, onRegionHover, selectedRegion, pickupPopupPosition])
 
     // Helper: determine if a pickup point should be visible given the current view
+    // Always show all points within the currently visible features (filteredFeatures),
+    // not just the selected region. Selecting a sector should NOT hide other sectors' points.
     const isPointVisible = useCallback((point) => {
         try {
             if (!point || !point.longitude || !point.latitude) return false
             const pt = turf.point([Number(point.longitude), Number(point.latitude)])
 
-            // If a single region is selected, show only points inside it
-            if (selectedRegion && selectedRegion.type === 'Feature') {
-                return turf.booleanPointInPolygon(pt, selectedRegion)
-            }
-
-            // Otherwise, if we have filteredFeatures (the current visible features),
-            // check whether the point is inside any of them
+            // Check if the point is inside any of the currently visible features
             if (filteredFeatures && filteredFeatures.type === 'FeatureCollection') {
                 for (const feat of filteredFeatures.features || []) {
                     if (turf.booleanPointInPolygon(pt, feat)) return true
@@ -492,7 +531,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
             console.warn('Error checking pickup visibility:', err)
             return false
         }
-    }, [selectedRegion, filteredFeatures])
+    }, [filteredFeatures])
 
     if (error) {
         return (
