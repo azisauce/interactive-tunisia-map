@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3007/api/tunisia-regions'
+const API_BASE_URL = '/api/tunisia-regions'
 
 /**
  * Helper to get headers with accessToken from localStorage
