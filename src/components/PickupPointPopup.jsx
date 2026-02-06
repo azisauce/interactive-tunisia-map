@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
-import { fetchActiveAgenciesCached as fetchActiveAgencies, createPickupPoint } from '../utils/api'
+import { fetchActiveAgenciesCached as fetchActiveAgencies, createLocation } from '../utils/api'
 
 function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
     const [agencies, setAgencies] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
     const [pickupPointName, setPickupPointName] = useState('')
+    const [locationType, setLocationType] = useState('pickup_point')
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState(null)
@@ -37,35 +38,34 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
             setSubmitting(true)
             setError(null)
 
-            const pickupPointData = {
-                name: pickupPointName || `Pickup Point`,
+            const locationData = {
+                name: pickupPointName || 'Location',
+                type: locationType,
                 latitude: position.lat,
                 longitude: position.lng,
                 agencyId: parseInt(selectedAgency, 10)
             }
 
-            const result = await createPickupPoint(pickupPointData)
+            const result = await createLocation(locationData)
             
-            // Notify parent of new pickup point with agencies array
+            // Notify parent of new location with agencies array
             if (onPickupPointCreated) {
                 const agency = agencies.find(a => String(a.agenceId) === String(selectedAgency))
-                // Note: The backend returns the pickup point without agencies, 
-                // so we need to refresh the data or construct it manually
-                // For now, we'll trigger a refresh by closing and letting the parent reload
                 onPickupPointCreated({
                     ...result,
-                    latitude: pickupPointData.latitude,
-                    longitude: pickupPointData.longitude,
-                    name: pickupPointData.name,
-                    agencies: [], // Parent should refresh pickup points to get full data
+                    latitude: locationData.latitude,
+                    longitude: locationData.longitude,
+                    name: locationData.name,
+                    type: locationData.type,
+                    agencies: [],
                     needsRefresh: true
                 })
             }
             
             onClose()
         } catch (err) {
-            console.error('Error creating pickup point:', err)
-            setError(err.message || 'Failed to create pickup point')
+            console.error('Error creating location:', err)
+            setError(err.message || 'Failed to create location')
         } finally {
             setSubmitting(false)
         }
@@ -88,8 +88,8 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                 <div className="control-card__header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
                     <div className="control-card__icon">📍</div>
                     <div>
-                        <div className="control-card__title">Add Pickup Point</div>
-                        <div className="control-card__subtitle">Assign an agency to this location</div>
+                        <div className="control-card__title">Add Location</div>
+                        <div className="control-card__subtitle">Place a pickup point, driving school, or exam center</div>
                     </div>
                 </div>
             </DialogTitle>
@@ -110,6 +110,31 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div>
                             <label 
+                                htmlFor="locationType" 
+                                style={{ 
+                                    display: 'block',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    marginBottom: '8px',
+                                    color: 'var(--text-primary)'
+                                }}
+                            >
+                                Location Type *
+                            </label>
+                            <select
+                                id="locationType"
+                                value={locationType}
+                                onChange={(e) => setLocationType(e.target.value)}
+                                className="pickup-popup-select"
+                            >
+                                <option value="pickup_point">📍 Pickup Point</option>
+                                <option value="driving_school">🏫 Driving School</option>
+                                <option value="exam_center">📝 Exam Center</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label 
                                 htmlFor="pickupName" 
                                 style={{ 
                                     display: 'block',
@@ -126,7 +151,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                                 type="text"
                                 value={pickupPointName}
                                 onChange={(e) => setPickupPointName(e.target.value)}
-                                placeholder="Enter pickup point name"
+                                placeholder="Enter location name"
                                 autoFocus
                                 className="pickup-popup-input"
                             />
@@ -204,7 +229,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                     className="pickup-popup-btn submit"
                     style={{ textTransform: 'none' }}
                 >
-                    {submitting ? 'Adding...' : 'Add Pickup Point'}
+                    {submitting ? 'Adding...' : 'Add Location'}
                 </Button>
             </DialogActions>
         </Dialog>

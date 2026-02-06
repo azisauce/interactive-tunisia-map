@@ -1,19 +1,35 @@
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents, Marker } from 'react-leaflet'
-import { fetchMunicipalities, fetchSectors, fetchPickupPoints, deletePickupPoint } from '../utils/api'
+import { fetchMunicipalities, fetchSectors, fetchLocations, deleteLocation } from '../utils/api'
 import PickupPointPopup from './PickupPointPopup'
 import PickupPointDetails from './PickupPointDetails'
 import L from 'leaflet'
 import * as turf from '@turf/turf'
 
-// Custom marker icon for pickup points
-const pickupIcon = L.divIcon({
-    className: 'pickup-marker-icon',
-    html: '<div class="pickup-marker">📍</div>',
-    iconSize: [30, 30],
-    iconAnchor: [15, 30],
-    popupAnchor: [0, -30]
-})
+// Custom marker icons for different location types
+const locationIcons = {
+    pickup_point: L.divIcon({
+        className: 'pickup-marker-icon',
+        html: '<div class="pickup-marker">📍</div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+    }),
+    driving_school: L.divIcon({
+        className: 'pickup-marker-icon',
+        html: '<div class="pickup-marker">🏫</div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+    }),
+    exam_center: L.divIcon({
+        className: 'pickup-marker-icon',
+        html: '<div class="pickup-marker">📝</div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+    })
+}
 
 // Component to handle map click events
 function MapClickHandler({ onMapClick, selectedRegion }) {
@@ -188,9 +204,9 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
     const geoJsonRef = useRef()
     const layersRef = useRef(new Map())
     
-    // Pickup point states
+    // Location states (pickup points, driving schools, exam centers)
     const [pickupPopupPosition, setPickupPopupPosition] = useState(null)
-    const [pickupPoints, setPickupPoints] = useState([])
+    const [locations, setLocations] = useState([])
     const [selectedPickupPoint, setSelectedPickupPoint] = useState(null)
 
     // Parent region for context display (needed for click validation)
@@ -238,30 +254,30 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         setPickupPopupPosition(null)
     }, [])
 
-    // Handle new pickup point created
-    const handlePickupPointCreated = useCallback(async (newPickupPoint) => {
-        // Refresh all pickup points to get the full data with agencies
+    // Handle new location created
+    const handlePickupPointCreated = useCallback(async (newLocation) => {
+        // Refresh all locations to get the full data with agencies
         try {
-            const data = await fetchPickupPoints()
-            setPickupPoints(data || [])
+            const data = await fetchLocations()
+            setLocations(data || [])
         } catch (err) {
-            console.error('Error refreshing pickup points:', err)
-            // Fallback: add the point without agencies
-            setPickupPoints(prev => [...prev, newPickupPoint])
+            console.error('Error refreshing locations:', err)
+            // Fallback: add the location without agencies
+            setLocations(prev => [...prev, newLocation])
         }
     }, [])
 
-    // Load pickup points once (we'll filter them by view when rendering)
+    // Load locations once (we'll filter them by view when rendering)
     useEffect(() => {
-        const loadPickupPoints = async () => {
+        const loadLocations = async () => {
             try {
-                const data = await fetchPickupPoints()
-                setPickupPoints(data || [])
+                const data = await fetchLocations()
+                setLocations(data || [])
             } catch (err) {
-                console.error('Error loading pickup points:', err)
+                console.error('Error loading locations:', err)
             }
         }
-        loadPickupPoints()
+        loadLocations()
     }, [])
 
     // Clear pickup popup when level changes
@@ -587,12 +603,12 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                 />
             )}
 
-            {/* Existing pickup point markers (visible for current view) */}
-            {showPickupPoints && pickupPoints.filter(isPointVisible).map((point, index) => (
+            {/* Existing location markers (visible for current view) */}
+            {showPickupPoints && locations.filter(isPointVisible).map((point, index) => (
                 <Marker
                     key={point.id || index}
                     position={[point.latitude, point.longitude]}
-                    icon={pickupIcon}
+                    icon={locationIcons[point.type] || locationIcons.pickup_point}
                     eventHandlers={{
                         click: () => setSelectedPickupPoint(point)
                     }}
@@ -615,9 +631,9 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
                     point={selectedPickupPoint}
                     open={true}
                     onClose={() => setSelectedPickupPoint(null)}
-                    onDeleted={(id) => setPickupPoints(prev => prev.filter(p => String(p.id) !== String(id)))}
+                    onDeleted={(id) => setLocations(prev => prev.filter(p => String(p.id) !== String(id)))}
                     onUpdated={(updatedPoint) => {
-                        setPickupPoints(prev => prev.map(p => 
+                        setLocations(prev => prev.map(p => 
                             String(p.id) === String(updatedPoint.id) ? updatedPoint : p
                         ))
                         setSelectedPickupPoint(updatedPoint)

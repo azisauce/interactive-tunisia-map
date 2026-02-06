@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton } from '@mui/material'
-import { deletePickupPoint, addAgencyToPickupPoint, removeAgencyFromPickupPoint, fetchActiveAgenciesCached as fetchActiveAgencies } from '../utils/api'
+import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies } from '../utils/api'
 
 function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated }) {
     const [loading, setLoading] = useState(false)
@@ -34,11 +34,11 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
         setError(null)
         setLoading(true)
         try {
-            await deletePickupPoint(point.id)
+            await deleteLocation(point.id)
             if (onDeleted) onDeleted(point.id)
             onClose()
         } catch (err) {
-            console.error('Failed to delete pickup point', err)
+            console.error('Failed to delete location', err)
             setError(err?.message || 'Failed to delete')
         } finally {
             setLoading(false)
@@ -54,14 +54,14 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
         setError(null)
         setAddingAgency(true)
         try {
-            const result = await addAgencyToPickupPoint(point.id, parseInt(selectedAgency, 10))
+            const result = await addAgencyToLocation(point.id, parseInt(selectedAgency, 10))
             
             // Find the agency details
             const agency = agencies.find(a => String(a.agenceId) === String(selectedAgency))
             
             // Update the point with new agency
             const newAgency = {
-                pickupPointAgencyId: result.id,
+                locationAgencyId: result.id,
                 agencyId: parseInt(selectedAgency, 10),
                 agencyName: agency?.nomAge || 'Unknown Agency'
             }
@@ -78,19 +78,19 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
         }
     }
 
-    const handleRemoveAgency = async (pickupPointAgencyId) => {
+    const handleRemoveAgency = async (locationAgencyId) => {
         setError(null)
-        setRemovingAgencyId(pickupPointAgencyId)
+        setRemovingAgencyId(locationAgencyId)
         try {
-            const result = await removeAgencyFromPickupPoint(pickupPointAgencyId)
+            const result = await removeAgencyFromLocation(locationAgencyId)
             
-            if (result.pickupPointDeleted) {
-                // The entire pickup point was deleted
+            if (result.locationDeleted) {
+                // The entire location was deleted
                 if (onDeleted) onDeleted(point.id)
                 onClose()
             } else {
                 // Just remove the agency from the list
-                point.agencies = (point.agencies || []).filter(a => a.pickupPointAgencyId !== pickupPointAgencyId)
+                point.agencies = (point.agencies || []).filter(a => a.locationAgencyId !== locationAgencyId)
                 if (onUpdated) onUpdated(point)
             }
         } catch (err) {
@@ -105,13 +105,21 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
     const assignedAgencyIds = pointAgencies.map(a => String(a.agencyId))
     const availableAgencies = agencies.filter(a => !assignedAgencyIds.includes(String(a.agenceId)))
 
+    const typeLabels = {
+        pickup_point: '📍 Pickup Point',
+        driving_school: '🏫 Driving School',
+        exam_center: '📝 Exam Center'
+    }
+    const typeLabel = typeLabels[point.type] || typeLabels.pickup_point
+    const typeIcon = point.type === 'driving_school' ? '🏫' : point.type === 'exam_center' ? '📝' : '📍'
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ className: 'control-card pickup-control-card' }} BackdropProps={{ invisible: true }}>
             <DialogTitle style={{ padding: 0 }}>
                 <div className="control-card__header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
-                    <div className="control-card__icon">📍</div>
+                    <div className="control-card__icon">{typeIcon}</div>
                     <div>
-                        <div className="control-card__title">Pickup Point</div>
+                        <div className="control-card__title">{typeLabel}</div>
                         <div className="control-card__subtitle">Details</div>
                     </div>
                 </div>
@@ -120,7 +128,8 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
             <DialogContent style={{ overflowX: 'hidden' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div>
-                        <div style={{ fontWeight: 600, color: 'white', marginBottom: 4 }}>{point.name || 'Pickup Point'}</div>
+                        <div style={{ fontWeight: 600, color: 'white', marginBottom: 4 }}>{point.name || 'Location'}</div>
+                        <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-block', padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>{typeLabel}</div>
                         <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)' }}>📌 {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}</div>
                         {point.createdAt && (
                             <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginTop: 4 }}>Created: {new Date(point.createdAt).toLocaleString()}</div>
@@ -140,7 +149,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                                 {pointAgencies.map((agency) => (
                                     <div 
-                                        key={agency.pickupPointAgencyId} 
+                                        key={agency.locationAgencyId} 
                                         style={{ 
                                             display: 'flex', 
                                             alignItems: 'center', 
@@ -154,15 +163,15 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                                         <div style={{ color: 'white', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{agency.agencyName || 'Unknown Agency'}</div>
                                         <IconButton
                                             size="small"
-                                            onClick={() => handleRemoveAgency(agency.pickupPointAgencyId)}
-                                            disabled={removingAgencyId === agency.pickupPointAgencyId}
+                                            onClick={() => handleRemoveAgency(agency.locationAgencyId)}
+                                            disabled={removingAgencyId === agency.locationAgencyId}
                                             style={{ 
                                                 color: '#ef4444',
                                                 padding: '4px'
                                             }}
                                             title="Remove agency"
                                         >
-                                            {removingAgencyId === agency.pickupPointAgencyId ? '⏳' : '🗑️'}
+                                            {removingAgencyId === agency.locationAgencyId ? '⏳' : '🗑️'}
                                         </IconButton>
                                     </div>
                                 ))}
@@ -226,7 +235,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
             <DialogActions style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)' }}>
                 <Button onClick={onClose} disabled={loading} className="pickup-popup-btn cancel">Close</Button>
                 <Button onClick={handleDelete} color="error" variant="contained" disabled={loading} className="pickup-popup-btn submit">
-                    {loading ? 'Deleting...' : 'Delete Point'}
+                    {loading ? 'Deleting...' : 'Delete Location'}
                 </Button>
             </DialogActions>
         </Dialog>

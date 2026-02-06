@@ -157,43 +157,44 @@ export async function removeAgencyFromList(agencyWorkingZoneId) {
     return response.json()
 }
 
-// ========== Pickup Points API ==========
+// ========== Locations API (pickup points, driving schools, exam centers) ==========
 
-export async function fetchPickupPoints(sectorId = null) {
+export async function fetchLocations(sectorId = null, type = null) {
     const params = new URLSearchParams()
     if (sectorId) params.append('sec_uid', sectorId)
+    if (type) params.append('type', type)
     
     const queryString = params.toString()
     const url = queryString 
-        ? `${API_BASE_URL}/pickup-points?${queryString}`
-        : `${API_BASE_URL}/pickup-points`
+        ? `${API_BASE_URL}/locations?${queryString}`
+        : `${API_BASE_URL}/locations`
     
     const response = await fetch(url, {
         headers: getAuthHeaders()
     })
     if (!response.ok) {
-        throw new Error('Failed to fetch pickup points')
+        throw new Error('Failed to fetch locations')
     }
     return response.json()
 }
 
-export async function createPickupPoint(pickupPointData) {
-    const response = await fetch(`${API_BASE_URL}/pickup-points`, {
+export async function createLocation(locationData) {
+    const response = await fetch(`${API_BASE_URL}/locations`, {
         method: 'POST',
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(pickupPointData)
+        body: JSON.stringify(locationData)
     })
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(text || 'Failed to create pickup point')
+        throw new Error(text || 'Failed to create location')
     }
 
     return response.json()
 }
 
-export async function deletePickupPoint(pickupPointId) {
-    const url = `${API_BASE_URL}/pickup-points/${pickupPointId}`
+export async function deleteLocation(locationId) {
+    const url = `${API_BASE_URL}/locations/${locationId}`
 
     const response = await fetch(url, { 
         method: 'DELETE',
@@ -202,29 +203,29 @@ export async function deletePickupPoint(pickupPointId) {
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(text || 'Failed to delete pickup point')
+        throw new Error(text || 'Failed to delete location')
     }
 
     return response.json()
 }
 
-export async function addAgencyToPickupPoint(pickupPointId, agencyId) {
-    const response = await fetch(`${API_BASE_URL}/pickup-points/add-agency`, {
+export async function addAgencyToLocation(locationId, agencyId) {
+    const response = await fetch(`${API_BASE_URL}/locations/add-agency`, {
         method: 'POST',
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ pickupPointId, agencyId })
+        body: JSON.stringify({ locationId, agencyId })
     })
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(text || 'Failed to add agency to pickup point')
+        throw new Error(text || 'Failed to add agency to location')
     }
 
     return response.json()
 }
 
-export async function removeAgencyFromPickupPoint(pickupPointAgencyId) {
-    const url = `${API_BASE_URL}/pickup-points/remove-agency/${pickupPointAgencyId}`
+export async function removeAgencyFromLocation(locationAgencyId) {
+    const url = `${API_BASE_URL}/locations/remove-agency/${locationAgencyId}`
 
     const response = await fetch(url, { 
         method: 'DELETE',
@@ -233,7 +234,7 @@ export async function removeAgencyFromPickupPoint(pickupPointAgencyId) {
 
     if (!response.ok) {
         const text = await response.text().catch(() => '')
-        throw new Error(text || 'Failed to remove agency from pickup point')
+        throw new Error(text || 'Failed to remove agency from location')
     }
 
     return response.json()
