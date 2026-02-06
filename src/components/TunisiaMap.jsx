@@ -57,100 +57,100 @@ function BoundsFitter({ bounds }) {
 const styles = {
     governorate: {
         default: {
-            fillColor: '#dcfce7', // very light green
+            fillColor: '#22c55e',
             weight: 2,
             opacity: 1,
-            color: '#86efac',
-            fillOpacity: 0.35
+            color: '#16a34a',
+            fillOpacity: 0.3
         },
         withAgencies: {
-            fillColor: '#34d399', // stronger green when agencies present
+            fillColor: '#16a34a',
             weight: 4,
             opacity: 1,
-            color: '#059669',
-            fillOpacity: 0.65
+            color: '#15803d',
+            fillOpacity: 0.5
         },
         hover: {
-            fillOpacity: 0.6,
+            fillOpacity: 0.5,
             weight: 3,
             color: '#4ade80'
         },
         inactive: {
-            fillColor: '#e6eef0',
+            fillColor: '#64748b',
             weight: 1,
             opacity: 0.5,
-            color: '#b6c1bf',
-            fillOpacity: 0.12
+            color: '#475569',
+            fillOpacity: 0.15
         },
         selected: {
-            fillColor: '#10b981',
+            fillColor: '#22c55e',
             weight: 3,
             opacity: 1,
-            color: '#059669',
-            fillOpacity: 0.75
+            color: '#4ade80',
+            fillOpacity: 0.4
         }
     },
     municipality: {
         default: {
-            fillColor: '#dcfce7',
+            fillColor: '#3b82f6',
             weight: 2,
             opacity: 1,
-            color: '#86efac',
-            fillOpacity: 0.32
+            color: '#2563eb',
+            fillOpacity: 0.3
         },
         withAgencies: {
-            fillColor: '#34d399',
-            weight: 3.5,
+            fillColor: '#2563eb',
+            weight: 4,
             opacity: 1,
-            color: '#059669',
-            fillOpacity: 0.6
+            color: '#1e40af',
+            fillOpacity: 0.5
         },
         hover: {
-            fillOpacity: 0.55,
+            fillOpacity: 0.5,
             weight: 3,
-            color: '#4ade80'
+            color: '#60a5fa'
         },
         inactive: {
-            fillColor: '#e6eef0',
+            fillColor: '#64748b',
             weight: 1,
             opacity: 0.5,
-            color: '#b6c1bf',
-            fillOpacity: 0.12
+            color: '#475569',
+            fillOpacity: 0.15
         },
         selected: {
-            fillColor: '#10b981',
+            fillColor: '#3b82f6',
             weight: 3,
             opacity: 1,
-            color: '#059669',
-            fillOpacity: 0.7
+            color: '#60a5fa',
+            fillOpacity: 0.4
         }
     },
     sector: {
         default: {
-            fillColor: '#dcfce7',
+            fillColor: '#f59e0b',
             weight: 1.5,
             opacity: 1,
-            color: '#86efac',
-            fillOpacity: 0.28
+            color: '#d97706',
+            fillOpacity: 0.3
         },
         withAgencies: {
-            fillColor: '#34d399',
-            weight: 3,
+            fillColor: '#d97706',
+            weight: 3.5,
             opacity: 1,
-            color: '#059669',
-            fillOpacity: 0.55
+            color: '#b45309',
+            fillOpacity: 0.5
         },
         hover: {
             fillOpacity: 0.5,
             weight: 2,
-            color: '#4ade80'
+            color: '#fbbf24'
         },
         selected: {
-            fillColor: '#10b981',
+            fillColor: '#f59e0b',
             weight: 3,
             opacity: 1,
-            color: '#059669',
-            fillOpacity: 0.78
+            color: '#fbbf24',
+            fillOpacity: 0.6
         }
     }
 }
