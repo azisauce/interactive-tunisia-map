@@ -117,7 +117,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                 </div>
             </DialogTitle>
 
-            <DialogContent>
+            <DialogContent style={{ overflowX: 'hidden' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div>
                         <div style={{ fontWeight: 600, color: 'white', marginBottom: 4 }}>{point.name || 'Pickup Point'}</div>
@@ -151,7 +151,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                                             border: '1px solid rgba(255, 255, 255, 0.1)'
                                         }}
                                     >
-                                        <div style={{ color: 'white', fontSize: 14 }}>{agency.agencyName || 'Unknown Agency'}</div>
+                                        <div style={{ color: 'white', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{agency.agencyName || 'Unknown Agency'}</div>
                                         <IconButton
                                             size="small"
                                             onClick={() => handleRemoveAgency(agency.pickupPointAgencyId)}
@@ -174,13 +174,16 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                         <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 8 }}>
                             Add Agency
                         </div>
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                             <select
                                 value={selectedAgency}
                                 onChange={(e) => setSelectedAgency(e.target.value)}
                                 disabled={loadingAgencies || addingAgency}
                                 style={{
                                     flex: 1,
+                                    minWidth: 0,
+                                    maxWidth: '100%',
+                                    boxSizing: 'border-box',
                                     padding: '8px 12px',
                                     fontSize: '14px',
                                     borderRadius: '6px',
