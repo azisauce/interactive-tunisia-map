@@ -18,8 +18,9 @@ function LocationControl({
     const noTypesSelected = LOCATION_TYPES.every(type => !locationTypeFilters[type.id])
 
     const handleToggleAll = () => {
-        if (allTypesSelected || noTypesSelected) {
-            // If all selected or none selected, toggle all off
+        // Use the visible state to decide action so the button always toggles
+        if (showLocations) {
+            // Hide all locations and clear type filters
             const newFilters = {}
             LOCATION_TYPES.forEach(type => {
                 newFilters[type.id] = false
@@ -27,7 +28,7 @@ function LocationControl({
             onLocationTypeFilterChange(newFilters)
             onToggleLocations(false)
         } else {
-            // If some selected, select all
+            // Show all locations and enable all type filters
             const newFilters = {}
             LOCATION_TYPES.forEach(type => {
                 newFilters[type.id] = true
