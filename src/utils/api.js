@@ -1,4 +1,33 @@
-const API_BASE_URL = '/api/tunisia-regions'
+// Choose API base depending on environment:
+// - In test or production, use the same relative API path so requests go through the app backend.
+// - When running locally (dev), call the backend directly at localhost:3007 to avoid proxying.
+const API_BASE_URL = (() => {
+    const defaultUrl = '/api/tunisia-regions'
+    const localUrl = 'http://localhost:3007/api/tunisia-regions'
+
+    const isLocalHost = typeof window !== 'undefined' && (
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    )
+
+    const isDevMode = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.MODE === 'development'
+
+    // Build-time override injected from Vite (`vite.config.js`) when running
+    // `npm run build -- --config=...`. npm exposes that flag as
+    // `process.env.npm_config_config` and we inject it as `__BUILD_CONFIG__`.
+    const buildConfig = (typeof __BUILD_CONFIG__ !== 'undefined' && __BUILD_CONFIG__) || null
+
+    if (buildConfig) {
+        if (buildConfig === 'test' || buildConfig === 'prod' || buildConfig === 'production') {
+            return defaultUrl
+        }
+        if (buildConfig === 'local' || buildConfig === 'dev' || buildConfig === 'development') {
+            return localUrl
+        }
+        // unknown buildConfig -> fall through to default heuristics
+    }
+
+    return (isLocalHost || isDevMode) ? localUrl : defaultUrl
+})()
 
 /**
  * Helper to get headers with accessToken from localStorage
