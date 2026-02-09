@@ -549,6 +549,69 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         }
     }, [filteredFeatures])
 
+    // Zoom-aware markers: only show driving school title above the icon when zoomed in
+    const ZoomAwareMarkers = ({ locations, isPointVisible, onSelect }) => {
+        const map = useMap()
+        const [zoom, setZoom] = useState(map ? map.getZoom() : 0)
+
+        useEffect(() => {
+            if (!map) return
+            const onZoom = () => setZoom(map.getZoom())
+            map.on('zoomend', onZoom)
+            return () => map.off('zoomend', onZoom)
+        }, [map])
+
+        const SHOW_TITLE_ZOOM = 13
+
+        const escapeHtml = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+
+        return (
+            <>
+                {showLocations && locations.filter(isPointVisible).map((point, index) => {
+                    let icon = locationIcons[point.type] || locationIcons.pickup_point
+
+                    if (point.type === 'driving_school') {
+                        const rawTitle = point.name || 'Driving School'
+                        const title = escapeHtml(rawTitle.length > 30 ? `${rawTitle.slice(0, 27)}...` : rawTitle)
+
+                        if (zoom >= SHOW_TITLE_ZOOM) {
+                            icon = L.divIcon({
+                                className: 'driving-school-icon',
+                                html: `
+                                    <div style="display:flex;flex-direction:column;align-items:center;">
+                                        <div style="background:rgba(0,0,0,0.6);color:white;padding:2px 6px;border-radius:4px;font-size:12px;margin-bottom:4px;white-space:nowrap;">${title}</div>
+                                        <div class="pickup-marker" style="font-size:20px;">🏫</div>
+                                    </div>
+                                `,
+                                iconSize: [100, 40],
+                                iconAnchor: [50, 40],
+                                popupAnchor: [0, -40]
+                            })
+                        } else {
+                            // Small icon without title when zoomed out
+                            icon = L.divIcon({
+                                className: 'pickup-marker-icon',
+                                html: '<div class="pickup-marker">🏫</div>',
+                                iconSize: [30, 30],
+                                iconAnchor: [15, 30],
+                                popupAnchor: [0, -30]
+                            })
+                        }
+                    }
+
+                    return (
+                        <Marker
+                            key={point.id || index}
+                            position={[point.latitude, point.longitude]}
+                            icon={icon}
+                            eventHandlers={{ click: () => onSelect(point) }}
+                        />
+                    )
+                })}
+            </>
+        )
+    }
+
     if (error) {
         return (
             <div className="loading">
@@ -604,16 +667,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
             )}
 
             {/* Existing location markers (visible for current view) */}
-            {showLocations && locations.filter(isPointVisible).map((point, index) => (
-                <Marker
-                    key={point.id || index}
-                    position={[point.latitude, point.longitude]}
-                    icon={locationIcons[point.type] || locationIcons.pickup_point}
-                    eventHandlers={{
-                        click: () => setSelectedPickupPoint(point)
-                    }}
-                />
-            ))}
+            <ZoomAwareMarkers locations={locations} isPointVisible={isPointVisible} onSelect={(p) => setSelectedPickupPoint(p)} />
 
             {/* Pickup point popup */}
             {pickupPopupPosition && (
