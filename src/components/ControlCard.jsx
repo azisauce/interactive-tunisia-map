@@ -18,7 +18,9 @@ function ControlCard({
     showDrivagoOnly,
     onToggleDrivagoOnly,
     enableAddLocations = false,
-    onToggleAddLocations
+    onToggleAddLocations,
+    hasTempMarker = false,
+    onCancelTempMarker
 }) {
     const getLevelInfo = () => {
         switch (currentLevel) {
@@ -105,15 +107,6 @@ function ControlCard({
 
     return (
         <div className="control-card">
-            {/* Header */}
-            <div className="control-card__header">
-                <div className="control-card__icon">🇹🇳</div>
-                <div>
-                    <div className="control-card__title">Tunisia Map</div>
-                    <div className="control-card__subtitle">Interactive Administrative Map</div>
-                </div>
-            </div>
-
             {/* Breadcrumb Navigation */}
             {breadcrumbs.length > 1 && (
                 <div className="breadcrumb">
@@ -232,6 +225,16 @@ function ControlCard({
 
             {/* Agency Assignment Component */}
             <AgencyAssignment currentLevel={currentLevel} selectedRegion={selectedRegion} />
+
+            {/* Cancel Marker Button - only visible when a draggable marker is placed */}
+            {hasTempMarker && (
+                <button
+                    className="btn btn--cancel-marker"
+                    onClick={onCancelTempMarker}
+                >
+                    ✕ Cancel Marker
+                </button>
+            )}
 
             {/* Navigation Buttons */}
             <div className="btn-group">

@@ -82,6 +82,8 @@ function App() {
     })
     const [showDrivagoOnly, setShowDrivagoOnly] = useState(false)
     const [enableAddLocations, setEnableAddLocations] = useState(false)
+    const [hasTempMarker, setHasTempMarker] = useState(false)
+    const [cancelTempMarkerSignal, setCancelTempMarkerSignal] = useState(0)
 
     // Load governorates once at app level
     useEffect(() => {
@@ -213,6 +215,15 @@ function App() {
         setEnableAddLocations(value)
     }, [])
 
+    const handleTempMarkerChange = useCallback((hasMarker) => {
+        setHasTempMarker(hasMarker)
+    }, [])
+
+    const handleCancelTempMarker = useCallback(() => {
+        setCancelTempMarkerSignal(prev => prev + 1)
+        setHasTempMarker(false)
+    }, [])
+
     return (
         <div className="app">
             <TunisiaMap
@@ -226,6 +237,8 @@ function App() {
                 locationTypeFilters={locationTypeFilters}
                 showDrivagoOnly={showDrivagoOnly}
                 enableAddLocations={enableAddLocations}
+                onTempMarkerChange={handleTempMarkerChange}
+                cancelTempMarkerSignal={cancelTempMarkerSignal}
             />
             <ControlCard
                 currentLevel={currentLevel}
@@ -244,6 +257,8 @@ function App() {
                 onToggleDrivagoOnly={handleToggleDrivagoOnly}
                 enableAddLocations={enableAddLocations}
                 onToggleAddLocations={handleToggleAddLocations}
+                hasTempMarker={hasTempMarker}
+                onCancelTempMarker={handleCancelTempMarker}
             />
         </div>
     )

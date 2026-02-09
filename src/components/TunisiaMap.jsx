@@ -223,7 +223,9 @@ function TunisiaMap({
     showLocations = true,
     locationTypeFilters = { pickup_point: true, driving_school: true, exam_center: true },
     showDrivagoOnly = false,
-    enableAddLocations = false
+    enableAddLocations = false,
+    onTempMarkerChange,
+    cancelTempMarkerSignal
 }) {
     const [municipalities, setMunicipalities] = useState(null)
     const [sectors, setSectors] = useState(null)
@@ -238,6 +240,9 @@ function TunisiaMap({
     const [pickupPopupPosition, setPickupPopupPosition] = useState(null)
     const [locations, setLocations] = useState([])
     const [selectedPickupPoint, setSelectedPickupPoint] = useState(null)
+    
+    // State for draggable marker before showing popup
+    const [tempMarkerPosition, setTempMarkerPosition] = useState(null)
 
     // Parent region for context display (needed for click validation)
     const parentFeatures = useMemo(() => {
@@ -277,22 +282,58 @@ function TunisiaMap({
 
         // If enableAddLocations is on and we have a clicked feature, use it as context
         if (enableAddLocations && clickedFeature) {
-            // Store the clicked feature temporarily so popup can use it
-            setPickupPopupPosition({ lat: latlng.lat, lng: latlng.lng, feature: clickedFeature })
+            // Show temporary draggable marker instead of popup
+            setTempMarkerPosition({ lat: latlng.lat, lng: latlng.lng, feature: clickedFeature })
             return
         }
 
         // MapClickHandler already validates the click is inside the selected region.
-        setPickupPopupPosition({ lat: latlng.lat, lng: latlng.lng })
+        // Show temporary draggable marker instead of immediately showing popup
+        setTempMarkerPosition({ lat: latlng.lat, lng: latlng.lng })
     }, [pickupPopupPosition, enableAddLocations])
 
-    // Close popup
+    // Close popup (keep temp marker so user can reposition and re-open)
     const handleClosePopup = useCallback(() => {
         setPickupPopupPosition(null)
     }, [])
+    
+    // Handle temporary marker drag
+    const handleTempMarkerDrag = useCallback((e) => {
+        const newPos = e.target.getLatLng()
+        setTempMarkerPosition(prev => ({
+            ...prev,
+            lat: newPos.lat,
+            lng: newPos.lng
+        }))
+    }, [])
+    
+    // Handle temporary marker click - show popup with current marker position (marker stays visible)
+    const handleTempMarkerClick = useCallback(() => {
+        if (tempMarkerPosition) {
+            setPickupPopupPosition({ ...tempMarkerPosition })
+        }
+    }, [tempMarkerPosition])
+
+    // Cancel temp marker from external signal (ControlCard cancel button)
+    useEffect(() => {
+        if (cancelTempMarkerSignal > 0) {
+            setTempMarkerPosition(null)
+            setPickupPopupPosition(null)
+        }
+    }, [cancelTempMarkerSignal])
+
+    // Notify parent when temp marker appears/disappears
+    useEffect(() => {
+        if (onTempMarkerChange) {
+            onTempMarkerChange(!!tempMarkerPosition)
+        }
+    }, [tempMarkerPosition, onTempMarkerChange])
 
     // Handle new location created
     const handlePickupPointCreated = useCallback(async (newLocation) => {
+        // Clear both popup and temp marker after successful creation
+        setPickupPopupPosition(null)
+        setTempMarkerPosition(null)
         // Refresh all locations to get the full data with agencies
         try {
             const data = await fetchLocations()
@@ -320,6 +361,7 @@ function TunisiaMap({
     // Clear pickup popup when level changes
     useEffect(() => {
         setPickupPopupPosition(null)
+        setTempMarkerPosition(null)
     }, [currentLevel])
 
     // Load municipalities when drilling down or switching level
@@ -542,9 +584,9 @@ function TunisiaMap({
                 try { target.setStyle(hoverStyle) } catch (err) {}
                 try { target.bringToFront() } catch (err) {}
                 try { target.openTooltip() } catch (err) {}
-                // Notify parent about hover - but only if no popup is open to avoid re-rendering
+                // Notify parent about hover - but only if no popup or temp marker is open to avoid re-rendering
                 // which causes input focus issues
-                if (!pickupPopupPosition) {
+                if (!pickupPopupPosition && !tempMarkerPosition) {
                     onRegionHover(feature)
                 }
             },
@@ -555,7 +597,7 @@ function TunisiaMap({
                 try { target.closeTooltip() } catch (err) {}
 
                 // Clear hover state
-                if (!pickupPopupPosition) {
+                if (!pickupPopupPosition && !tempMarkerPosition) {
                     onRegionHover(null)
                 }
             },
@@ -578,7 +620,7 @@ function TunisiaMap({
                 }
             }
         })
-    }, [currentLevel, onRegionSelect, onRegionHover, selectedRegion, pickupPopupPosition])
+    }, [currentLevel, onRegionSelect, onRegionHover, selectedRegion, pickupPopupPosition, tempMarkerPosition])
 
     // Helper: determine if a pickup point should be visible given the current view
     // Always show all points within the currently visible features (filteredFeatures),
@@ -754,6 +796,26 @@ function TunisiaMap({
 
             {/* Existing location markers (visible for current view) */}
             <ZoomAwareMarkers locations={filteredLocations} isPointVisible={isPointVisible} onSelect={(p) => setSelectedPickupPoint(p)} />
+
+            {/* Temporary draggable marker for positioning before creating pickup point */}
+            {tempMarkerPosition && (
+                <Marker
+                    position={[tempMarkerPosition.lat, tempMarkerPosition.lng]}
+                    draggable={true}
+                    eventHandlers={{
+                        dragend: handleTempMarkerDrag,
+                        click: handleTempMarkerClick
+                    }}
+                    icon={L.divIcon({
+                        className: 'temp-marker-icon',
+                        html: '<div class="temp-marker" style="font-size: 40px; cursor: move;">📍</div>',
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 40],
+                        popupAnchor: [0, -40]
+                    })}
+                >
+                </Marker>
+            )}
 
             {/* Pickup point popup */}
             {pickupPopupPosition && (
