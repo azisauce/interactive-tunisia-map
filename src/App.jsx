@@ -75,6 +75,12 @@ function App() {
     const [navigationPath, setNavigationPath] = useState([])
     const [governorates, setGovernorates] = useState(null)
     const [showLocations, setShowLocations] = useState(true)
+    const [locationTypeFilters, setLocationTypeFilters] = useState({
+        pickup_point: true,
+        driving_school: true,
+        exam_center: true
+    })
+    const [showDrivagoOnly, setShowDrivagoOnly] = useState(false)
 
     // Load governorates once at app level
     useEffect(() => {
@@ -190,6 +196,18 @@ function App() {
         setCurrentLevel(level)
     }, [])
 
+    const handleToggleLocations = useCallback((value) => {
+        setShowLocations(value)
+    }, [])
+
+    const handleLocationTypeFilterChange = useCallback((filters) => {
+        setLocationTypeFilters(filters)
+    }, [])
+
+    const handleToggleDrivagoOnly = useCallback(() => {
+        setShowDrivagoOnly(prev => !prev)
+    }, [])
+
     return (
         <div className="app">
             <TunisiaMap
@@ -200,6 +218,8 @@ function App() {
                 onRegionSelect={handleRegionSelect}
                 onRegionHover={handleRegionHover}
                 showLocations={showLocations}
+                locationTypeFilters={locationTypeFilters}
+                showDrivagoOnly={showDrivagoOnly}
             />
             <ControlCard
                 currentLevel={currentLevel}
@@ -211,7 +231,11 @@ function App() {
                 onNavigate={handleNavigate}
                 onLevelChange={handleLevelChange}
                 showLocations={showLocations}
-                onToggleLocations={() => setShowLocations(prev => !prev)}
+                onToggleLocations={handleToggleLocations}
+                locationTypeFilters={locationTypeFilters}
+                onLocationTypeFilterChange={handleLocationTypeFilterChange}
+                showDrivagoOnly={showDrivagoOnly}
+                onToggleDrivagoOnly={handleToggleDrivagoOnly}
             />
         </div>
     )

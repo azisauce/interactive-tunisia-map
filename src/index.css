@@ -677,3 +677,104 @@ body {
     opacity: 1;
   }
 }
+
+/* Location Control Component */
+.location-control {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.location-control__header {
+  margin-bottom: 12px;
+}
+
+.location-control__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.location-control__section {
+  margin-bottom: 12px;
+}
+
+.location-control__section:last-child {
+  margin-bottom: 0;
+}
+
+.location-control__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.location-control__hint {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  text-align: center;
+  font-style: italic;
+}
+
+.location-type-filters {
+  display: flex;
+  gap: 8px;
+  justify-content: space-around;
+  padding: 8px 0;
+}
+
+.location-type-btn {
+  width: 48px;
+  height: 48px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.location-type-btn:hover {
+  border-color: var(--primary-light);
+  background: rgba(37, 99, 235, 0.1);
+  transform: translateY(-2px);
+}
+
+.location-type-btn--active {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(59, 130, 246, 0.2));
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.location-type-btn--active .location-type-btn__icon {
+  transform: scale(1.1);
+}
+
+.location-type-btn__icon {
+  font-size: 24px;
+  transition: transform 0.2s ease;
+}
+
+/* Inactive state - greyed out */
+.location-type-btn:not(.location-type-btn--active) {
+  opacity: 0.4;
+  filter: grayscale(80%);
+}
+
+.location-type-btn:not(.location-type-btn--active):hover {
+  opacity: 0.7;
+  filter: grayscale(50%);
+}

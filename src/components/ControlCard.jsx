@@ -1,6 +1,22 @@
 import AgencyAssignment from './AgencyAssignment'
+import LocationControl from './LocationControl'
 
-function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPath, onBack, onReset, onNavigate, onLevelChange, showLocations = true, onToggleLocations }) {
+function ControlCard({ 
+    currentLevel, 
+    selectedRegion, 
+    hoveredRegion, 
+    navigationPath, 
+    onBack, 
+    onReset, 
+    onNavigate, 
+    onLevelChange, 
+    showLocations = true, 
+    onToggleLocations,
+    locationTypeFilters,
+    onLocationTypeFilterChange,
+    showDrivagoOnly,
+    onToggleDrivagoOnly
+}) {
     const getLevelInfo = () => {
         switch (currentLevel) {
             case 'governorate':
@@ -169,15 +185,15 @@ function ControlCard({ currentLevel, selectedRegion, hoveredRegion, navigationPa
                 </div>
             )}
 
-            {/* Locations toggle */}
-            <div style={{ marginTop: '12px' }}>
-                <button
-                    className={`btn ${showLocations ? 'btn--primary' : 'btn--secondary'}`}
-                    onClick={onToggleLocations}
-                >
-                    {showLocations ? 'Hide Locations' : 'Show Locations'}
-                </button>
-            </div>
+            {/* Location Control Component */}
+            <LocationControl 
+                showLocations={showLocations}
+                onToggleLocations={onToggleLocations}
+                locationTypeFilters={locationTypeFilters}
+                onLocationTypeFilterChange={onLocationTypeFilterChange}
+                showDrivagoOnly={showDrivagoOnly}
+                onToggleDrivagoOnly={onToggleDrivagoOnly}
+            />
 
             {/* Instruction */}
             {currentLevel !== 'sector' && (

@@ -194,7 +194,17 @@ const styles = {
 
 
 
-function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates, onRegionSelect, onRegionHover, showLocations = true }) {
+function TunisiaMap({ 
+    currentLevel, 
+    selectedRegion, 
+    navigationPath, 
+    governorates, 
+    onRegionSelect, 
+    onRegionHover, 
+    showLocations = true,
+    locationTypeFilters = { pickup_point: true, driving_school: true, exam_center: true },
+    showDrivagoOnly = false
+}) {
     const [municipalities, setMunicipalities] = useState(null)
     const [sectors, setSectors] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -549,6 +559,31 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
         }
     }, [filteredFeatures])
 
+    // Filter locations based on type filters and Drivago-only flag
+    const filteredLocations = useMemo(() => {
+        let filtered = locations
+
+        // Filter by location type
+        filtered = filtered.filter(location => {
+            const locationType = location.type || 'pickup_point'
+            return locationTypeFilters[locationType] === true
+        })
+
+        // Filter by Drivago agencies if enabled
+        if (showDrivagoOnly) {
+            filtered = filtered.filter(location => {
+                // Check if location has at least one agency with show_in_drivago = true
+                if (!location.agencies || !Array.isArray(location.agencies)) {
+                    return false
+                }
+                
+                return location.agencies.some(agency => agency.show_in_drivago === true)
+            })
+        }
+
+        return filtered
+    }, [locations, locationTypeFilters, showDrivagoOnly])
+
     // Zoom-aware markers: only show driving school title above the icon when zoomed in
     const ZoomAwareMarkers = ({ locations, isPointVisible, onSelect }) => {
         const map = useMap()
@@ -667,7 +702,7 @@ function TunisiaMap({ currentLevel, selectedRegion, navigationPath, governorates
             )}
 
             {/* Existing location markers (visible for current view) */}
-            <ZoomAwareMarkers locations={locations} isPointVisible={isPointVisible} onSelect={(p) => setSelectedPickupPoint(p)} />
+            <ZoomAwareMarkers locations={filteredLocations} isPointVisible={isPointVisible} onSelect={(p) => setSelectedPickupPoint(p)} />
 
             {/* Pickup point popup */}
             {pickupPopupPosition && (
