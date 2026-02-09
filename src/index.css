@@ -294,6 +294,76 @@ body {
   flex: 1;
 }
 
+/* Add-locations toggle area */
+.add-locations-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 10px;
+  border: 1px solid rgba(148,163,184,0.06);
+}
+
+.add-locations-toggle > div {
+  min-width: 0;
+}
+
+/* Material-like slide toggle */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+  left: -9999px;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  transition: background-color 200ms ease, box-shadow 180ms ease;
+}
+
+.slider::before {
+  content: "";
+  position: absolute;
+  height: 22px;
+  width: 22px;
+  left: 4px;
+  top: 3px;
+  background-color: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 6px rgba(2,6,23,0.35);
+  transition: transform 200ms cubic-bezier(.2,.8,.2,1);
+}
+
+.slider--checked {
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+}
+
+.slider--checked::before {
+  transform: translateX(24px);
+}
+
+/* Improve text spacing within control card */
+.control-card p {
+  margin-bottom: 18px;
+}
+
 /* Stats */
 .stats {
   display: grid;

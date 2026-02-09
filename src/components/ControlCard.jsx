@@ -1,5 +1,6 @@
 import AgencyAssignment from './AgencyAssignment'
 import LocationControl from './LocationControl'
+import AddLocationsToggle from './AddLocationsToggle'
 
 function ControlCard({ 
     currentLevel, 
@@ -15,7 +16,9 @@ function ControlCard({
     locationTypeFilters,
     onLocationTypeFilterChange,
     showDrivagoOnly,
-    onToggleDrivagoOnly
+    onToggleDrivagoOnly,
+    enableAddLocations = false,
+    onToggleAddLocations
 }) {
     const getLevelInfo = () => {
         switch (currentLevel) {
@@ -193,6 +196,12 @@ function ControlCard({
                 onLocationTypeFilterChange={onLocationTypeFilterChange}
                 showDrivagoOnly={showDrivagoOnly}
                 onToggleDrivagoOnly={onToggleDrivagoOnly}
+            />
+
+            {/* Add Locations Toggle (applies to all layers) */}
+            <AddLocationsToggle 
+                value={enableAddLocations}
+                onChange={onToggleAddLocations}
             />
 
             {/* Instruction */}

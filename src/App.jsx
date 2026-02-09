@@ -81,6 +81,7 @@ function App() {
         exam_center: true
     })
     const [showDrivagoOnly, setShowDrivagoOnly] = useState(false)
+    const [enableAddLocations, setEnableAddLocations] = useState(false)
 
     // Load governorates once at app level
     useEffect(() => {
@@ -208,6 +209,10 @@ function App() {
         setShowDrivagoOnly(prev => !prev)
     }, [])
 
+    const handleToggleAddLocations = useCallback((value) => {
+        setEnableAddLocations(value)
+    }, [])
+
     return (
         <div className="app">
             <TunisiaMap
@@ -220,6 +225,7 @@ function App() {
                 showLocations={showLocations}
                 locationTypeFilters={locationTypeFilters}
                 showDrivagoOnly={showDrivagoOnly}
+                enableAddLocations={enableAddLocations}
             />
             <ControlCard
                 currentLevel={currentLevel}
@@ -236,6 +242,8 @@ function App() {
                 onLocationTypeFilterChange={handleLocationTypeFilterChange}
                 showDrivagoOnly={showDrivagoOnly}
                 onToggleDrivagoOnly={handleToggleDrivagoOnly}
+                enableAddLocations={enableAddLocations}
+                onToggleAddLocations={handleToggleAddLocations}
             />
         </div>
     )

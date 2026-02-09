@@ -32,10 +32,29 @@ const locationIcons = {
 }
 
 // Component to handle map click events
-function MapClickHandler({ onMapClick, selectedRegion }) {
+function MapClickHandler({ onMapClick, selectedRegion, enableAddLocations, currentGeoData }) {
     useMapEvents({
         click: (e) => {
-            // Allow creating pickup points when a region is selected (any level).
+            // If enableAddLocations toggle is ON, allow clicks anywhere
+            if (enableAddLocations) {
+                // Find which region contains this click point
+                if (currentGeoData && currentGeoData.features) {
+                    const pt = turf.point([e.latlng.lng, e.latlng.lat])
+                    const clickedFeature = currentGeoData.features.find(feature => {
+                        try {
+                            return turf.booleanPointInPolygon(pt, feature)
+                        } catch (err) {
+                            return false
+                        }
+                    })
+                    if (clickedFeature) {
+                        onMapClick(e.latlng, clickedFeature)
+                    }
+                }
+                return
+            }
+
+            // Original behavior: Allow creating pickup points when a region is selected (any level).
             if (selectedRegion && selectedRegion.type === 'Feature') {
                 const pt = turf.point([e.latlng.lng, e.latlng.lat])
                 try {
@@ -203,7 +222,8 @@ function TunisiaMap({
     onRegionHover, 
     showLocations = true,
     locationTypeFilters = { pickup_point: true, driving_school: true, exam_center: true },
-    showDrivagoOnly = false
+    showDrivagoOnly = false,
+    enableAddLocations = false
 }) {
     const [municipalities, setMunicipalities] = useState(null)
     const [sectors, setSectors] = useState(null)
@@ -251,13 +271,20 @@ function TunisiaMap({
     }, [currentLevel, navigationPath, governorates, municipalities])
 
     // Handle map click for pickup points - now even more strictly validated
-    const handleMapClick = useCallback((latlng) => {
+    const handleMapClick = useCallback((latlng, clickedFeature = null) => {
         // If popup is already open, don't update position (prevents re-renders while typing)
         if (pickupPopupPosition) return
 
+        // If enableAddLocations is on and we have a clicked feature, use it as context
+        if (enableAddLocations && clickedFeature) {
+            // Store the clicked feature temporarily so popup can use it
+            setPickupPopupPosition({ lat: latlng.lat, lng: latlng.lng, feature: clickedFeature })
+            return
+        }
+
         // MapClickHandler already validates the click is inside the selected region.
         setPickupPopupPosition({ lat: latlng.lat, lng: latlng.lng })
-    }, [pickupPopupPosition])
+    }, [pickupPopupPosition, enableAddLocations])
 
     // Close popup
     const handleClosePopup = useCallback(() => {
@@ -680,7 +707,13 @@ function TunisiaMap({
             <BoundsFitter bounds={bounds || tunisiaBounds} />
 
             {/* Map click handler for pickup points */}
-            <MapClickHandler currentLevel={currentLevel} onMapClick={handleMapClick} selectedRegion={selectedRegion} />
+            <MapClickHandler 
+                currentLevel={currentLevel} 
+                onMapClick={handleMapClick} 
+                selectedRegion={selectedRegion}
+                enableAddLocations={enableAddLocations}
+                currentGeoData={filteredFeatures}
+            />
 
             {/* Parent/context layer */}
             {parentFeatures && (
