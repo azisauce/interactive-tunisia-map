@@ -215,7 +215,17 @@ export async function createLocation(locationData) {
     })
 
     if (!response.ok) {
-        const text = await response.text().catch(() => '')
+        // Try to parse JSON error body, otherwise fall back to plain text
+        const contentType = response.headers.get('content-type') || ''
+        let text = await response.text().catch(() => '')
+        if (contentType.includes('application/json')) {
+            try {
+                const j = JSON.parse(text)
+                text = j?.error || j?.message || text
+            } catch (e) {
+                // ignore JSON parse errors
+            }
+        }
         throw new Error(text || 'Failed to create location')
     }
 

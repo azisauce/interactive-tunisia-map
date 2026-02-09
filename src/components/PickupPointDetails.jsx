@@ -82,16 +82,24 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
         setError(null)
         setRemovingAgencyId(locationAgencyId)
         try {
-            const result = await removeAgencyFromLocation(locationAgencyId)
-            
-            if (result.locationDeleted) {
-                // The entire location was deleted
+            // For driving schools, we delete the entire location since they're in agency_location table
+            if (point.type === 'driving_school') {
+                await deleteLocation(point.id)
                 if (onDeleted) onDeleted(point.id)
                 onClose()
             } else {
-                // Just remove the agency from the list
-                point.agencies = (point.agencies || []).filter(a => a.locationAgencyId !== locationAgencyId)
-                if (onUpdated) onUpdated(point)
+                // For pickup_point and exam_center, use removeAgencyFromLocation
+                const result = await removeAgencyFromLocation(locationAgencyId)
+                
+                if (result.locationDeleted) {
+                    // The entire location was deleted
+                    if (onDeleted) onDeleted(point.id)
+                    onClose()
+                } else {
+                    // Just remove the agency from the list
+                    point.agencies = (point.agencies || []).filter(a => a.locationAgencyId !== locationAgencyId)
+                    if (onUpdated) onUpdated(point)
+                }
             }
         } catch (err) {
             console.error('Failed to remove agency', err)
@@ -179,52 +187,54 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                         )}
                     </div>
 
-                    <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 8 }}>
-                            Add Agency
-                        </div>
-                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                            <select
-                                value={selectedAgency}
-                                onChange={(e) => setSelectedAgency(e.target.value)}
-                                disabled={loadingAgencies || addingAgency}
-                                style={{
-                                    flex: 1,
-                                    minWidth: 0,
-                                    maxWidth: '100%',
-                                    boxSizing: 'border-box',
-                                    padding: '8px 12px',
-                                    fontSize: '14px',
-                                    borderRadius: '6px',
-                                    border: '1px solid var(--border-color, #ddd)',
-                                    backgroundColor: 'var(--bg-secondary, white)',
-                                    color: 'black',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <option value="">
-                                    {loadingAgencies ? 'Loading...' : availableAgencies.length === 0 ? 'All agencies assigned' : 'Select an agency...'}
-                                </option>
-                                {availableAgencies.map((agency) => (
-                                    <option key={agency.agenceId} value={agency.agenceId}>
-                                        {agency.nomAge}
+                    {point.type !== 'driving_school' && (
+                        <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 8 }}>
+                                Add Agency
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <select
+                                    value={selectedAgency}
+                                    onChange={(e) => setSelectedAgency(e.target.value)}
+                                    disabled={loadingAgencies || addingAgency}
+                                    style={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        maxWidth: '100%',
+                                        boxSizing: 'border-box',
+                                        padding: '8px 12px',
+                                        fontSize: '14px',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--border-color, #ddd)',
+                                        backgroundColor: 'var(--bg-secondary, white)',
+                                        color: 'black',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="">
+                                        {loadingAgencies ? 'Loading...' : availableAgencies.length === 0 ? 'All agencies assigned' : 'Select an agency...'}
                                     </option>
-                                ))}
-                            </select>
-                            <Button
-                                variant="contained"
-                                onClick={handleAddAgency}
-                                disabled={!selectedAgency || addingAgency || loadingAgencies}
-                                style={{
-                                    minWidth: '80px',
-                                    textTransform: 'none',
-                                    backgroundColor: addingAgency ? '#666' : '#3b82f6'
-                                }}
-                            >
-                                {addingAgency ? 'Adding...' : 'Add'}
-                            </Button>
+                                    {availableAgencies.map((agency) => (
+                                        <option key={agency.agenceId} value={agency.agenceId}>
+                                            {agency.nomAge}
+                                        </option>
+                                    ))}
+                                </select>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleAddAgency}
+                                    disabled={!selectedAgency || addingAgency || loadingAgencies}
+                                    style={{
+                                        minWidth: '80px',
+                                        textTransform: 'none',
+                                        backgroundColor: addingAgency ? '#666' : '#3b82f6'
+                                    }}
+                                >
+                                    {addingAgency ? 'Adding...' : 'Add'}
+                                </Button>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {error && (
                         <div style={{ color: '#ef4444', fontSize: 13, padding: '8px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '4px' }}>{error}</div>
