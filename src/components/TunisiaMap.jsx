@@ -81,7 +81,7 @@ function BoundsFitter({ bounds }) {
 
     useEffect(() => {
         if (bounds) {
-            map.fitBounds(bounds, { padding: [50, 50], maxZoom: 12 })
+            map.fitBounds(bounds, { padding: [50, 50] })
         }
     }, [map, bounds])
 
@@ -390,17 +390,31 @@ function TunisiaMap({
     }, [currentLevel, governorates, municipalities, sectors])
 
 
-    // Update bounds when selection changes
+    // Update bounds when selection or navigation changes.
+    // Compute bbox of the selected region (or the last item in navigationPath) and set bounds accordingly.
     useEffect(() => {
-        if (selectedRegion && geoJsonRef.current) {
-            const layer = geoJsonRef.current
-            if (layer.getBounds) {
-                setBounds(layer.getBounds())
+        try {
+            // If we have an explicit selected region, use its bbox
+            const targetFeature = selectedRegion || (navigationPath && navigationPath.length > 0 ? navigationPath[navigationPath.length - 1].region : null)
+
+            if (targetFeature) {
+                const bb = turf.bbox(targetFeature) // [minX, minY, maxX, maxY] (lon/lat)
+                const southWest = [bb[1], bb[0]]
+                const northEast = [bb[3], bb[2]]
+                const leafletBounds = L.latLngBounds(southWest, northEast)
+                setBounds(leafletBounds)
+                return
             }
-        } else if (tunisiaBounds) {
-            setBounds(tunisiaBounds)
+
+            // Fallback to full Tunisia bounds
+            if (tunisiaBounds) {
+                setBounds(tunisiaBounds)
+            }
+        } catch (err) {
+            console.warn('Failed to compute bounds for selected region, falling back to Tunisia bounds', err)
+            if (tunisiaBounds) setBounds(tunisiaBounds)
         }
-    }, [selectedRegion, tunisiaBounds])
+    }, [selectedRegion, navigationPath, currentLevel, tunisiaBounds])
 
     // Update map key to force re-render ONLY on level change
     useEffect(() => {
@@ -520,7 +534,7 @@ function TunisiaMap({
 
         const addableLevels = new Set(['sector', 'municipality', 'governorate'])
 
-        layer.on({
+            layer.on({
             mouseover: (e) => {
                 const target = e.target
                 const baseStyle = target.__baseStyle || getStyle(feature) || levelStyles.default
@@ -546,17 +560,21 @@ function TunisiaMap({
                 }
             },
             click: (e) => {
-                // Allow map clicks to propagate for addable levels so pickup creation works
-                if (!addableLevels.has(currentLevel)) {
-                    L.DomEvent.stopPropagation(e)
-                    onRegionSelect(feature, currentLevel)
+                // Notify selection for any level
+                onRegionSelect(feature, currentLevel)
 
-                    // Fit to clicked feature bounds
+                // Fit to clicked feature bounds (centers and zooms the map)
+                try {
                     const clickedBounds = e.target.getBounds()
                     setBounds(clickedBounds)
-                } else {
-                    // For addable levels (sector/municipality/governorate), allow propagation
-                    onRegionSelect(feature, currentLevel)
+                } catch (err) {
+                    // Fallback: nothing
+                }
+
+                // If the current level is not addable, stop propagation so map-level click
+                // handlers (like adding pickup points) don't receive this event.
+                if (!addableLevels.has(currentLevel)) {
+                    L.DomEvent.stopPropagation(e)
                 }
             }
         })

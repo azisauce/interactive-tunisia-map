@@ -246,20 +246,6 @@ function ControlCard({
                     </button>
                 )}
             </div>
-
-            {/* Stats */}
-            {currentLevel === 'governorate' && (
-                <div className="stats">
-                    <div className="stat">
-                        <div className="stat__value">24</div>
-                        <div className="stat__label">Governorates</div>
-                    </div>
-                    <div className="stat">
-                        <div className="stat__value">357</div>
-                        <div className="stat__label">Municipalities</div>
-                    </div>
-                </div>
-            )}
         </div>
     )
 }
