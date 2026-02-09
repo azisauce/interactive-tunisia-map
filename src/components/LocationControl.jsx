@@ -14,6 +14,7 @@ function LocationControl({
     showDrivagoOnly,
     onToggleDrivagoOnly 
 }) {
+    const [expanded, setExpanded] = useState(false)
     const allTypesSelected = LOCATION_TYPES.every(type => locationTypeFilters[type.id])
     const noTypesSelected = LOCATION_TYPES.every(type => !locationTypeFilters[type.id])
 
@@ -58,6 +59,22 @@ function LocationControl({
         <div className="location-control">
             <div className="location-control__header">
                 <div className="location-control__title">📌 Location Filters</div>
+                <button
+                    className={`location-control__expand-btn ${expanded ? 'expanded' : ''}`}
+                    onClick={() => setExpanded(prev => !prev)}
+                    aria-expanded={expanded}
+                    title={expanded ? 'Collapse' : 'Expand'}
+                >
+                    {expanded ? (
+                        <svg className="caret" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z" />
+                        </svg>
+                    ) : (
+                        <svg className="caret" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+                        </svg>
+                    )}
+                </button>
             </div>
 
             {/* Master Toggle */}
@@ -71,8 +88,8 @@ function LocationControl({
                 </button>
             </div>
 
-            {/* Location Type Filters */}
-            {showLocations && (
+            {/* Details dropdown - visible when expanded */}
+            {expanded && (
                 <>
                     <div className="location-control__section">
                         <div className="location-control__label">Location Types:</div>

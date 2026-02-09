@@ -778,3 +778,43 @@ body {
   opacity: 0.7;
   filter: grayscale(50%);
 }
+
+/* Expand/collapse button */
+.location-control__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.location-control__expand-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.location-control__expand-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.02);
+}
+
+/* rotate caret when expanded (rotate the inner caret, not the whole button) */
+.location-control__expand-btn .caret {
+  display: inline-block;
+  transition: transform 0.15s ease, color 0.15s ease;
+}
+
+.location-control__expand-btn.expanded .caret {
+  transform: none; /* SVGs are different for expanded/collapsed states */
+}
+
+.location-control__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
