@@ -1,10 +1,5 @@
-import { useState } from 'react'
-
 function AddLocationsToggle({ value = false, onChange }) {
-    const [enabled, setEnabled] = useState(value)
-
     const handleToggle = (checked) => {
-        setEnabled(checked)
         if (onChange) {
             onChange(checked)
         }
@@ -15,14 +10,14 @@ function AddLocationsToggle({ value = false, onChange }) {
             <div style={{ flex: 1, marginRight: '12px' }}>
                 <div style={{ fontWeight: 600, marginBottom: '4px' }}>Enable adding locations</div>
             </div>
-            <label className="switch" aria-checked={enabled} role="switch">
+            <label className="switch" aria-checked={value} role="switch">
                 <input
                     type="checkbox"
-                    checked={enabled}
+                    checked={value}
                     onChange={(e) => handleToggle(e.target.checked)}
                     aria-label="Enable adding locations"
                 />
-                <span className={`slider ${enabled ? 'slider--checked' : ''}`} />
+                <span className={`slider ${value ? 'slider--checked' : ''}`} />
             </label>
         </div>
     )

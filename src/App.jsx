@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import TunisiaMap from './components/TunisiaMap'
 import ControlCard from './components/ControlCard'
 import { fetchGovernorates } from './utils/api'
@@ -85,6 +85,12 @@ function App() {
     const [hasTempMarker, setHasTempMarker] = useState(false)
     const [cancelTempMarkerSignal, setCancelTempMarkerSignal] = useState(0)
 
+    // Use ref to track the latest value of enableAddLocations to avoid stale closures
+    const enableAddLocationsRef = useRef(enableAddLocations)
+    useEffect(() => {
+        enableAddLocationsRef.current = enableAddLocations
+    }, [enableAddLocations])
+
     // Load governorates once at app level
     useEffect(() => {
         const loadGovs = async () => {
@@ -105,7 +111,11 @@ function App() {
     const handleRegionSelect = useCallback((region, level) => {
         console.log('App: Region selected:', region.properties.gov_en || region.properties.mun_en || region.properties.sec_en, 'Level:', level)
         
-        setSelectedRegion(region)
+        setSelectedRegion(region);
+
+        if (enableAddLocationsRef.current) {
+            return;
+        }
 
         // Only add to navigation path and drill down if not at sector level
         if (level === 'governorate') {
