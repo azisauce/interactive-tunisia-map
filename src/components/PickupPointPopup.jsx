@@ -34,6 +34,11 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
             return
         }
 
+        if (!position.lat || !position.lng) {
+            setError('Please click on the map to set the location coordinates')
+            return
+        }
+
         try {
             setSubmitting(true)
             setError(null)
@@ -194,7 +199,11 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                             borderRadius: '6px',
                             textAlign: 'center'
                         }}>
-                            📌 {position.lat.toFixed(6)}, {position.lng.toFixed(6)}
+                            {position.lat && position.lng ? (
+                                <>📌 {position.lat.toFixed(6)}, {position.lng.toFixed(6)}</>
+                            ) : (
+                                <>📍 Click on the map to set coordinates</>
+                            )}
                         </div>
 
                         {error && (
@@ -224,7 +233,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                 </Button>
                 <Button 
                     onClick={handleSubmit}
-                    disabled={submitting || !selectedAgency || loading}
+                    disabled={submitting || !selectedAgency || loading || !position.lat || !position.lng}
                     variant="contained"
                     className="pickup-popup-btn submit"
                     style={{ textTransform: 'none' }}

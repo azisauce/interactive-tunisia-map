@@ -1,7 +1,11 @@
-function AddLocationsToggle({ value = false, onChange }) {
+function AddLocationsToggle({ value = false, onChange, onToggleOn }) {
     const handleToggle = (checked) => {
         if (onChange) {
             onChange(checked)
+        }
+        // When toggled ON, notify parent to open popup
+        if (checked && onToggleOn) {
+            onToggleOn()
         }
     }
 

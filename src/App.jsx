@@ -84,6 +84,7 @@ function App() {
     const [enableAddLocations, setEnableAddLocations] = useState(false)
     const [hasTempMarker, setHasTempMarker] = useState(false)
     const [cancelTempMarkerSignal, setCancelTempMarkerSignal] = useState(0)
+    const [openPopupWithoutCoords, setOpenPopupWithoutCoords] = useState(0)
 
     // Use ref to track the latest value of enableAddLocations to avoid stale closures
     const enableAddLocationsRef = useRef(enableAddLocations)
@@ -225,6 +226,11 @@ function App() {
         setEnableAddLocations(value)
     }, [])
 
+    const handleToggleAddLocationsOn = useCallback(() => {
+        // Signal TunisiaMap to open popup without coordinates
+        setOpenPopupWithoutCoords(prev => prev + 1)
+    }, [])
+
     const handleTempMarkerChange = useCallback((hasMarker) => {
         setHasTempMarker(hasMarker)
     }, [])
@@ -249,6 +255,7 @@ function App() {
                 enableAddLocations={enableAddLocations}
                 onTempMarkerChange={handleTempMarkerChange}
                 cancelTempMarkerSignal={cancelTempMarkerSignal}
+                openPopupWithoutCoords={openPopupWithoutCoords}
             />
             <ControlCard
                 currentLevel={currentLevel}
@@ -267,6 +274,7 @@ function App() {
                 onToggleDrivagoOnly={handleToggleDrivagoOnly}
                 enableAddLocations={enableAddLocations}
                 onToggleAddLocations={handleToggleAddLocations}
+                onToggleAddLocationsOn={handleToggleAddLocationsOn}
                 hasTempMarker={hasTempMarker}
                 onCancelTempMarker={handleCancelTempMarker}
             />

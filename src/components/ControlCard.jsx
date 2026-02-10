@@ -19,6 +19,7 @@ function ControlCard({
     onToggleDrivagoOnly,
     enableAddLocations = false,
     onToggleAddLocations,
+    onToggleAddLocationsOn,
     hasTempMarker = false,
     onCancelTempMarker
 }) {
@@ -131,6 +132,7 @@ function ControlCard({
                 <AddLocationsToggle 
                     value={enableAddLocations}
                     onChange={onToggleAddLocations}
+                    onToggleOn={onToggleAddLocationsOn}
                 />
             </div>
 

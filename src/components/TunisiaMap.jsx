@@ -228,7 +228,8 @@ function TunisiaMap({
     showDrivagoOnly = false,
     enableAddLocations = false,
     onTempMarkerChange,
-    cancelTempMarkerSignal
+    cancelTempMarkerSignal,
+    openPopupWithoutCoords
 }) {
     const [municipalities, setMunicipalities] = useState(null)
     const [sectors, setSectors] = useState(null)
@@ -283,6 +284,12 @@ function TunisiaMap({
 
         console.log('clickedFeature======>', clickedFeature);
         
+        // If popup is open with null position, update it with clicked coordinates
+        if (pickupPopupPosition && !pickupPopupPosition.lat && !pickupPopupPosition.lng) {
+            setPickupPopupPosition({ lat: latlng.lat, lng: latlng.lng })
+            setTempMarkerPosition({ lat: latlng.lat, lng: latlng.lng })
+            return
+        }
         
         // If popup is already open, don't update position (prevents re-renders while typing)
         if (pickupPopupPosition) return
@@ -307,11 +314,16 @@ function TunisiaMap({
     // Handle temporary marker drag
     const handleTempMarkerDrag = useCallback((e) => {
         const newPos = e.target.getLatLng()
-        setTempMarkerPosition(prev => ({
-            ...prev,
+        const updatedPosition = {
             lat: newPos.lat,
             lng: newPos.lng
+        }
+        setTempMarkerPosition(prev => ({
+            ...prev,
+            ...updatedPosition
         }))
+        // Also update popup position if it's open
+        setPickupPopupPosition(prev => prev ? updatedPosition : null)
     }, [])
     
     // Handle temporary marker click - show popup with current marker position (marker stays visible)
@@ -328,6 +340,15 @@ function TunisiaMap({
             setPickupPopupPosition(null)
         }
     }, [cancelTempMarkerSignal])
+
+    // Open popup without coordinates when toggle is turned on
+    useEffect(() => {
+        if (openPopupWithoutCoords > 0) {
+            // Open popup with null coordinates - will be set when map is clicked
+            setPickupPopupPosition({ lat: null, lng: null })
+            setTempMarkerPosition(null)
+        }
+    }, [openPopupWithoutCoords])
 
     // Notify parent when temp marker appears/disappears
     useEffect(() => {
