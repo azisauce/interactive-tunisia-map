@@ -7,9 +7,6 @@ function AddLocationsToggle({ value = false, onChange }) {
 
     return (
         <div className="add-locations-toggle">
-            <div style={{ flex: 1, marginRight: '12px' }}>
-                <div style={{ fontWeight: 600, marginBottom: '4px' }}>Enable adding locations</div>
-            </div>
             <label className="switch" aria-checked={value} role="switch">
                 <input
                     type="checkbox"

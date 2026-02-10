@@ -44,6 +44,12 @@ body {
   background: #1a1a2e;
 }
 
+.header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 /* Control Card */
 .control-card {
   position: absolute;
@@ -320,17 +326,8 @@ body {
 }
 
 /* Add-locations toggle area */
-.add-locations-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 16px;
-  margin-bottom: 8px;
-  padding: 12px;
-  background: rgba(255,255,255,0.02);
-  border-radius: 10px;
-  border: 1px solid rgba(148,163,184,0.06);
-}
+/* .add-locations-toggle {
+} */
 
 .add-locations-toggle > div {
   min-width: 0;

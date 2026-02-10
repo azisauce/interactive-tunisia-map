@@ -107,8 +107,8 @@ function ControlCard({
 
     return (
         <div className="control-card">
-            {/* Breadcrumb Navigation */}
-            {breadcrumbs.length > 1 && (
+            <div className='header-card'>
+               {/* Breadcrumb Navigation */}
                 <div className="breadcrumb">
                     {breadcrumbs.map((crumb, index) => (
                         <div key={index} className="breadcrumb__item">
@@ -126,7 +126,13 @@ function ControlCard({
                         </div>
                     ))}
                 </div>
-            )}
+
+                {/* Add Locations Toggle (applies to all layers) */}
+                <AddLocationsToggle 
+                    value={enableAddLocations}
+                    onChange={onToggleAddLocations}
+                />
+            </div>
 
             {/* Current Level Badge */}
             <div className={`level-badge level-badge--${currentLevel}`}>
@@ -189,12 +195,6 @@ function ControlCard({
                 onLocationTypeFilterChange={onLocationTypeFilterChange}
                 showDrivagoOnly={showDrivagoOnly}
                 onToggleDrivagoOnly={onToggleDrivagoOnly}
-            />
-
-            {/* Add Locations Toggle (applies to all layers) */}
-            <AddLocationsToggle 
-                value={enableAddLocations}
-                onChange={onToggleAddLocations}
             />
 
             {/* Instruction */}
