@@ -77,17 +77,6 @@ function LocationControl({
                 </button>
             </div>
 
-            {/* Master Toggle */}
-            <div className="location-control__section">
-                <button
-                    className={`btn ${showLocations && !noTypesSelected ? 'btn--primary' : 'btn--secondary'}`}
-                    onClick={handleToggleAll}
-                    style={{ width: '100%' }}
-                >
-                    {showLocations && !noTypesSelected ? '👁️ Hide All Locations' : '👁️‍🗨️ Show All Locations'}
-                </button>
-            </div>
-
             {/* Details dropdown - visible when expanded */}
             {expanded && (
                 <>
@@ -105,9 +94,6 @@ function LocationControl({
                                 </button>
                             ))}
                         </div>
-                        <div className="location-control__hint">
-                            Click icons to filter location types
-                        </div>
                     </div>
 
                     {/* Drivago Filter */}
@@ -122,9 +108,6 @@ function LocationControl({
                         >
                             {showDrivagoOnly ? 'Showing Drivago Only' : 'Show All Agencies'}
                         </button>
-                        <div className="location-control__hint">
-                            Filter locations by Drivago agencies
-                        </div>
                     </div>
                 </>
             )}

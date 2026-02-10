@@ -197,21 +197,6 @@ function ControlCard({
                 onToggleDrivagoOnly={onToggleDrivagoOnly}
             />
 
-            {/* Instruction */}
-            {currentLevel !== 'sector' && (
-                <p style={{
-                    fontSize: '13px',
-                    color: 'var(--text-secondary)',
-                    marginBottom: '16px',
-                    lineHeight: '1.5'
-                }}>
-                    {currentLevel === 'governorate'
-                        ? 'Click on a governorate to explore its municipalities'
-                        : 'Click on a municipality to explore its sectors'
-                    }
-                </p>
-            )}
-
             {currentLevel === 'sector' && (
                 <p style={{
                     fontSize: '13px',

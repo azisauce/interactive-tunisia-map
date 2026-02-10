@@ -797,13 +797,13 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  padding: 16px;
+  padding: 8px 12px;
   margin-top: 16px;
 }
 
-.location-control__header {
+/* .location-control__header {
   margin-bottom: 12px;
-}
+} */
 
 .location-control__title {
   font-size: 15px;
