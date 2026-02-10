@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@mui/material'
 import { fetchActiveAgenciesCached as fetchActiveAgencies, createLocation } from '../utils/api'
 
-function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType = 'pickup_point' }) {
+function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType = 'pickup_point', initialCoords = null }) {
     const [agencies, setAgencies] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
     const [pickupPointName, setPickupPointName] = useState('')
@@ -10,6 +10,20 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState(null)
+
+    // Local editable coordinates. Initialize from `initialCoords` if provided, otherwise from `position`.
+    const [coords, setCoords] = useState({
+        lat: initialCoords && typeof initialCoords.lat === 'number' ? initialCoords.lat : (position?.lat ?? null),
+        lng: initialCoords && typeof initialCoords.lng === 'number' ? initialCoords.lng : (position?.lng ?? null)
+    })
+
+    // Sync local coords when parent `position` or `initialCoords` changes
+    useEffect(() => {
+        setCoords({
+            lat: initialCoords && typeof initialCoords.lat === 'number' ? initialCoords.lat : (position?.lat ?? null),
+            lng: initialCoords && typeof initialCoords.lng === 'number' ? initialCoords.lng : (position?.lng ?? null)
+        })
+    }, [position, initialCoords])
 
     // Load agencies on mount
     useEffect(() => {
@@ -34,8 +48,11 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType
             return
         }
 
-        if (!position.lat || !position.lng) {
-            setError('Please click on the map to set the location coordinates')
+        const latNum = typeof coords.lat === 'number' ? coords.lat : parseFloat(coords.lat)
+        const lngNum = typeof coords.lng === 'number' ? coords.lng : parseFloat(coords.lng)
+
+        if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) {
+            setError('Please provide valid latitude and longitude')
             return
         }
 
@@ -46,8 +63,8 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType
             const locationData = {
                 name: pickupPointName || 'Location',
                 type: locationType,
-                latitude: position.lat,
-                longitude: position.lng,
+                latitude: typeof coords.lat === 'number' ? coords.lat : parseFloat(coords.lat),
+                longitude: typeof coords.lng === 'number' ? coords.lng : parseFloat(coords.lng),
                 agencyId: parseInt(selectedAgency, 10)
             }
 
@@ -152,6 +169,43 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType
                                 autoFocus
                                 className="pickup-popup-input"
                             />
+                        </div>
+
+                        <div>
+                            <label 
+                                htmlFor="coordsManual" 
+                                style={{ 
+                                    display: 'block',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    marginBottom: '8px',
+                                    color: 'var(--text-primary)'
+                                }}
+                            >
+                                Coordinates (latitude / longitude)
+                            </label>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <input
+                                    id="coordsLat"
+                                    type="number"
+                                    step="0.000001"
+                                    value={coords.lat ?? ''}
+                                    onChange={(e) => setCoords(prev => ({ ...prev, lat: e.target.value === '' ? null : parseFloat(e.target.value) }))}
+                                    placeholder="Latitude"
+                                    className="pickup-popup-input"
+                                    style={{ flex: 1 }}
+                                />
+                                <input
+                                    id="coordsLng"
+                                    type="number"
+                                    step="0.000001"
+                                    value={coords.lng ?? ''}
+                                    onChange={(e) => setCoords(prev => ({ ...prev, lng: e.target.value === '' ? null : parseFloat(e.target.value) }))}
+                                    placeholder="Longitude"
+                                    className="pickup-popup-input"
+                                    style={{ flex: 1 }}
+                                />
+                            </div>
                         </div>
 
                         <div>
