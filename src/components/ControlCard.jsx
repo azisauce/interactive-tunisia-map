@@ -19,7 +19,8 @@ function ControlCard({
     onToggleDrivagoOnly,
     enableAddLocations = false,
     onToggleAddLocations,
-    onToggleAddLocationsOn
+    onToggleAddLocationsOn,
+    onTypeSelect
 }) {
     const getLevelInfo = () => {
         switch (currentLevel) {
@@ -131,6 +132,7 @@ function ControlCard({
                     value={enableAddLocations}
                     onChange={onToggleAddLocations}
                     onToggleOn={onToggleAddLocationsOn}
+                    onTypeSelect={onTypeSelect}
                 />
             </div>
 

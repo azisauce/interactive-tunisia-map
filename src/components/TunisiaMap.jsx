@@ -227,7 +227,8 @@ function TunisiaMap({
     locationTypeFilters = { pickup_point: true, driving_school: true, exam_center: true },
     showDrivagoOnly = false,
     enableAddLocations = false,
-    openPopupWithoutCoords
+    openPopupWithoutCoords,
+    selectedLocationType = 'pickup_point'
 }) {
     const [municipalities, setMunicipalities] = useState(null)
     const [sectors, setSectors] = useState(null)
@@ -841,6 +842,7 @@ function TunisiaMap({
                     position={pickupPopupPosition}
                     onClose={handleResetPopup}
                     onPickupPointCreated={handlePickupPointCreated}
+                    initialType={selectedLocationType}
                 />
             )}
 

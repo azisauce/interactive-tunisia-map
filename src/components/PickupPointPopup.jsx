@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@mui/material'
 import { fetchActiveAgenciesCached as fetchActiveAgencies, createLocation } from '../utils/api'
 
-function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
+function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType = 'pickup_point' }) {
     const [agencies, setAgencies] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
     const [pickupPointName, setPickupPointName] = useState('')
-    const [locationType, setLocationType] = useState('pickup_point')
+    const [locationType, setLocationType] = useState(initialType)
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState(null)

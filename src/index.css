@@ -326,11 +326,80 @@ body {
 }
 
 /* Add-locations toggle area */
-/* .add-locations-toggle {
-} */
+
+/* Add-locations toggle area */
+.add-locations-toggle {
+  display: inline-block;
+}
 
 .add-locations-toggle > div {
   min-width: 0;
+}
+
+/* + button that follows app button styling (small square circular) */
+.add-toggle-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-primary);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.add-toggle-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(2,6,23,0.35);
+}
+
+.add-toggle-button--active {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.28);
+}
+
+.add-toggle-button:focus-visible {
+  outline: 2px solid rgba(59,130,246,0.22);
+  outline-offset: 2px;
+}
+
+/* Popup that appears to the right of the + button */
+.add-toggle-popup {
+  z-index: 1500;
+}
+
+.add-toggle-popup__content {
+  min-width: 220px;
+  padding: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+}
+
+.add-toggle-popup__header {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.add-toggle-popup__body {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.add-toggle-popup__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap:8px;
 }
 
 /* Material-like slide toggle */

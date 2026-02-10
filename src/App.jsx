@@ -83,6 +83,7 @@ function App() {
     const [showDrivagoOnly, setShowDrivagoOnly] = useState(false)
     const [enableAddLocations, setEnableAddLocations] = useState(false)
     const [openPopupWithoutCoords, setOpenPopupWithoutCoords] = useState(0)
+    const [selectedLocationType, setSelectedLocationType] = useState('pickup_point')
 
     // Use ref to track the latest value of enableAddLocations to avoid stale closures
     const enableAddLocationsRef = useRef(enableAddLocations)
@@ -229,6 +230,12 @@ function App() {
         setOpenPopupWithoutCoords(prev => prev + 1)
     }, [])
 
+    const handleTypeSelect = useCallback((type) => {
+        setSelectedLocationType(type)
+        // Also trigger opening the popup
+        setOpenPopupWithoutCoords(prev => prev + 1)
+    }, [])
+
     return (
         <div className="app">
             <TunisiaMap
@@ -243,6 +250,7 @@ function App() {
                 showDrivagoOnly={showDrivagoOnly}
                 enableAddLocations={enableAddLocations}
                 openPopupWithoutCoords={openPopupWithoutCoords}
+                selectedLocationType={selectedLocationType}
             />
             <ControlCard
                 currentLevel={currentLevel}
@@ -262,6 +270,7 @@ function App() {
                 enableAddLocations={enableAddLocations}
                 onToggleAddLocations={handleToggleAddLocations}
                 onToggleAddLocationsOn={handleToggleAddLocationsOn}
+                onTypeSelect={handleTypeSelect}
             />
         </div>
     )
