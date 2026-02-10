@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button } from '@mui/material'
+import { Button } from '@mui/material'
 import { fetchActiveAgenciesCached as fetchActiveAgencies, createLocation } from '../utils/api'
 
 function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
@@ -76,25 +76,25 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
     }
 
     return (
-        <Dialog 
-            open={true} 
-            onClose={onClose}
-            maxWidth="sm"
-            fullWidth
-            PaperProps={{ className: 'control-card pickup-control-card' }}
-            BackdropProps={{ invisible: true }}
-        >
-            <DialogTitle style={{ padding: 0 }}>
-                <div className="control-card__header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
-                    <div className="control-card__icon">📍</div>
-                    <div>
-                        <div className="control-card__title">Add Location</div>
-                        <div className="control-card__subtitle">Place a pickup point, driving school, or exam center</div>
-                    </div>
+        <div className="control-card pickup-control-card" style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            width: '400px',
+            maxHeight: 'calc(100vh - 40px)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1000
+        }}>
+            <div className="control-card__header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
+                <div className="control-card__icon">📍</div>
+                <div>
+                    <div className="control-card__title">Add Location</div>
+                    <div className="control-card__subtitle">Place a pickup point, driving school, or exam center</div>
                 </div>
-            </DialogTitle>
+            </div>
 
-            <DialogContent style={{ paddingTop: '16px' }}>
+            <div style={{ paddingTop: '16px', overflowY: 'auto', flex: 1, padding: '16px' }}>
                 {loading ? (
                     <div style={{ 
                         display: 'flex', 
@@ -211,9 +211,9 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                         )}
                     </div>
                 )}
-            </DialogContent>
+            </div>
             
-            <DialogActions style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <Button 
                     onClick={handleCancel}
                     disabled={submitting}
@@ -231,8 +231,8 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated }) {
                 >
                     {submitting ? 'Adding...' : 'Add Location'}
                 </Button>
-            </DialogActions>
-        </Dialog>
+            </div>
+        </div>
     )
 }
 

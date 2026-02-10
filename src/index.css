@@ -75,7 +75,7 @@ body {
 /* Control-card variant for Dialog Paper (popups) */
 .pickup-control-card {
   /* Dialog paper should look like a control card but not be absolutely positioned */
-  position: relative !important;
+  /* position: relative !important; */
   top: auto !important;
   left: auto !important;
   margin: 20px auto !important;

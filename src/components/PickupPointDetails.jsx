@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, IconButton } from '@mui/material'
+import { Button, IconButton } from '@mui/material'
 import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies } from '../utils/api'
 
 function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated }) {
@@ -121,19 +121,28 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
     const typeLabel = typeLabels[point.type] || typeLabels.pickup_point
     const typeIcon = point.type === 'driving_school' ? '🏫' : point.type === 'exam_center' ? '📝' : '📍'
 
-    return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ className: 'control-card pickup-control-card' }} BackdropProps={{ invisible: true }}>
-            <DialogTitle style={{ padding: 0 }}>
-                <div className="control-card__header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
-                    <div className="control-card__icon">{typeIcon}</div>
-                    <div>
-                        <div className="control-card__title">{typeLabel}</div>
-                        <div className="control-card__subtitle">Details</div>
-                    </div>
-                </div>
-            </DialogTitle>
+    if (!open) return null
 
-            <DialogContent style={{ overflowX: 'hidden' }}>
+    return (
+        <div className="control-card pickup-control-card" style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            width: '400px',
+            maxHeight: 'calc(100vh - 40px)',
+            display: 'flex',
+            flexDirection: 'column',
+            zIndex: 1000
+        }}>
+            <div className="control-card__header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
+                <div className="control-card__icon">{typeIcon}</div>
+                <div>
+                    <div className="control-card__title">{typeLabel}</div>
+                    <div className="control-card__subtitle">Details</div>
+                </div>
+            </div>
+
+            <div style={{ overflowX: 'hidden', overflowY: 'auto', flex: 1, padding: '16px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div>
                         <div style={{ fontWeight: 600, color: 'white', marginBottom: 4 }}>{point.name || 'Location'}</div>
@@ -240,15 +249,15 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                         <div style={{ color: '#ef4444', fontSize: 13, padding: '8px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '4px' }}>{error}</div>
                     )}
                 </div>
-            </DialogContent>
+            </div>
 
-            <DialogActions style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <Button onClick={onClose} disabled={loading} className="pickup-popup-btn cancel">Close</Button>
                 <Button onClick={handleDelete} color="error" variant="contained" disabled={loading} className="pickup-popup-btn submit">
                     {loading ? 'Deleting...' : 'Delete Location'}
                 </Button>
-            </DialogActions>
-        </Dialog>
+            </div>
+        </div>
     )
 }
 
