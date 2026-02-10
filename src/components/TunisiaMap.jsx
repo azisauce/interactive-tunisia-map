@@ -277,6 +277,7 @@ function TunisiaMap({
 
     // Handle map click for pickup points - now even more strictly validated
     const handleMapClick = useCallback((latlng, clickedFeature = null) => {
+        
         // If popup is already open, don't update position (prevents re-renders while typing)
         if (pickupPopupPosition) return
 
