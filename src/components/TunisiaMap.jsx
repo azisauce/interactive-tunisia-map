@@ -35,41 +35,44 @@ const locationIcons = {
 function MapClickHandler({ onMapClick, selectedRegion, enableAddLocations, currentGeoData }) {
     useMapEvents({
         click: (e) => {
-            // If enableAddLocations toggle is ON, allow clicks anywhere
+            // If enableAddLocations toggle is ON, allow clicks anywhere.
+            // Pass the feature that contains the click when available, otherwise null.
+            console.log('enableAddLocations:', enableAddLocations);
+            
             if (enableAddLocations) {
-                // Find which region contains this click point
+                let clickedFeature = null
                 if (currentGeoData && currentGeoData.features) {
                     const pt = turf.point([e.latlng.lng, e.latlng.lat])
-                    const clickedFeature = currentGeoData.features.find(feature => {
+                    clickedFeature = currentGeoData.features.find(feature => {
                         try {
                             return turf.booleanPointInPolygon(pt, feature)
                         } catch (err) {
                             return false
                         }
-                    })
-                    if (clickedFeature) {
-                        onMapClick(e.latlng, clickedFeature)
-                    }
+                    }) || null
                 }
-                return
+                onMapClick(e.latlng, clickedFeature)
+                // Original behavior: Allow creating pickup points when a region is selected (any level).
+                console.log('selectedRegion', selectedRegion);
+                
+                if (selectedRegion && selectedRegion.type === 'Feature') {
+                    const pt = turf.point([e.latlng.lng, e.latlng.lat])
+                    try {
+                        if (turf.booleanPointInPolygon(pt, selectedRegion)) {
+                            onMapClick(e.latlng);
+                        } else {
+                            console.log('Click outside selected region, ignoring')
+                            onMapClick(e.latlng);
+                        }
+                    } catch (err) {
+                        console.warn('Error checking point-in-polygon:', err)
+                    }
+                } else {
+                    // No region selected => ignore clicks for pickup creation
+                    console.log('No region selected, ignoring click')
+                }
             }
 
-            // Original behavior: Allow creating pickup points when a region is selected (any level).
-            if (selectedRegion && selectedRegion.type === 'Feature') {
-                const pt = turf.point([e.latlng.lng, e.latlng.lat])
-                try {
-                    if (turf.booleanPointInPolygon(pt, selectedRegion)) {
-                        onMapClick(e.latlng)
-                    } else {
-                        console.log('Click outside selected region, ignoring')
-                    }
-                } catch (err) {
-                    console.warn('Error checking point-in-polygon:', err)
-                }
-            } else {
-                // No region selected => ignore clicks for pickup creation
-                console.log('No region selected, ignoring click')
-            }
         }
     })
     return null
@@ -277,6 +280,9 @@ function TunisiaMap({
 
     // Handle map click for pickup points - now even more strictly validated
     const handleMapClick = useCallback((latlng, clickedFeature = null) => {
+
+        console.log('clickedFeature======>', clickedFeature);
+        
         
         // If popup is already open, don't update position (prevents re-renders while typing)
         if (pickupPopupPosition) return
@@ -614,11 +620,8 @@ function TunisiaMap({
                     // Fallback: nothing
                 }
 
-                // If the current level is not addable, stop propagation so map-level click
-                // handlers (like adding pickup points) don't receive this event.
-                if (!addableLevels.has(currentLevel)) {
-                    L.DomEvent.stopPropagation(e)
-                }
+                // Allow click events to propagate to the map so adding locations is always possible.
+                // Previously clicks were stopped for non-addable levels; removed to permit adding anywhere.
             }
         })
     }, [currentLevel, onRegionSelect, onRegionHover, selectedRegion, pickupPopupPosition, tempMarkerPosition])
