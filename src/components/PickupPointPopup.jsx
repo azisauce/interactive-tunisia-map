@@ -91,14 +91,6 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType
             flexDirection: 'column',
             zIndex: 1000
         }}>
-            <div className="control-card__header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
-                <div className="control-card__icon">📍</div>
-                <div>
-                    <div className="control-card__title">Add Location</div>
-                    <div className="control-card__subtitle">Place a pickup point, driving school, or exam center</div>
-                </div>
-            </div>
-
             <div style={{ paddingTop: '16px', overflowY: 'auto', flex: 1, padding: '16px' }}>
                 {loading ? (
                     <div style={{ 
