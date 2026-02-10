@@ -11,7 +11,6 @@ function AddLocationsToggle({ value = false, onChange, onToggleOn, onTypeSelect 
 
     const handleToggle = (next) => {
         if (onChange) onChange(next)
-        if (next && onToggleOn) onToggleOn()
         setOpen(next)
     }
 
@@ -59,17 +58,9 @@ function AddLocationsToggle({ value = false, onChange, onToggleOn, onTypeSelect 
                     className={`add-toggle-button ${value ? 'add-toggle-button--active' : ''}`}
                     aria-pressed={value}
                     aria-label={value ? 'Disable adding locations' : 'Enable adding locations'}
-                    onClick={() => {
-                        if (!open) {
-                            if (onChange) onChange(true)
-                            setOpen(true)
-                        } else {
-                            setOpen(false)
-                            if (onChange) onChange(false)
-                        }
-                    }}
-                >
-                    +
+                    onClick={() => handleToggle(!(open || value))}
+                    >
+                    {(open || value) ? '×' : '+'}
                 </button>
             </div>
 
