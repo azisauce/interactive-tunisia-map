@@ -227,8 +227,6 @@ function TunisiaMap({
     locationTypeFilters = { pickup_point: true, driving_school: true, exam_center: true },
     showDrivagoOnly = false,
     enableAddLocations = false,
-    onTempMarkerChange,
-    cancelTempMarkerSignal,
     openPopupWithoutCoords
 }) {
     const [municipalities, setMunicipalities] = useState(null)
@@ -306,9 +304,10 @@ function TunisiaMap({
         setTempMarkerPosition({ lat: latlng.lat, lng: latlng.lng })
     }, [pickupPopupPosition, enableAddLocations])
 
-    // Close popup (keep temp marker so user can reposition and re-open)
-    const handleClosePopup = useCallback(() => {
-        setPickupPopupPosition(null)
+    // Reset popup coordinates and clear temp marker (keep popup open)
+    const handleResetPopup = useCallback(() => {
+        setPickupPopupPosition({ lat: null, lng: null })
+        setTempMarkerPosition(null)
     }, [])
     
     // Handle temporary marker drag
@@ -333,14 +332,6 @@ function TunisiaMap({
         }
     }, [tempMarkerPosition])
 
-    // Cancel temp marker from external signal (ControlCard cancel button)
-    useEffect(() => {
-        if (cancelTempMarkerSignal > 0) {
-            setTempMarkerPosition(null)
-            setPickupPopupPosition(null)
-        }
-    }, [cancelTempMarkerSignal])
-
     // Open popup without coordinates when toggle is turned on
     useEffect(() => {
         if (openPopupWithoutCoords > 0) {
@@ -350,12 +341,13 @@ function TunisiaMap({
         }
     }, [openPopupWithoutCoords])
 
-    // Notify parent when temp marker appears/disappears
+    // Close popup when toggle is turned off
     useEffect(() => {
-        if (onTempMarkerChange) {
-            onTempMarkerChange(!!tempMarkerPosition)
+        if (!enableAddLocations) {
+            setPickupPopupPosition(null)
+            setTempMarkerPosition(null)
         }
-    }, [tempMarkerPosition, onTempMarkerChange])
+    }, [enableAddLocations])
 
     // Handle new location created
     const handlePickupPointCreated = useCallback(async (newLocation) => {
@@ -847,7 +839,7 @@ function TunisiaMap({
                 <PickupPointPopup
                     key={`pickup-${pickupPopupPosition.lat}-${pickupPopupPosition.lng}`}
                     position={pickupPopupPosition}
-                    onClose={handleClosePopup}
+                    onClose={handleResetPopup}
                     onPickupPointCreated={handlePickupPointCreated}
                 />
             )}

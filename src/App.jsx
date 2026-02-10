@@ -82,8 +82,6 @@ function App() {
     })
     const [showDrivagoOnly, setShowDrivagoOnly] = useState(false)
     const [enableAddLocations, setEnableAddLocations] = useState(false)
-    const [hasTempMarker, setHasTempMarker] = useState(false)
-    const [cancelTempMarkerSignal, setCancelTempMarkerSignal] = useState(0)
     const [openPopupWithoutCoords, setOpenPopupWithoutCoords] = useState(0)
 
     // Use ref to track the latest value of enableAddLocations to avoid stale closures
@@ -231,15 +229,6 @@ function App() {
         setOpenPopupWithoutCoords(prev => prev + 1)
     }, [])
 
-    const handleTempMarkerChange = useCallback((hasMarker) => {
-        setHasTempMarker(hasMarker)
-    }, [])
-
-    const handleCancelTempMarker = useCallback(() => {
-        setCancelTempMarkerSignal(prev => prev + 1)
-        setHasTempMarker(false)
-    }, [])
-
     return (
         <div className="app">
             <TunisiaMap
@@ -253,8 +242,6 @@ function App() {
                 locationTypeFilters={locationTypeFilters}
                 showDrivagoOnly={showDrivagoOnly}
                 enableAddLocations={enableAddLocations}
-                onTempMarkerChange={handleTempMarkerChange}
-                cancelTempMarkerSignal={cancelTempMarkerSignal}
                 openPopupWithoutCoords={openPopupWithoutCoords}
             />
             <ControlCard
@@ -275,8 +262,6 @@ function App() {
                 enableAddLocations={enableAddLocations}
                 onToggleAddLocations={handleToggleAddLocations}
                 onToggleAddLocationsOn={handleToggleAddLocationsOn}
-                hasTempMarker={hasTempMarker}
-                onCancelTempMarker={handleCancelTempMarker}
             />
         </div>
     )
