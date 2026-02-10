@@ -332,6 +332,13 @@ function TunisiaMap({
             setPickupPopupPosition({ ...tempMarkerPosition })
         }
     }, [tempMarkerPosition])
+    
+    // Handle coordinate changes from manual editing in the popup
+    const handleCoordinatesChange = useCallback((newCoords) => {
+        // Update both temp marker and popup positions when coordinates are manually edited
+        setTempMarkerPosition(prev => prev ? { ...prev, ...newCoords } : newCoords)
+        setPickupPopupPosition(prev => prev ? { ...prev, ...newCoords } : newCoords)
+    }, [])
 
     // Open popup without coordinates when toggle is turned on
     useEffect(() => {
@@ -838,10 +845,10 @@ function TunisiaMap({
             {/* Pickup point popup */}
             {pickupPopupPosition && (
                 <PickupPointPopup
-                    key={`pickup-${pickupPopupPosition.lat}-${pickupPopupPosition.lng}`}
                     position={pickupPopupPosition}
                     onClose={handleResetPopup}
                     onPickupPointCreated={handlePickupPointCreated}
+                    onCoordinatesChange={handleCoordinatesChange}
                     initialType={selectedLocationType}
                 />
             )}

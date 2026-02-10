@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@mui/material'
 import { fetchActiveAgenciesCached as fetchActiveAgencies, createLocation } from '../utils/api'
 
-function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType = 'pickup_point', initialCoords = null }) {
+function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinatesChange, initialType = 'pickup_point', initialCoords = null }) {
     const [agencies, setAgencies] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
     const [pickupPointName, setPickupPointName] = useState('')
@@ -190,7 +190,15 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType
                                     type="number"
                                     step="0.000001"
                                     value={coords.lat ?? ''}
-                                    onChange={(e) => setCoords(prev => ({ ...prev, lat: e.target.value === '' ? null : parseFloat(e.target.value) }))}
+                                    onChange={(e) => {
+                                        const newLat = e.target.value === '' ? null : parseFloat(e.target.value)
+                                        const newCoords = { ...coords, lat: newLat }
+                                        setCoords(newCoords)
+                                        // Notify parent of coordinate change if both values are valid
+                                        if (onCoordinatesChange && Number.isFinite(newLat) && Number.isFinite(newCoords.lng)) {
+                                            onCoordinatesChange({ lat: newLat, lng: newCoords.lng })
+                                        }
+                                    }}
                                     placeholder="Latitude"
                                     className="pickup-popup-input"
                                     style={{ flex: 1 }}
@@ -200,7 +208,15 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, initialType
                                     type="number"
                                     step="0.000001"
                                     value={coords.lng ?? ''}
-                                    onChange={(e) => setCoords(prev => ({ ...prev, lng: e.target.value === '' ? null : parseFloat(e.target.value) }))}
+                                    onChange={(e) => {
+                                        const newLng = e.target.value === '' ? null : parseFloat(e.target.value)
+                                        const newCoords = { ...coords, lng: newLng }
+                                        setCoords(newCoords)
+                                        // Notify parent of coordinate change if both values are valid
+                                        if (onCoordinatesChange && Number.isFinite(coords.lat) && Number.isFinite(newLng)) {
+                                            onCoordinatesChange({ lat: coords.lat, lng: newLng })
+                                        }
+                                    }}
                                     placeholder="Longitude"
                                     className="pickup-popup-input"
                                     style={{ flex: 1 }}
