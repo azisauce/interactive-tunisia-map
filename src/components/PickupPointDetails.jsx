@@ -134,69 +134,67 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
             flexDirection: 'column',
             zIndex: 1000
         }}>
-            <div className="control-card__header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12 }}>
-                <div className="control-card__icon">{typeIcon}</div>
-                <div>
-                    <div className="control-card__title">{typeLabel}</div>
-                    <div className="control-card__subtitle">Details</div>
-                </div>
-            </div>
-
-            <div style={{ overflowX: 'hidden', overflowY: 'auto', flex: 1, padding: '16px' }}>
+            <div style={{ overflowX: 'hidden', overflowY: 'auto', flex: 1 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div>
-                        <div style={{ fontWeight: 600, color: 'white', marginBottom: 4 }}>{point.name || 'Location'}</div>
-                        <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-block', padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>{typeLabel}</div>
-                        <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)' }}>📌 {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}</div>
+                        <div style={{ fontWeight: 600, color: 'white', marginBottom: 8, fontSize: 20 }}>{point.name || 'Location'}</div>
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                            <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-block', padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>{typeLabel}</div>
+                            <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)' }}>📌 {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}</div>
+                        </div>
                         {point.createdAt && (
-                            <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginTop: 4 }}>Created: {new Date(point.createdAt).toLocaleString()}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginTop: 4, textAlign: 'right' }}>Created: {new Date(point.createdAt).toLocaleString()}</div>
                         )}
                     </div>
 
                     <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 8 }}>
-                            Assigned Agencies ({pointAgencies.length})
-                        </div>
-                        
-                        {pointAgencies.length === 0 ? (
-                            <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic', padding: '8px 0' }}>
-                                No agencies assigned
+                        {point.type == 'pickup_point' && (
+                            <>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 8 }}>
+                                Assigned Agencies ({pointAgencies.length})
                             </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {pointAgencies.map((agency) => (
-                                    <div 
-                                        key={agency.locationAgencyId} 
-                                        style={{ 
-                                            display: 'flex', 
-                                            alignItems: 'center', 
-                                            justifyContent: 'space-between',
-                                            padding: '8px 12px',
-                                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                                            borderRadius: '6px',
-                                            border: '1px solid rgba(255, 255, 255, 0.1)'
-                                        }}
-                                    >
-                                        <div style={{ color: 'white', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{agency.agencyName || 'Unknown Agency'}</div>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => handleRemoveAgency(agency.locationAgencyId)}
-                                            disabled={removingAgencyId === agency.locationAgencyId}
+                            {pointAgencies.length === 0 ? (
+                                <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic', padding: '8px 0' }}>
+                                    No agencies assigned
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                    {pointAgencies.map((agency) => (
+                                        <div 
+                                            key={agency.locationAgencyId} 
                                             style={{ 
-                                                color: '#ef4444',
-                                                padding: '4px'
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'space-between',
+                                                padding: '8px 12px',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                borderRadius: '6px',
+                                                border: '1px solid rgba(255, 255, 255, 0.1)'
                                             }}
-                                            title="Remove agency"
                                         >
-                                            {removingAgencyId === agency.locationAgencyId ? '⏳' : '🗑️'}
-                                        </IconButton>
-                                    </div>
-                                ))}
-                            </div>
+                                            <div style={{ color: 'white', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{agency.agencyName || 'Unknown Agency'}</div>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleRemoveAgency(agency.locationAgencyId)}
+                                                disabled={removingAgencyId === agency.locationAgencyId}
+                                                style={{ 
+                                                    color: '#ef4444',
+                                                    padding: '4px'
+                                                }}
+                                                title="Remove agency"
+                                            >
+                                                {removingAgencyId === agency.locationAgencyId ? '⏳' : '🗑️'}
+                                            </IconButton>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            </>
                         )}
+                        
                     </div>
 
-                    {point.type !== 'driving_school' && (
+                    {point.type == 'pickup_point' && (
                         <div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 8 }}>
                                 Add Agency
