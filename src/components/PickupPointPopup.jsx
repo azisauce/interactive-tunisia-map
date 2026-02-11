@@ -236,7 +236,10 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                             <select
                                 id="locationType"
                                 value={locationType}
-                                onChange={(e) => setLocationType(e.target.value)}
+                                onChange={(e) => {
+                                    setLocationType(e.target.value)
+                                    resetFields()
+                                }}
                                 className="pickup-popup-select"
                             >
                                 <option value="pickup_point">📍 Pickup Point</option>
