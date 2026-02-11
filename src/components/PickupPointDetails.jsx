@@ -128,6 +128,24 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
         exam_center: '📝 Exam Center'
     }
     const typeLabel = typeLabels[point.type] || typeLabels.pickup_point
+    
+    const handleDrivingSchoolClick = () => {
+        if (point.type !== 'driving_school') return
+        
+        // Get the driving school agency ID
+        const drivingSchoolId = point.agencies?.[0]?.agencyId || point.id
+        
+        // Determine base URL based on environment
+        const hostname = window.location.hostname
+        const isProduction = hostname.includes('autoecoleplus.tn') && !hostname.includes('test')
+        const baseUrl = isProduction 
+            ? 'https://cloud.autoecoleplus.tn'
+            : 'https://testadmin.autoecoleplus.tn'
+        
+        const url = `${baseUrl}/agences/detailsagence/${drivingSchoolId}`
+        window.open(url, '_blank', 'noopener,noreferrer')
+    }
+    
     if (!open) return null
 
     return (
@@ -154,7 +172,20 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
             <div style={{ overflowX: 'hidden', overflowY: 'auto', flex: 1 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div>
-                        <div style={{ fontWeight: 600, color: 'white', marginBottom: 8, fontSize: 20, display: 'flex', alignItems: 'center', gap: 6, textDecoration: point.type === 'driving_school' ? 'underline' : 'none' }}>
+                        <div 
+                            style={{ 
+                                fontWeight: 600, 
+                                color: 'white', 
+                                marginBottom: 8, 
+                                fontSize: 20, 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 6, 
+                                textDecoration: point.type === 'driving_school' ? 'underline' : 'none',
+                                cursor: point.type === 'driving_school' ? 'pointer' : 'default'
+                            }}
+                            onClick={point.type === 'driving_school' ? handleDrivingSchoolClick : undefined}
+                        >
                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{point.name || 'Location'}</span>
                             {point.type === 'driving_school' && (
                                 <ArrowOutwardIcon style={{ fontSize: 18, marginLeft: 6 }} />
