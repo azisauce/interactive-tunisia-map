@@ -12,6 +12,14 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
     const [removingAgencyId, setRemovingAgencyId] = useState(null)
     const [loadingAgencies, setLoadingAgencies] = useState(true)
 
+    // Prevent map interactions when cursor is over this panel
+    const stopPropagation = (e) => {
+        e.stopPropagation()
+    }
+    const stopWheel = (e) => {
+        e.stopPropagation()
+    }
+
     if (!point) return null
 
     // Load available agencies on mount
@@ -120,12 +128,20 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
         exam_center: '📝 Exam Center'
     }
     const typeLabel = typeLabels[point.type] || typeLabels.pickup_point
-    const typeIcon = point.type === 'driving_school' ? '🏫' : point.type === 'exam_center' ? '📝' : '📍'
-
     if (!open) return null
 
     return (
-        <div className="control-card pickup-control-card" style={{
+        <div
+            className="control-card pickup-control-card"
+            onMouseDown={stopPropagation}
+            onMouseUp={stopPropagation}
+            onMouseMove={stopPropagation}
+            onWheel={stopWheel}
+            onTouchStart={stopPropagation}
+            onTouchMove={stopPropagation}
+            onPointerDown={stopPropagation}
+            style={{
+                cursor: 'default',
             position: 'fixed',
             top: '20px',
             right: '20px',

@@ -16,6 +16,14 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState(null)
 
+    // Prevent map interactions when cursor is over this panel
+    const stopPropagation = (e) => {
+        e.stopPropagation()
+    }
+    const stopWheel = (e) => {
+        e.stopPropagation()
+    }
+
     // Local editable coordinates. Initialize from `initialCoords` if provided, otherwise from `position`.
     const [coords, setCoords] = useState({
         lat: initialCoords && typeof initialCoords.lat === 'number' ? initialCoords.lat : (position?.lat ?? null),
@@ -196,16 +204,26 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     const isAddDisabled = submitting || loading || missingRequired.length > 0
 
     return (
-        <div className="control-card pickup-control-card" style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            width: '400px',
-            maxHeight: 'calc(100vh - 40px)',
-            display: 'flex',
-            flexDirection: 'column',
-            zIndex: 1000
-        }}>
+        <div
+            className="control-card pickup-control-card"
+            onMouseDown={stopPropagation}
+            onMouseUp={stopPropagation}
+            onMouseMove={stopPropagation}
+            onWheel={stopWheel}
+            onTouchStart={stopPropagation}
+            onTouchMove={stopPropagation}
+            onPointerDown={stopPropagation}
+            style={{
+                cursor: 'default',
+                position: 'fixed',
+                top: '20px',
+                right: '20px',
+                width: '400px',
+                maxHeight: 'calc(100vh - 40px)',
+                display: 'flex',
+                flexDirection: 'column',
+                zIndex: 1000
+            }}>
             <div style={{ paddingTop: '16px', overflowY: 'auto', flex: 1, padding: '16px' }}>
                 {loading ? (
                     <div style={{ 
