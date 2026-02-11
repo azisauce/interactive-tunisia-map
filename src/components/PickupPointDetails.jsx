@@ -12,6 +12,9 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
     const [removingAgencyId, setRemovingAgencyId] = useState(null)
     const [loadingAgencies, setLoadingAgencies] = useState(true)
 
+    console.log('point==============>',point);
+    
+
     // Prevent map interactions when cursor is over this panel
     const stopPropagation = (e) => {
         e.stopPropagation()
@@ -195,6 +198,12 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                             <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-block', padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>{typeLabel}</div>
                             <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)' }}>📌 {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}</div>
                         </div>
+                        {point?.addressFr && (
+                            <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12 }}>{point.addressFr}</div>
+                        )}
+                        {point?.addressAr && (
+                            <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12, direction: 'rtl' }}>{point.addressAr}</div>
+                        )}
                         {point.createdAt && (
                             <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginTop: 4, textAlign: 'right' }}>Created: {new Date(point.createdAt).toLocaleString()}</div>
                         )}
