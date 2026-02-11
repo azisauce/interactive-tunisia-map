@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { Button, IconButton } from '@mui/material'
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward'
-import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies } from '../utils/api'
+import EditIcon from '@mui/icons-material/Edit'
+import CloseIcon from '@mui/icons-material/Close'
+import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies, updateLocation } from '../utils/api'
 
 function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated }) {
     const [loading, setLoading] = useState(false)
@@ -11,6 +13,18 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
     const [addingAgency, setAddingAgency] = useState(false)
     const [removingAgencyId, setRemovingAgencyId] = useState(null)
     const [loadingAgencies, setLoadingAgencies] = useState(true)
+    
+    // Edit mode states
+    const [isEditMode, setIsEditMode] = useState(false)
+    const [saving, setSaving] = useState(false)
+    const [editForm, setEditForm] = useState({
+        nameFr: '',
+        nameAr: '',
+        addressFr: '',
+        addressAr: '',
+        latitude: '',
+        longitude: ''
+    })
 
     console.log('point==============>',point);
     
@@ -24,6 +38,20 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
     }
 
     if (!point) return null
+
+    // Initialize edit form when point changes or entering edit mode
+    useEffect(() => {
+        if (point) {
+            setEditForm({
+                nameFr: point.nameFr || '',
+                nameAr: point.nameAr || '',
+                addressFr: point.addressFr || '',
+                addressAr: point.addressAr || '',
+                latitude: point.latitude || '',
+                longitude: point.longitude || ''
+            })
+        }
+    }, [point])
 
     // Load available agencies on mount
     useEffect(() => {
@@ -121,6 +149,82 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
         }
     }
 
+    const handleEditFormChange = (field, value) => {
+        setEditForm(prev => ({ ...prev, [field]: value }))
+    }
+
+    const handleEnterEditMode = () => {
+        setEditForm({
+            nameFr: point.nameFr || '',
+            nameAr: point.nameAr || '',
+            addressFr: point.addressFr || '',
+            addressAr: point.addressAr || '',
+            latitude: point.latitude || '',
+            longitude: point.longitude || ''
+        })
+        setIsEditMode(true)
+        setError(null)
+    }
+
+    const handleCancelEdit = () => {
+        setIsEditMode(false)
+        setError(null)
+        // Reset form to original values
+        setEditForm({
+            nameFr: point.nameFr || '',
+            nameAr: point.nameAr || '',
+            addressFr: point.addressFr || '',
+            addressAr: point.addressAr || '',
+            latitude: point.latitude || '',
+            longitude: point.longitude || ''
+        })
+    }
+
+    const handleSaveEdit = async () => {
+        setError(null)
+        setSaving(true)
+        try {
+            const updateData = {
+                type: point.type
+            }
+
+            // Only include fields that are editable for this type
+            if (point.type === 'pickup_point') {
+                updateData.nameFr = editForm.nameFr || null
+                updateData.nameAr = editForm.nameAr || null
+            }
+            
+            if (point.type === 'driving_school') {
+                updateData.addressFr = editForm.addressFr || null
+                updateData.addressAr = editForm.addressAr || null
+            }
+
+            // Coordinates are editable for all types
+            const lat = parseFloat(editForm.latitude)
+            const lng = parseFloat(editForm.longitude)
+            
+            if (!isNaN(lat)) updateData.latitude = lat
+            if (!isNaN(lng)) updateData.longitude = lng
+
+            const result = await updateLocation(point.id, updateData)
+            
+            // Update the point with new values
+            const updatedPoint = {
+                ...point,
+                ...result,
+                agencies: point.agencies // Keep agencies from original point
+            }
+            
+            if (onUpdated) onUpdated(updatedPoint)
+            setIsEditMode(false)
+        } catch (err) {
+            console.error('Failed to save changes', err)
+            setError(err?.message || 'Failed to save changes')
+        } finally {
+            setSaving(false)
+        }
+    }
+
     const pointAgencies = point.agencies || []
     const assignedAgencyIds = pointAgencies.map(a => String(a.agencyId))
     const availableAgencies = agencies.filter(a => !assignedAgencyIds.includes(String(a.agenceId)))
@@ -172,6 +276,22 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
             flexDirection: 'column',
             zIndex: 1000
         }}>
+            {/* Edit button in top right corner */}
+            <IconButton
+                onClick={isEditMode ? handleCancelEdit : handleEnterEditMode}
+                style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    color: isEditMode ? '#ef4444' : 'rgba(255, 255, 255, 0.7)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    padding: 8
+                }}
+                title={isEditMode ? 'Cancel edit' : 'Edit location'}
+            >
+                {isEditMode ? <CloseIcon style={{ fontSize: 20 }} /> : <EditIcon style={{ fontSize: 20 }} />}
+            </IconButton>
+
             <div style={{ overflowX: 'hidden', overflowY: 'auto', flex: 1 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div>
@@ -185,7 +305,8 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                                 alignItems: 'center', 
                                 gap: 6, 
                                 textDecoration: point.type === 'driving_school' ? 'underline' : 'none',
-                                cursor: point.type === 'driving_school' ? 'pointer' : 'default'
+                                cursor: point.type === 'driving_school' ? 'pointer' : 'default',
+                                paddingRight: 40
                             }}
                             onClick={point.type === 'driving_school' ? handleDrivingSchoolClick : undefined}
                         >
@@ -196,20 +317,159 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                         </div>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                             <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-block', padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>{typeLabel}</div>
-                            <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)' }}>📌 {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}</div>
+                            {!isEditMode && (
+                                <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)' }}>📌 {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}</div>
+                            )}
                         </div>
-                        {point?.nameFr && (
-                            <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12 }}>{point.nameFr}</div>
-                        )}
-                        {point?.nameAr && (
-                            <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12, direction: 'rtl' }}>{point.nameAr}</div>
-                        )}
+                        
+                        {/* Edit Mode Fields */}
+                        {isEditMode ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+                                {/* Coordinates */}
+                                <div>
+                                    <label style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'block' }}>Coordinates</label>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={editForm.latitude}
+                                            onChange={(e) => handleEditFormChange('latitude', e.target.value)}
+                                            placeholder="Latitude"
+                                            style={{
+                                                flex: 1,
+                                                padding: '8px 12px',
+                                                fontSize: 14,
+                                                borderRadius: 6,
+                                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                                color: 'white'
+                                            }}
+                                        />
+                                        <input
+                                            type="number"
+                                            step="any"
+                                            value={editForm.longitude}
+                                            onChange={(e) => handleEditFormChange('longitude', e.target.value)}
+                                            placeholder="Longitude"
+                                            style={{
+                                                flex: 1,
+                                                padding: '8px 12px',
+                                                fontSize: 14,
+                                                borderRadius: 6,
+                                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                                color: 'white'
+                                            }}
+                                        />
+                                    </div>
+                                </div>
 
-                        {point?.addressFr && (
-                            <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12 }}>{point.addressFr}</div>
-                        )}
-                        {point?.addressAr && (
-                            <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12, direction: 'rtl' }}>{point.addressAr}</div>
+                                {/* Name fields - for pickup_point */}
+                                {point.type === 'pickup_point' && (
+                                    <>
+                                        <div>
+                                            <label style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'block' }}>Name (French)</label>
+                                            <input
+                                                type="text"
+                                                value={editForm.nameFr}
+                                                onChange={(e) => handleEditFormChange('nameFr', e.target.value)}
+                                                placeholder="Name in French"
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    padding: '8px 12px',
+                                                    fontSize: 14,
+                                                    borderRadius: 6,
+                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                                    color: 'white'
+                                                }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'block' }}>Name (Arabic)</label>
+                                            <input
+                                                type="text"
+                                                value={editForm.nameAr}
+                                                onChange={(e) => handleEditFormChange('nameAr', e.target.value)}
+                                                placeholder="الاسم بالعربية"
+                                                dir="rtl"
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    padding: '8px 12px',
+                                                    fontSize: 14,
+                                                    borderRadius: 6,
+                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                                    color: 'white'
+                                                }}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Address fields - for driving_school */}
+                                {point.type === 'driving_school' && (
+                                    <>
+                                        <div>
+                                            <label style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'block' }}>Address (French)</label>
+                                            <input
+                                                type="text"
+                                                value={editForm.addressFr}
+                                                onChange={(e) => handleEditFormChange('addressFr', e.target.value)}
+                                                placeholder="Address in French"
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    padding: '8px 12px',
+                                                    fontSize: 14,
+                                                    borderRadius: 6,
+                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                                    color: 'white'
+                                                }}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'block' }}>Address (Arabic)</label>
+                                            <input
+                                                type="text"
+                                                value={editForm.addressAr}
+                                                onChange={(e) => handleEditFormChange('addressAr', e.target.value)}
+                                                placeholder="العنوان بالعربية"
+                                                dir="rtl"
+                                                style={{
+                                                    width: '100%',
+                                                    boxSizing: 'border-box',
+                                                    padding: '8px 12px',
+                                                    fontSize: 14,
+                                                    borderRadius: 6,
+                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                                    color: 'white'
+                                                }}
+                                            />
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        ) : (
+                            <>
+                                {point?.nameFr && (
+                                    <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12 }}>{point.nameFr}</div>
+                                )}
+                                {point?.nameAr && (
+                                    <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12, direction: 'rtl' }}>{point.nameAr}</div>
+                                )}
+
+                                {point?.addressFr && (
+                                    <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12 }}>{point.addressFr}</div>
+                                )}
+                                {point?.addressAr && (
+                                    <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12, direction: 'rtl' }}>{point.addressAr}</div>
+                                )}
+                            </>
                         )}
 
                         {point.createdAt && (
@@ -217,7 +477,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                         )}
                     </div>
 
-                    {point.type == 'pickup_point' && (
+                    {point.type == 'pickup_point' && !isEditMode && (
                         <div>
                             <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 8 }}>
                                 Add Agency
@@ -265,7 +525,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                         </div>
                     )}
                     <div>
-                        {point.type == 'pickup_point' && (
+                        {point.type == 'pickup_point' && !isEditMode && (
                             <>
                             <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 8 }}>
                                 Assigned Agencies ({pointAgencies.length})
@@ -320,10 +580,21 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
             </div>
 
             <div style={{ padding: '12px 0px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <Button onClick={onClose} disabled={loading} className="pickup-popup-btn cancel">Close</Button>
-                <Button onClick={handleDelete} color="error" variant="contained" disabled={loading} className="pickup-popup-btn submit">
-                    {loading ? 'Deleting...' : 'Delete Location'}
-                </Button>
+                {isEditMode ? (
+                    <>
+                        <Button onClick={handleCancelEdit} disabled={saving} className="pickup-popup-btn cancel">Cancel</Button>
+                        <Button onClick={handleSaveEdit} variant="contained" disabled={saving} className="pickup-popup-btn submit" style={{ backgroundColor: saving ? '#666' : '#3b82f6' }}>
+                            {saving ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                    </>
+                ) : (
+                    <>
+                        <Button onClick={onClose} disabled={loading} className="pickup-popup-btn cancel">Close</Button>
+                        <Button onClick={handleDelete} color="error" variant="contained" disabled={loading} className="pickup-popup-btn submit">
+                            {loading ? 'Deleting...' : 'Delete Location'}
+                        </Button>
+                    </>
+                )}
             </div>
         </div>
     )

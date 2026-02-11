@@ -291,6 +291,30 @@ export async function removeAgencyFromLocation(locationAgencyId) {
     return response.json()
 }
 
+export async function updateLocation(locationId, updateData) {
+    const response = await fetch(`${API_BASE_URL}/locations/${locationId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(updateData)
+    })
+
+    if (!response.ok) {
+        const contentType = response.headers.get('content-type') || ''
+        let text = await response.text().catch(() => '')
+        if (contentType.includes('application/json')) {
+            try {
+                const j = JSON.parse(text)
+                text = j?.error || j?.message || text
+            } catch (e) {
+                // ignore JSON parse errors
+            }
+        }
+        throw new Error(text || 'Failed to update location')
+    }
+
+    return response.json()
+}
+
 // export async function fetchAssignedAgencies(workingZoneType, workingZoneId) {
 //     const params = new URLSearchParams()
 //     params.append('workingZoneType', workingZoneType)
