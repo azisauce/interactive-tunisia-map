@@ -120,6 +120,23 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
         onClose()
     }
 
+    // Validation for required fields (used to disable Add button and show message)
+    const isCoordsValid = Number.isFinite(coords.lat) && Number.isFinite(coords.lng)
+    const missingRequired = []
+
+    if (locationType === 'pickup_point') {
+        if (!pickupPointNameFr) missingRequired.push('Name (FR)')
+        if (!isCoordsValid) missingRequired.push('Coordinates')
+    } else if (locationType === 'driving_school') {
+        if (!isCoordsValid) missingRequired.push('Coordinates')
+        if (!pickupPointAddressFr) missingRequired.push('Address (FR)')
+        if (!selectedAgency) missingRequired.push('Assigned agency')
+    } else if (locationType === 'exam_center') {
+        if (!isCoordsValid) missingRequired.push('Coordinates')
+    }
+
+    const isAddDisabled = submitting || loading || missingRequired.length > 0
+
     return (
         <div className="control-card pickup-control-card" style={{
             position: 'fixed',
@@ -170,7 +187,8 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                             </select>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        {locationType == 'pickup_point' && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
                             <div style={{ flex: 1 }}>
                                 <label 
                                     htmlFor="pickupNameFr" 
@@ -194,8 +212,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                                     className="pickup-popup-input"
                                 />
                             </div>
-
-                            {locationType !== 'exam_center' && (<div style={{ flex: 1 }}>
+                            <div style={{ flex: 1 }}>
                                 <label 
                                     htmlFor="pickupNameAr" 
                                     style={{ 
@@ -219,8 +236,8 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                                     style={{ textAlign: 'right' }}
                                 />
                             </div>
-                            )}
                         </div>
+                        )}
                         {locationType == 'driving_school' && (
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <div style={{ flex: 1 }}>
@@ -326,7 +343,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                             </div>
                         </div>
 
-                        {locationType !== 'exam_center' && (
+                        {locationType == 'driving_school' && (
                             <div>
                                 <label 
                                     htmlFor="agencySelect" 
@@ -386,7 +403,21 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                     </div>
                 )}
             </div>
-            
+            {/* Required fields message (shows when Add is disabled due to missing required fields) */}
+            {missingRequired.length > 0 && (
+                <div style={{
+                    padding: '10px',
+                    backgroundColor: 'rgba(255, 235, 205, 0.9)',
+                    border: '1px solid rgba(234, 179, 8, 0.25)',
+                    borderRadius: '8px',
+                    color: '#92400e',
+                    fontSize: '13px',
+                    margin: '12px 16px'
+                }}>
+                    ⚠️ Required: {missingRequired.join(', ')}
+                </div>
+            )}
+
             <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <Button 
                     onClick={handleCancel}
@@ -398,7 +429,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                 </Button>
                 <Button 
                     onClick={handleSubmit}
-                    disabled={submitting || loading || !position.lat || !position.lng || (locationType === 'driving_school' && !selectedAgency)}
+                    disabled={isAddDisabled}
                     variant="contained"
                     className="pickup-popup-btn submit"
                     style={{ textTransform: 'none' }}
