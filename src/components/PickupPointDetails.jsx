@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Button, IconButton } from '@mui/material'
+import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward'
 import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies } from '../utils/api'
 
 function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated }) {
@@ -137,7 +138,12 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
             <div style={{ overflowX: 'hidden', overflowY: 'auto', flex: 1 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div>
-                        <div style={{ fontWeight: 600, color: 'white', marginBottom: 8, fontSize: 20 }}>{point.name || 'Location'}</div>
+                        <div style={{ fontWeight: 600, color: 'white', marginBottom: 8, fontSize: 20, display: 'flex', alignItems: 'center', gap: 6, textDecoration: point.type === 'driving_school' ? 'underline' : 'none' }}>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{point.name || 'Location'}</span>
+                            {point.type === 'driving_school' && (
+                                <ArrowOutwardIcon style={{ fontSize: 18, marginLeft: 6 }} />
+                            )}
+                        </div>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                             <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-block', padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>{typeLabel}</div>
                             <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)' }}>📌 {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}</div>
