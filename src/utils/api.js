@@ -207,7 +207,7 @@ export async function fetchLocations(sectorId = null, type = null) {
     return response.json()
 }
 
-export async function fetchExamCenters(sectorId = null, type = null) {
+export async function fetchExamCenters() {
     const url = `${API_BASE_URL}/exam-centers`
     
     const response = await fetch(url, {

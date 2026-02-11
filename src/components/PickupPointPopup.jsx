@@ -363,7 +363,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                                         color: 'var(--text-primary)'
                                     }}
                                 >
-                                    Select Exam Center (optional)
+                                    Select Exam Center
                                 </label>
                                 <select
                                     id="examCenterSelect"
