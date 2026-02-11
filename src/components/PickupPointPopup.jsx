@@ -104,8 +104,12 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
 
             // Only include agencyId when appropriate (driving_school requires it,
             // pickup_point may have it optionally, exam_center must not include it)
-            if (locationType !== 'exam_center' && selectedAgency) {
+            if (locationType == 'driving_school' && selectedAgency) {
                 locationData.agencyId = parseInt(selectedAgency, 10)
+            }
+
+            if (locationType == 'exam_center' && selectedExamCenter) {
+                locationData.examCenterId = parseInt(selectedExamCenter, 10)
             }
 
             // Include address fields for non-pickup_point types
@@ -127,6 +131,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                     nameFr: locationData.nameFr,
                     nameAr: locationData.nameAr,
                     type: locationData.type,
+                    examCenterId: locationData.examCenterId || null,
                     agencies: [],
                     needsRefresh: true
                 })
