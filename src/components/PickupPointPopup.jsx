@@ -86,7 +86,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
         setSelectedExamCenter('')
         setError(null)
         setSubmitting(false)
-        setCoords(getInitialCoords())
+        setCoords({lat: null, lng: null})
     }
 
     // Reset fields when switching types
@@ -237,8 +237,8 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                                 id="locationType"
                                 value={locationType}
                                 onChange={(e) => {
-                                    setLocationType(e.target.value)
                                     resetFields()
+                                    setLocationType(e.target.value)
                                 }}
                                 className="pickup-popup-select"
                             >
