@@ -29,7 +29,7 @@ function ControlCard({
             case 'municipality':
                 return { label: 'Municipalities', icon: '🏘️', count: null }
             case 'sector':
-                return { label: 'Sectors', icon: '📍', count: null }
+                return { label: 'Sectors', icon: '🛣️', count: null }
             default:
                 return { label: 'Regions', icon: '🗺️', count: null }
         }
@@ -183,7 +183,7 @@ function ControlCard({
                             className={`view-selector__btn ${currentLevel === 'sector' ? 'view-selector__btn--active' : ''}`}
                             onClick={() => onLevelChange('sector')}
                         >
-                            📍 Sectors
+                            🛣️ Sectors
                         </button>
                     </div>
                 </div>

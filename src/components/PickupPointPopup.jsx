@@ -1,5 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@mui/material'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
+import SchoolIcon from '@mui/icons-material/School'
+import DescriptionIcon from '@mui/icons-material/Description'
+import PushPinIcon from '@mui/icons-material/PushPin'
 import { fetchActiveAgenciesCached as fetchActiveAgencies, fetchExamCenters, createLocation } from '../utils/api'
 
 function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinatesChange, initialType = 'pickup_point', initialCoords = null }) {
@@ -260,9 +264,9 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                                 }}
                                 className="pickup-popup-select"
                             >
-                                <option value="pickup_point">📍 Pickup Point</option>
-                                <option value="driving_school">🏫 Driving School</option>
-                                <option value="exam_center">📝 Exam Center</option>
+                                <option value="pickup_point">Pickup Point</option>
+                                <option value="driving_school">Driving School</option>
+                                <option value="exam_center">Exam Center</option>
                             </select>
                         </div>
 
@@ -491,12 +495,22 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                             padding: '8px',
                             backgroundColor: 'rgba(0, 0, 0, 0.03)',
                             borderRadius: '6px',
-                            textAlign: 'center'
+                            textAlign: 'center',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px'
                         }}>
                             {position.lat && position.lng ? (
-                                <>📌 {position.lat.toFixed(6)}, {position.lng.toFixed(6)}</>
+                                <>
+                                    <PushPinIcon style={{ fontSize: 14 }} />
+                                    {position.lat.toFixed(6)}, {position.lng.toFixed(6)}
+                                </>
                             ) : (
-                                <>📍 Click on the map to set coordinates</>
+                                <>
+                                    <LocationOnIcon style={{ fontSize: 14 }} />
+                                    Click on the map to set coordinates
+                                </>
                             )}
                         </div>
 

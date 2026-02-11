@@ -3,6 +3,12 @@ import { Button, IconButton } from '@mui/material'
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward'
 import EditIcon from '@mui/icons-material/Edit'
 import CloseIcon from '@mui/icons-material/Close'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
+import SchoolIcon from '@mui/icons-material/School'
+import DescriptionIcon from '@mui/icons-material/Description'
+import PushPinIcon from '@mui/icons-material/PushPin'
+import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies, updateLocation } from '../utils/api'
 
 function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated, onEditModeChange, onEditCoordsChange, externalEditCoords }) {
@@ -270,12 +276,15 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
     const assignedAgencyIds = pointAgencies.map(a => String(a.agencyId))
     const availableAgencies = agencies.filter(a => !assignedAgencyIds.includes(String(a.agenceId)))
 
-    const typeLabels = {
-        pickup_point: '📍 Pickup Point',
-        driving_school: '🏫 Driving School',
-        exam_center: '📝 Exam Center'
+    const getTypeLabel = (type) => {
+        const labels = {
+            pickup_point: { icon: <LocationOnIcon style={{ fontSize: 16 }} />, text: 'Pickup Point' },
+            driving_school: { icon: <SchoolIcon style={{ fontSize: 16 }} />, text: 'Driving School' },
+            exam_center: { icon: <DescriptionIcon style={{ fontSize: 16 }} />, text: 'Exam Center' }
+        }
+        return labels[type] || labels.pickup_point
     }
-    const typeLabel = typeLabels[point.type] || typeLabels.pickup_point
+    const typeLabel = getTypeLabel(point.type)
     
     const handleDrivingSchoolClick = () => {
         if (point.type !== 'driving_school') return
@@ -357,9 +366,15 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                             )}
                         </div>
                         <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                            <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-block', padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>{typeLabel}</div>
+                            <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>
+                                {typeLabel.icon}
+                                {typeLabel.text}
+                            </div>
                             {!isEditMode && (
-                                <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)' }}>📌 {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}</div>
+                                <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                    <PushPinIcon style={{ fontSize: 16 }} />
+                                    {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}
+                                </div>
                             )}
                         </div>
                         
@@ -601,7 +616,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                                                 }}
                                                 title="Remove agency"
                                             >
-                                                {removingAgencyId === agency.locationAgencyId ? '⏳' : '🗑️'}
+                                                {removingAgencyId === agency.locationAgencyId ? <HourglassEmptyIcon style={{ fontSize: 18 }} /> : <DeleteIcon style={{ fontSize: 18 }} />}
                                             </IconButton>
                                         </div>
                                     ))}

@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
+import SchoolIcon from '@mui/icons-material/School'
+import DescriptionIcon from '@mui/icons-material/Description'
 
 function AddLocationsToggle({ value = false, onChange, onToggleOn, onTypeSelect }) {
     const wrapperRef = useRef(null)
@@ -78,7 +81,7 @@ function AddLocationsToggle({ value = false, onChange, onToggleOn, onTypeSelect 
                                 if (onToggleOn) onToggleOn()
                                 setOpen(false)
                             }}>
-                                📍
+                                <LocationOnIcon style={{ fontSize: 20 }} />
                             </button>
                             <button className="btn btn--secondary" onClick={() => {
                                 if (onTypeSelect) onTypeSelect('driving_school')
@@ -86,7 +89,7 @@ function AddLocationsToggle({ value = false, onChange, onToggleOn, onTypeSelect 
                                 if (onToggleOn) onToggleOn()
                                 setOpen(false)
                             }}>
-                                🏫
+                                <SchoolIcon style={{ fontSize: 20 }} />
                             </button>
                             <button className="btn btn--secondary" onClick={() => {
                                 if (onTypeSelect) onTypeSelect('exam_center')
@@ -94,7 +97,7 @@ function AddLocationsToggle({ value = false, onChange, onToggleOn, onTypeSelect 
                                 if (onToggleOn) onToggleOn()
                                 setOpen(false)
                             }}>
-                                📝
+                                <DescriptionIcon style={{ fontSize: 20 }} />
                             </button>
                         </div>
                     </div>

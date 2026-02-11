@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react'
+import PushPinIcon from '@mui/icons-material/PushPin'
+import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 
 const LOCATION_TYPES = [
     { id: 'pickup_point', label: 'Pickup Points', icon: '📍' },
@@ -58,7 +60,7 @@ function LocationControl({
     return (
         <div className="location-control">
             <div className="location-control__header">
-                <div className="location-control__title">📌 Location Filters</div>
+                <div className="location-control__title"><PushPinIcon style={{ fontSize: 16 }} /> Location Filters</div>
                 <button
                     className={`location-control__expand-btn ${expanded ? 'expanded' : ''}`}
                     onClick={() => setExpanded(prev => !prev)}
@@ -99,7 +101,7 @@ function LocationControl({
                     {/* Drivago Filter */}
                     <div className="location-control__section">
                         <div className="location-control__label">
-                            <span>🚗 Drivago Agencies:</span>
+                            <span><DirectionsCarIcon style={{ fontSize: 16 }} /> Drivago Agencies:</span>
                         </div>
                         <button
                             className={`btn ${showDrivagoOnly ? 'btn--primary' : 'btn--secondary'}`}
