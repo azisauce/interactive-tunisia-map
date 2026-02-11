@@ -1,8 +1,6 @@
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents, Marker } from 'react-leaflet'
-import { fetchMunicipalities, fetchSectors, fetchLocations, deleteLocation } from '../utils/api'
-import PickupPointPopup from './PickupPointPopup'
-import PickupPointDetails from './PickupPointDetails'
+import { fetchMunicipalities, fetchSectors, fetchLocations } from '../utils/api'
 import L from 'leaflet'
 import * as turf from '@turf/turf'
 
@@ -251,7 +249,22 @@ function TunisiaMap({
     showDrivagoOnly = false,
     enableAddLocations = false,
     openPopupWithoutCoords,
-    selectedLocationType = 'pickup_point'
+    selectedLocationType = 'pickup_point',
+    // Location state from parent
+    locations = [],
+    selectedPickupPoint = null,
+    pickupPopupPosition = null,
+    tempMarkerPosition = null,
+    isEditingLocation = false,
+    editMarkerPosition = null,
+    // Callbacks to parent
+    onLocationsChange,
+    onPickupPointSelect,
+    onPopupPositionChange,
+    onTempMarkerPositionChange,
+    onEditModeChange,
+    onEditMarkerPositionChange,
+    onExternalEditCoordsChange
 }) {
     const [municipalities, setMunicipalities] = useState(null)
     const [sectors, setSectors] = useState(null)
@@ -261,19 +274,6 @@ function TunisiaMap({
     const [mapKey, setMapKey] = useState(0)
     const geoJsonRef = useRef()
     const layersRef = useRef(new Map())
-    
-    // Location states (pickup points, driving schools, exam centers)
-    const [pickupPopupPosition, setPickupPopupPosition] = useState(null)
-    const [locations, setLocations] = useState([])
-    const [selectedPickupPoint, setSelectedPickupPoint] = useState(null)
-    
-    // State for draggable marker before showing popup
-    const [tempMarkerPosition, setTempMarkerPosition] = useState(null)
-
-    // Edit mode states for syncing marker with coordinates
-    const [isEditingLocation, setIsEditingLocation] = useState(false)
-    const [editMarkerPosition, setEditMarkerPosition] = useState(null)
-    const [externalEditCoords, setExternalEditCoords] = useState(null)
 
     // Parent region for context display (needed for click validation)
     const parentFeatures = useMemo(() => {
@@ -313,8 +313,8 @@ function TunisiaMap({
         
         // If popup is open with null position, update it with clicked coordinates
         if (pickupPopupPosition && !pickupPopupPosition.lat && !pickupPopupPosition.lng) {
-            setPickupPopupPosition({ lat: latlng.lat, lng: latlng.lng })
-            setTempMarkerPosition({ lat: latlng.lat, lng: latlng.lng })
+            if (onPopupPositionChange) onPopupPositionChange({ lat: latlng.lat, lng: latlng.lng })
+            if (onTempMarkerPositionChange) onTempMarkerPositionChange({ lat: latlng.lat, lng: latlng.lng })
             return
         }
         
@@ -324,20 +324,14 @@ function TunisiaMap({
         // If enableAddLocations is on and we have a clicked feature, use it as context
         if (enableAddLocations && clickedFeature) {
             // Show temporary draggable marker instead of popup
-            setTempMarkerPosition({ lat: latlng.lat, lng: latlng.lng, feature: clickedFeature })
+            if (onTempMarkerPositionChange) onTempMarkerPositionChange({ lat: latlng.lat, lng: latlng.lng, feature: clickedFeature })
             return
         }
 
         // MapClickHandler already validates the click is inside the selected region.
         // Show temporary draggable marker instead of immediately showing popup
-        setTempMarkerPosition({ lat: latlng.lat, lng: latlng.lng })
-    }, [pickupPopupPosition, enableAddLocations])
-
-    // Reset popup coordinates and clear temp marker (keep popup open)
-    const handleResetPopup = useCallback(() => {
-        setPickupPopupPosition({ lat: null, lng: null })
-        setTempMarkerPosition(null)
-    }, [])
+        if (onTempMarkerPositionChange) onTempMarkerPositionChange({ lat: latlng.lat, lng: latlng.lng })
+    }, [pickupPopupPosition, enableAddLocations, onPopupPositionChange, onTempMarkerPositionChange])
     
     // Handle temporary marker drag
     const handleTempMarkerDrag = useCallback((e) => {
@@ -346,104 +340,71 @@ function TunisiaMap({
             lat: newPos.lat,
             lng: newPos.lng
         }
-        setTempMarkerPosition(prev => ({
-            ...prev,
-            ...updatedPosition
-        }))
+        // Merge with existing tempMarkerPosition if available
+        if (onTempMarkerPositionChange) {
+            const newTempPos = tempMarkerPosition ? { ...tempMarkerPosition, ...updatedPosition } : updatedPosition
+            onTempMarkerPositionChange(newTempPos)
+        }
         // Also update popup position if it's open
-        setPickupPopupPosition(prev => prev ? updatedPosition : null)
-    }, [])
+        if (onPopupPositionChange && pickupPopupPosition) {
+            onPopupPositionChange(updatedPosition)
+        }
+    }, [onTempMarkerPositionChange, onPopupPositionChange, pickupPopupPosition, tempMarkerPosition])
     
     // Handle temporary marker click - show popup with current marker position (marker stays visible)
     const handleTempMarkerClick = useCallback(() => {
-        if (tempMarkerPosition) {
-            setPickupPopupPosition({ ...tempMarkerPosition })
+        if (tempMarkerPosition && onPopupPositionChange) {
+            onPopupPositionChange({ ...tempMarkerPosition })
         }
-    }, [tempMarkerPosition])
-    
-    // Handle coordinate changes from manual editing in the popup
-    const handleCoordinatesChange = useCallback((newCoords) => {
-        // Update both temp marker and popup positions when coordinates are manually edited
-        setTempMarkerPosition(prev => prev ? { ...prev, ...newCoords } : newCoords)
-        setPickupPopupPosition(prev => prev ? { ...prev, ...newCoords } : newCoords)
-    }, [])
-
-    // Handle edit mode change from PickupPointDetails
-    const handleEditModeChange = useCallback((isEditing, coords) => {
-        setIsEditingLocation(isEditing)
-        if (isEditing && coords) {
-            setEditMarkerPosition({ lat: coords.latitude, lng: coords.longitude })
-        } else {
-            setEditMarkerPosition(null)
-        }
-        setExternalEditCoords(null)
-    }, [])
-
-    // Handle coordinate changes from manual editing in PickupPointDetails
-    const handleEditCoordsChange = useCallback((newCoords) => {
-        if (newCoords && newCoords.latitude && newCoords.longitude) {
-            setEditMarkerPosition({ lat: newCoords.latitude, lng: newCoords.longitude })
-        }
-    }, [])
+    }, [tempMarkerPosition, onPopupPositionChange])
 
     // Handle edit marker drag
     const handleEditMarkerDrag = useCallback((e) => {
         const newPos = e.target.getLatLng()
-        setEditMarkerPosition({ lat: newPos.lat, lng: newPos.lng })
-        setExternalEditCoords({ latitude: newPos.lat, longitude: newPos.lng })
-    }, [])
+        if (onEditMarkerPositionChange) onEditMarkerPositionChange({ lat: newPos.lat, lng: newPos.lng })
+        if (onExternalEditCoordsChange) onExternalEditCoordsChange({ latitude: newPos.lat, longitude: newPos.lng })
+    }, [onEditMarkerPositionChange, onExternalEditCoordsChange])
 
     // Open popup without coordinates when toggle is turned on
+    const prevOpenPopupWithoutCoordsRef = useRef(openPopupWithoutCoords)
     useEffect(() => {
-        if (openPopupWithoutCoords > 0) {
+        // Only trigger when openPopupWithoutCoords actually changes (increments)
+        if (openPopupWithoutCoords > prevOpenPopupWithoutCoordsRef.current) {
             // Open popup with null coordinates - will be set when map is clicked
-            setPickupPopupPosition({ lat: null, lng: null })
-            setTempMarkerPosition(null)
+            if (onPopupPositionChange) onPopupPositionChange({ lat: null, lng: null })
+            if (onTempMarkerPositionChange) onTempMarkerPositionChange(null)
         }
-    }, [openPopupWithoutCoords])
+        prevOpenPopupWithoutCoordsRef.current = openPopupWithoutCoords
+    }, [openPopupWithoutCoords, onPopupPositionChange, onTempMarkerPositionChange])
 
-    // Close popup when toggle is turned off
+    // Close popup when toggle is turned off (but not on initial mount)
+    const enableAddLocationsInitializedRef = useRef(false)
     useEffect(() => {
+        if (!enableAddLocationsInitializedRef.current) {
+            enableAddLocationsInitializedRef.current = true
+            return // Skip first run
+        }
         if (!enableAddLocations) {
-            setPickupPopupPosition(null)
-            setTempMarkerPosition(null)
+            if (onPopupPositionChange) onPopupPositionChange(null)
+            if (onTempMarkerPositionChange) onTempMarkerPositionChange(null)
         }
-    }, [enableAddLocations])
+    }, [enableAddLocations, onPopupPositionChange, onTempMarkerPositionChange])
 
-    // Handle new location created
-    const handlePickupPointCreated = useCallback(async (newLocation) => {
-        // Clear both popup and temp marker after successful creation
-        setPickupPopupPosition(null)
-        setTempMarkerPosition(null)
-        // Refresh all locations to get the full data with agencies
-        try {
-            const data = await fetchLocations()
-            setLocations(data || [])
-        } catch (err) {
-            console.error('Error refreshing locations:', err)
-            // Fallback: add the location without agencies
-            setLocations(prev => [...prev, newLocation])
-        }
-    }, [])
-
-    // Load locations once (we'll filter them by view when rendering)
+    // Load locations once on mount
     useEffect(() => {
         const loadLocations = async () => {
             try {
                 const data = await fetchLocations()
-                setLocations(data || [])
+                if (onLocationsChange) onLocationsChange(data || [])
             } catch (err) {
                 console.error('Error loading locations:', err)
             }
         }
         loadLocations()
-    }, [])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []) // Only run once on mount
 
-    // Clear pickup popup when level changes
-    useEffect(() => {
-        setPickupPopupPosition(null)
-        setTempMarkerPosition(null)
-    }, [currentLevel])
+    // Note: Popup clearing on level change is now handled by App.jsx if needed
 
     // Load municipalities when drilling down or switching level
     useEffect(() => {
@@ -542,8 +503,7 @@ function TunisiaMap({
     // Update map key to force re-render ONLY on level change
     useEffect(() => {
         setMapKey(prev => prev + 1)
-        // Reset pickup popup on level change too
-        setPickupPopupPosition(null)
+        // Reset pickup popup on level change too - handled in the dedicated effect below
     }, [currentLevel])
 
     // Clear stored layer references when the map key or level changes so
@@ -902,10 +862,10 @@ function TunisiaMap({
                 isPointVisible={isPointVisible} 
                 onSelect={(p) => {
                     // Reset edit mode when selecting a different location
-                    setIsEditingLocation(false)
-                    setEditMarkerPosition(null)
-                    setExternalEditCoords(null)
-                    setSelectedPickupPoint(p)
+                    if (onEditModeChange) onEditModeChange(false)
+                    if (onEditMarkerPositionChange) onEditMarkerPositionChange(null)
+                    if (onExternalEditCoordsChange) onExternalEditCoordsChange(null)
+                    if (onPickupPointSelect) onPickupPointSelect(p)
                 }}
                 editingLocationId={isEditingLocation ? selectedPickupPoint?.id : null}
             />
@@ -944,45 +904,7 @@ function TunisiaMap({
                         iconSize: [40, 40],
                         iconAnchor: [20, 40],
                         popupAnchor: [0, -40]
-                    })}
-                />
-            )}
-
-            {/* Pickup point popup */}
-            {pickupPopupPosition && (
-                <PickupPointPopup
-                    position={pickupPopupPosition}
-                    onClose={handleResetPopup}
-                    onPickupPointCreated={handlePickupPointCreated}
-                    onCoordinatesChange={handleCoordinatesChange}
-                    initialType={selectedLocationType}
-                />
-            )}
-
-            {/* Pickup point details dialog for existing points */}
-            {selectedPickupPoint && (
-                <PickupPointDetails
-                    point={selectedPickupPoint}
-                    open={true}
-                    onClose={() => {
-                        setSelectedPickupPoint(null)
-                        setIsEditingLocation(false)
-                        setEditMarkerPosition(null)
-                    }}
-                    onDeleted={(id) => setLocations(prev => prev.filter(p => String(p.id) !== String(id)))}
-                    onUpdated={(updatedPoint) => {
-                        setLocations(prev => prev.map(p => 
-                            String(p.id) === String(updatedPoint.id) ? updatedPoint : p
-                        ))
-                        setSelectedPickupPoint(updatedPoint)
-                        // Update edit marker position if still editing
-                        if (isEditingLocation) {
-                            setEditMarkerPosition({ lat: updatedPoint.latitude, lng: updatedPoint.longitude })
-                        }
-                    }}
-                    onEditModeChange={handleEditModeChange}
-                    onEditCoordsChange={handleEditCoordsChange}
-                    externalEditCoords={externalEditCoords}
+                       })}
                 />
             )}
         </MapContainer>

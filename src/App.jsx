@@ -1,7 +1,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import TunisiaMap from './components/TunisiaMap'
 import ControlCard from './components/ControlCard'
-import { fetchGovernorates } from './utils/api'
+import PickupPointPopup from './components/PickupPointPopup'
+import PickupPointDetails from './components/PickupPointDetails'
+import { fetchGovernorates, fetchLocations } from './utils/api'
 import * as turf from '@turf/turf'
 import 'leaflet/dist/leaflet.css'
 
@@ -100,6 +102,15 @@ function App() {
     const [enableAddLocations, setEnableAddLocations] = useState(false)
     const [openPopupWithoutCoords, setOpenPopupWithoutCoords] = useState(0)
     const [selectedLocationType, setSelectedLocationType] = useState('pickup_point')
+
+    // Location-related state (lifted from TunisiaMap)
+    const [locations, setLocations] = useState([])
+    const [selectedPickupPoint, setSelectedPickupPoint] = useState(null)
+    const [pickupPopupPosition, setPickupPopupPosition] = useState(null)
+    const [tempMarkerPosition, setTempMarkerPosition] = useState(null)
+    const [isEditingLocation, setIsEditingLocation] = useState(false)
+    const [editMarkerPosition, setEditMarkerPosition] = useState(null)
+    const [externalEditCoords, setExternalEditCoords] = useState(null)
 
     // Use ref to track the latest value of enableAddLocations to avoid stale closures
     const enableAddLocationsRef = useRef(enableAddLocations)
@@ -252,6 +263,116 @@ function App() {
         setOpenPopupWithoutCoords(prev => prev + 1)
     }, [])
 
+    // Location-related callbacks for TunisiaMap
+    const handleLocationsChange = useCallback((newLocations) => {
+        if (typeof newLocations === 'function') {
+            setLocations(newLocations)
+        } else {
+            setLocations(newLocations)
+        }
+    }, [])
+
+    const handlePickupPointSelect = useCallback((point) => {
+        setSelectedPickupPoint(point)
+    }, [])
+
+    const handlePopupPositionChange = useCallback((position) => {
+        if (typeof position === 'function') {
+            setPickupPopupPosition(position)
+        } else {
+            setPickupPopupPosition(position)
+        }
+    }, [])
+
+    const handleTempMarkerPositionChange = useCallback((position) => {
+        if (typeof position === 'function') {
+            setTempMarkerPosition(position)
+        } else {
+            setTempMarkerPosition(position)
+        }
+    }, [])
+
+    const handleEditModeChange = useCallback((isEditing) => {
+        setIsEditingLocation(isEditing)
+    }, [])
+
+    const handleEditMarkerPositionChange = useCallback((position) => {
+        setEditMarkerPosition(position)
+    }, [])
+
+    const handleExternalEditCoordsChange = useCallback((coords) => {
+        setExternalEditCoords(coords)
+    }, [])
+
+    // Handler for resetting the popup (called from PickupPointPopup)
+    const handleResetPopup = useCallback(() => {
+        setPickupPopupPosition({ lat: null, lng: null })
+        setTempMarkerPosition(null)
+    }, [])
+
+    // Handler for coordinate changes from PickupPointPopup
+    const handleCoordinatesChange = useCallback((newCoords) => {
+        setTempMarkerPosition(prev => prev ? { ...prev, ...newCoords } : newCoords)
+        setPickupPopupPosition(prev => prev ? { ...prev, ...newCoords } : newCoords)
+    }, [])
+
+    // Handler for new pickup point created
+    const handlePickupPointCreated = useCallback(async (newLocation) => {
+        setPickupPopupPosition(null)
+        setTempMarkerPosition(null)
+        // Refresh all locations to get the full data with agencies
+        try {
+            const data = await fetchLocations()
+            setLocations(data || [])
+        } catch (err) {
+            console.error('Error refreshing locations:', err)
+            // Fallback: add the location without agencies
+            setLocations(prev => [...prev, newLocation])
+        }
+    }, [])
+
+    // Handler for pickup point details close
+    const handlePickupPointDetailsClose = useCallback(() => {
+        setSelectedPickupPoint(null)
+        setIsEditingLocation(false)
+        setEditMarkerPosition(null)
+    }, [])
+
+    // Handler for pickup point deleted
+    const handlePickupPointDeleted = useCallback((id) => {
+        setLocations(prev => prev.filter(p => String(p.id) !== String(id)))
+    }, [])
+
+    // Handler for pickup point updated
+    const handlePickupPointUpdated = useCallback((updatedPoint) => {
+        setLocations(prev => prev.map(p => 
+            String(p.id) === String(updatedPoint.id) ? updatedPoint : p
+        ))
+        setSelectedPickupPoint(updatedPoint)
+        // Update edit marker position if still editing
+        if (isEditingLocation) {
+            setEditMarkerPosition({ lat: updatedPoint.latitude, lng: updatedPoint.longitude })
+        }
+    }, [isEditingLocation])
+
+    // Handler for edit mode change from PickupPointDetails
+    const handleDetailsEditModeChange = useCallback((isEditing, coords) => {
+        setIsEditingLocation(isEditing)
+        if (isEditing && coords) {
+            setEditMarkerPosition({ lat: coords.latitude, lng: coords.longitude })
+        } else {
+            setEditMarkerPosition(null)
+        }
+        setExternalEditCoords(null)
+    }, [])
+
+    // Handler for edit coords change from PickupPointDetails
+    const handleDetailsEditCoordsChange = useCallback((newCoords) => {
+        if (newCoords && newCoords.latitude && newCoords.longitude) {
+            setEditMarkerPosition({ lat: newCoords.latitude, lng: newCoords.longitude })
+        }
+    }, [])
+
     return (
         <div className="app">
             <TunisiaMap
@@ -267,6 +388,21 @@ function App() {
                 enableAddLocations={enableAddLocations}
                 openPopupWithoutCoords={openPopupWithoutCoords}
                 selectedLocationType={selectedLocationType}
+                // Location state passed to TunisiaMap
+                locations={locations}
+                selectedPickupPoint={selectedPickupPoint}
+                pickupPopupPosition={pickupPopupPosition}
+                tempMarkerPosition={tempMarkerPosition}
+                isEditingLocation={isEditingLocation}
+                editMarkerPosition={editMarkerPosition}
+                // Location callbacks
+                onLocationsChange={handleLocationsChange}
+                onPickupPointSelect={handlePickupPointSelect}
+                onPopupPositionChange={handlePopupPositionChange}
+                onTempMarkerPositionChange={handleTempMarkerPositionChange}
+                onEditModeChange={handleEditModeChange}
+                onEditMarkerPositionChange={handleEditMarkerPositionChange}
+                onExternalEditCoordsChange={handleExternalEditCoordsChange}
             />
             <ControlCard
                 currentLevel={currentLevel}
@@ -288,6 +424,32 @@ function App() {
                 onToggleAddLocationsOn={handleToggleAddLocationsOn}
                 onTypeSelect={handleTypeSelect}
             />
+
+            {/* Pickup point popup - now rendered in App */}
+            {pickupPopupPosition && (
+                <PickupPointPopup
+                    position={pickupPopupPosition}
+                    onClose={handleResetPopup}
+                    onPickupPointCreated={handlePickupPointCreated}
+                    onCoordinatesChange={handleCoordinatesChange}
+                    initialType={selectedLocationType}
+                    initialCoords={tempMarkerPosition}
+                />
+            )}
+
+            {/* Pickup point details dialog - now rendered in App */}
+            {selectedPickupPoint && (
+                <PickupPointDetails
+                    point={selectedPickupPoint}
+                    open={true}
+                    onClose={handlePickupPointDetailsClose}
+                    onDeleted={handlePickupPointDeleted}
+                    onUpdated={handlePickupPointUpdated}
+                    onEditModeChange={handleDetailsEditModeChange}
+                    onEditCoordsChange={handleDetailsEditCoordsChange}
+                    externalEditCoords={externalEditCoords}
+                />
+            )}
         </div>
     )
 }

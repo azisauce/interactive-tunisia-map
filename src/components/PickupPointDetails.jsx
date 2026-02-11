@@ -308,13 +308,6 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
     return (
         <div
             className="control-card pickup-control-card"
-            onMouseDown={stopPropagation}
-            onMouseUp={stopPropagation}
-            onMouseMove={stopPropagation}
-            onWheel={stopWheel}
-            onTouchStart={stopPropagation}
-            onTouchMove={stopPropagation}
-            onPointerDown={stopPropagation}
             style={{
                 cursor: 'default',
             position: 'fixed',
@@ -591,7 +584,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                                     No agencies assigned
                                 </div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                <div className="point-assigned-agencies-list" style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: '133px', overflow: 'auto', scrollbarWidth: 'thin', overscrollBehavior: 'contain' }}>
                                     {pointAgencies.map((agency) => (
                                         <div 
                                             key={agency.locationAgencyId} 
@@ -622,6 +615,14 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                                     ))}
                                 </div>
                             )}
+
+                            <style>{`
+.point-assigned-agencies-list::-webkit-scrollbar { width: 8px; height: 8px; }
+.point-assigned-agencies-list::-webkit-scrollbar-track { background: transparent; }
+.point-assigned-agencies-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 6px; transition: background 0.2s; }
+.point-assigned-agencies-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
+.point-assigned-agencies-list { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.08) transparent; }
+                            `}</style>
                             </>
                         )}
                         

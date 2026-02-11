@@ -232,7 +232,7 @@ function AgencyAssignment({ currentLevel, selectedRegion }) {
                 <div style={{ fontSize: '13px', fontWeight: '500', marginBottom: '8px', color: 'var(--text-primary)' }}>
                     Assigned Agencies:
                 </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                <ul className="assigned-agencies-list" style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: '133px', overflow: 'auto', scrollbarWidth: 'thin' }}>
                         {assignedAgencies.length === 0 ? (
                             <li style={{ color: '#888', fontSize: '13px', padding: '8px 0' }}>
                                 No agencies assigned to this region yet.
@@ -293,6 +293,14 @@ function AgencyAssignment({ currentLevel, selectedRegion }) {
                             ))
                         )}
                     </ul>
+
+                    <style>{`
+.assigned-agencies-list::-webkit-scrollbar { width: 8px; height: 8px; }
+.assigned-agencies-list::-webkit-scrollbar-track { background: transparent; }
+.assigned-agencies-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.56); border-radius: 6px; transition: background 0.2s; }
+.assigned-agencies-list::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0); }
+.assigned-agencies-list { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.19) transparent; }
+                    `}</style>
             </div>
 
             {/* Error Dialog */}

@@ -53,8 +53,8 @@ body {
 /* Control Card */
 .control-card {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 20px !important;
+  left: 20px !important;
   z-index: 1000;
   background: var(--bg-card);
   backdrop-filter: blur(20px);
@@ -76,7 +76,7 @@ body {
 .pickup-control-card {
   /* Dialog paper should look like a control card but not be absolutely positioned */
   /* position: relative !important; */
-  top: auto !important;
+  top: 20px !important;
   left: auto !important;
   margin: 20px auto !important;
   z-index: 1400; /* above map but below any global modal */
