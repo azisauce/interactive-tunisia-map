@@ -5,7 +5,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import CloseIcon from '@mui/icons-material/Close'
 import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies, updateLocation } from '../utils/api'
 
-function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated }) {
+function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated, onEditModeChange, onEditCoordsChange, externalEditCoords }) {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [agencies, setAgencies] = useState([])
@@ -52,6 +52,25 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
             })
         }
     }, [point])
+
+    // Reset edit mode when a different location is selected
+    useEffect(() => {
+        setIsEditMode(false)
+        setError(null)
+        // Notify parent that edit mode is off
+        if (onEditModeChange) onEditModeChange(false, null)
+    }, [point?.id])
+
+    // Update form coordinates when marker is dragged (external coordinates)
+    useEffect(() => {
+        if (externalEditCoords && isEditMode) {
+            setEditForm(prev => ({
+                ...prev,
+                latitude: externalEditCoords.latitude,
+                longitude: externalEditCoords.longitude
+            }))
+        }
+    }, [externalEditCoords])
 
     // Load available agencies on mount
     useEffect(() => {
@@ -150,20 +169,38 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
     }
 
     const handleEditFormChange = (field, value) => {
-        setEditForm(prev => ({ ...prev, [field]: value }))
+        const newForm = { ...editForm, [field]: value }
+        setEditForm(newForm)
+        
+        // Notify parent when coordinates change
+        if ((field === 'latitude' || field === 'longitude') && onEditCoordsChange) {
+            const lat = field === 'latitude' ? parseFloat(value) : parseFloat(newForm.latitude)
+            const lng = field === 'longitude' ? parseFloat(value) : parseFloat(newForm.longitude)
+            if (!isNaN(lat) && !isNaN(lng)) {
+                onEditCoordsChange({ latitude: lat, longitude: lng })
+            }
+        }
     }
 
     const handleEnterEditMode = () => {
-        setEditForm({
+        const newEditForm = {
             nameFr: point.nameFr || '',
             nameAr: point.nameAr || '',
             addressFr: point.addressFr || '',
             addressAr: point.addressAr || '',
             latitude: point.latitude || '',
             longitude: point.longitude || ''
-        })
+        }
+        setEditForm(newEditForm)
         setIsEditMode(true)
         setError(null)
+        // Notify parent immediately with correct coordinates
+        if (onEditModeChange) {
+            onEditModeChange(true, { 
+                latitude: point.latitude, 
+                longitude: point.longitude 
+            })
+        }
     }
 
     const handleCancelEdit = () => {
@@ -178,6 +215,8 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
             latitude: point.latitude || '',
             longitude: point.longitude || ''
         })
+        // Notify parent that edit mode is off
+        if (onEditModeChange) onEditModeChange(false, null)
     }
 
     const handleSaveEdit = async () => {
@@ -217,6 +256,8 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
             
             if (onUpdated) onUpdated(updatedPoint)
             setIsEditMode(false)
+            // Notify parent that edit mode is off
+            if (onEditModeChange) onEditModeChange(false, null)
         } catch (err) {
             console.error('Failed to save changes', err)
             setError(err?.message || 'Failed to save changes')

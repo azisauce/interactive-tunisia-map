@@ -91,6 +91,22 @@ function BoundsFitter({ bounds }) {
     return null
 }
 
+// Map controller for programmatic zoom/pan
+function MapController({ flyToLocation }) {
+    const map = useMap()
+
+    useEffect(() => {
+        if (flyToLocation && flyToLocation.latitude && flyToLocation.longitude) {
+            const targetZoom = Math.max(map.getZoom(), 15) // Zoom to at least 15, or keep current if higher
+            map.flyTo([flyToLocation.latitude, flyToLocation.longitude], targetZoom, {
+                duration: 0.8
+            })
+        }
+    }, [map, flyToLocation])
+
+    return null
+}
+
 // Style configurations - unified light-green baseline
 const styles = {
     governorate: {
@@ -247,6 +263,11 @@ function TunisiaMap({
     // State for draggable marker before showing popup
     const [tempMarkerPosition, setTempMarkerPosition] = useState(null)
 
+    // Edit mode states for syncing marker with coordinates
+    const [isEditingLocation, setIsEditingLocation] = useState(false)
+    const [editMarkerPosition, setEditMarkerPosition] = useState(null)
+    const [externalEditCoords, setExternalEditCoords] = useState(null)
+
     // Parent region for context display (needed for click validation)
     const parentFeatures = useMemo(() => {
         if (!governorates) return null
@@ -338,6 +359,31 @@ function TunisiaMap({
         // Update both temp marker and popup positions when coordinates are manually edited
         setTempMarkerPosition(prev => prev ? { ...prev, ...newCoords } : newCoords)
         setPickupPopupPosition(prev => prev ? { ...prev, ...newCoords } : newCoords)
+    }, [])
+
+    // Handle edit mode change from PickupPointDetails
+    const handleEditModeChange = useCallback((isEditing, coords) => {
+        setIsEditingLocation(isEditing)
+        if (isEditing && coords) {
+            setEditMarkerPosition({ lat: coords.latitude, lng: coords.longitude })
+        } else {
+            setEditMarkerPosition(null)
+        }
+        setExternalEditCoords(null)
+    }, [])
+
+    // Handle coordinate changes from manual editing in PickupPointDetails
+    const handleEditCoordsChange = useCallback((newCoords) => {
+        if (newCoords && newCoords.latitude && newCoords.longitude) {
+            setEditMarkerPosition({ lat: newCoords.latitude, lng: newCoords.longitude })
+        }
+    }, [])
+
+    // Handle edit marker drag
+    const handleEditMarkerDrag = useCallback((e) => {
+        const newPos = e.target.getLatLng()
+        setEditMarkerPosition({ lat: newPos.lat, lng: newPos.lng })
+        setExternalEditCoords({ latitude: newPos.lat, longitude: newPos.lng })
     }, [])
 
     // Open popup without coordinates when toggle is turned on
@@ -697,7 +743,7 @@ function TunisiaMap({
     }, [locations, locationTypeFilters, showDrivagoOnly])
 
     // Zoom-aware markers: only show driving school title above the icon when zoomed in
-    const ZoomAwareMarkers = ({ locations, isPointVisible, onSelect }) => {
+    const ZoomAwareMarkers = ({ locations, isPointVisible, onSelect, editingLocationId }) => {
         const map = useMap()
         const [zoom, setZoom] = useState(map ? map.getZoom() : 0)
 
@@ -714,7 +760,13 @@ function TunisiaMap({
 
         return (
             <>
-                {showLocations && locations.filter(isPointVisible).map((point, index) => {
+                {showLocations && locations.filter(isPointVisible).filter(point => {
+                    // Hide the original marker if we're editing this location (edit marker will be shown instead)
+                    if (editingLocationId && String(point.id) === String(editingLocationId)) {
+                        return false
+                    }
+                    return true
+                }).map((point, index) => {
                     let icon = locationIcons[point.type] || locationIcons.pickup_point
 
                     if (point.type === 'driving_school') {
@@ -791,6 +843,9 @@ function TunisiaMap({
 
             <BoundsFitter bounds={bounds || tunisiaBounds} />
 
+            {/* Controller for programmatic map movements (zoom to location) */}
+            <MapController flyToLocation={selectedPickupPoint} />
+
             {/* Map click handler for pickup points */}
             <MapClickHandler 
                 currentLevel={currentLevel} 
@@ -820,7 +875,18 @@ function TunisiaMap({
             )}
 
             {/* Existing location markers (visible for current view) */}
-            <ZoomAwareMarkers locations={filteredLocations} isPointVisible={isPointVisible} onSelect={(p) => setSelectedPickupPoint(p)} />
+            <ZoomAwareMarkers 
+                locations={filteredLocations} 
+                isPointVisible={isPointVisible} 
+                onSelect={(p) => {
+                    // Reset edit mode when selecting a different location
+                    setIsEditingLocation(false)
+                    setEditMarkerPosition(null)
+                    setExternalEditCoords(null)
+                    setSelectedPickupPoint(p)
+                }}
+                editingLocationId={isEditingLocation ? selectedPickupPoint?.id : null}
+            />
 
             {/* Temporary draggable marker for positioning before creating pickup point */}
             {tempMarkerPosition && (
@@ -842,6 +908,24 @@ function TunisiaMap({
                 </Marker>
             )}
 
+            {/* Draggable edit marker when editing a location's coordinates */}
+            {isEditingLocation && editMarkerPosition && (
+                <Marker
+                    position={[editMarkerPosition.lat, editMarkerPosition.lng]}
+                    draggable={true}
+                    eventHandlers={{
+                        dragend: handleEditMarkerDrag
+                    }}
+                    icon={L.divIcon({
+                        className: 'edit-marker-icon',
+                        html: '<div class="edit-marker" style="font-size: 40px; cursor: move; filter: hue-rotate(200deg);">📍</div>',
+                        iconSize: [40, 40],
+                        iconAnchor: [20, 40],
+                        popupAnchor: [0, -40]
+                    })}
+                />
+            )}
+
             {/* Pickup point popup */}
             {pickupPopupPosition && (
                 <PickupPointPopup
@@ -858,14 +942,25 @@ function TunisiaMap({
                 <PickupPointDetails
                     point={selectedPickupPoint}
                     open={true}
-                    onClose={() => setSelectedPickupPoint(null)}
+                    onClose={() => {
+                        setSelectedPickupPoint(null)
+                        setIsEditingLocation(false)
+                        setEditMarkerPosition(null)
+                    }}
                     onDeleted={(id) => setLocations(prev => prev.filter(p => String(p.id) !== String(id)))}
                     onUpdated={(updatedPoint) => {
                         setLocations(prev => prev.map(p => 
                             String(p.id) === String(updatedPoint.id) ? updatedPoint : p
                         ))
                         setSelectedPickupPoint(updatedPoint)
+                        // Update edit marker position if still editing
+                        if (isEditingLocation) {
+                            setEditMarkerPosition({ lat: updatedPoint.latitude, lng: updatedPoint.longitude })
+                        }
                     }}
+                    onEditModeChange={handleEditModeChange}
+                    onEditCoordsChange={handleEditCoordsChange}
+                    externalEditCoords={externalEditCoords}
                 />
             )}
         </MapContainer>
