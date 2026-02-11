@@ -5,7 +5,10 @@ import { fetchActiveAgenciesCached as fetchActiveAgencies, createLocation } from
 function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinatesChange, initialType = 'pickup_point', initialCoords = null }) {
     const [agencies, setAgencies] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
-    const [pickupPointName, setPickupPointName] = useState('')
+    const [pickupPointNameFr, setPickupPointNameFr] = useState('')
+    const [pickupPointNameAr, setPickupPointNameAr] = useState('')
+    const [pickupPointAddressFr, setPickupPointAddressFr] = useState('')
+    const [pickupPointAddressAr, setPickupPointAddressAr] = useState('')
     const [locationType, setLocationType] = useState(initialType)
     const [loading, setLoading] = useState(true)
     const [submitting, setSubmitting] = useState(false)
@@ -43,11 +46,6 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     }, [])
 
     const handleSubmit = async () => {
-        if (!selectedAgency) {
-            setError('Please select an agency')
-            return
-        }
-
         const latNum = typeof coords.lat === 'number' ? coords.lat : parseFloat(coords.lat)
         const lngNum = typeof coords.lng === 'number' ? coords.lng : parseFloat(coords.lng)
 
@@ -56,16 +54,39 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
             return
         }
 
+        // agency is required only for driving_school (backend constraint)
+        if (locationType === 'driving_school' && !selectedAgency) {
+            setError('Please select an agency')
+            return
+        }
+
         try {
             setSubmitting(true)
             setError(null)
 
+            const latitude = typeof coords.lat === 'number' ? coords.lat : parseFloat(coords.lat)
+            const longitude = typeof coords.lng === 'number' ? coords.lng : parseFloat(coords.lng)
+
             const locationData = {
-                name: pickupPointName || 'Location',
+                // Keep `name` for backwards compatibility (use French name first)
+                name: pickupPointNameFr || pickupPointNameAr || 'Location',
+                nameFr: pickupPointNameFr || null,
+                nameAr: pickupPointNameAr || null,
                 type: locationType,
-                latitude: typeof coords.lat === 'number' ? coords.lat : parseFloat(coords.lat),
-                longitude: typeof coords.lng === 'number' ? coords.lng : parseFloat(coords.lng),
-                agencyId: parseInt(selectedAgency, 10)
+                latitude,
+                longitude
+            }
+
+            // Only include agencyId when appropriate (driving_school requires it,
+            // pickup_point may have it optionally, exam_center must not include it)
+            if (locationType !== 'exam_center' && selectedAgency) {
+                locationData.agencyId = parseInt(selectedAgency, 10)
+            }
+
+            // Include address fields for non-pickup_point types
+            if (locationType !== 'pickup_point') {
+                locationData.addressFr = pickupPointAddressFr || null
+                locationData.addressAr = pickupPointAddressAr || null
             }
 
             const result = await createLocation(locationData)
@@ -75,9 +96,11 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                 const agency = agencies.find(a => String(a.agenceId) === String(selectedAgency))
                 onPickupPointCreated({
                     ...result,
-                    latitude: locationData.latitude,
-                    longitude: locationData.longitude,
+                    latitude: locationData.latitude || latitude,
+                    longitude: locationData.longitude || longitude,
                     name: locationData.name,
+                    nameFr: locationData.nameFr,
+                    nameAr: locationData.nameAr,
                     type: locationData.type,
                     agencies: [],
                     needsRefresh: true
@@ -147,29 +170,108 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                             </select>
                         </div>
 
-                        <div>
-                            <label 
-                                htmlFor="pickupName" 
-                                style={{ 
-                                    display: 'block',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    marginBottom: '8px',
-                                    color: 'var(--text-primary)'
-                                }}
-                            >
-                                Name (optional)
-                            </label>
-                            <input
-                                id="pickupName"
-                                type="text"
-                                value={pickupPointName}
-                                onChange={(e) => setPickupPointName(e.target.value)}
-                                placeholder="Enter location name"
-                                autoFocus
-                                className="pickup-popup-input"
-                            />
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <div style={{ flex: 1 }}>
+                                <label 
+                                    htmlFor="pickupNameFr" 
+                                    style={{ 
+                                        display: 'block',
+                                        fontSize: '13px',
+                                        fontWeight: '500',
+                                        marginBottom: '8px',
+                                        color: 'var(--text-primary)'
+                                    }}
+                                >
+                                    Name (FR)
+                                </label>
+                                <input
+                                    id="pickupNameFr"
+                                    type="text"
+                                    value={pickupPointNameFr}
+                                    onChange={(e) => setPickupPointNameFr(e.target.value)}
+                                    placeholder="Enter name (FR)"
+                                    autoFocus
+                                    className="pickup-popup-input"
+                                />
+                            </div>
+
+                            {locationType !== 'exam_center' && (<div style={{ flex: 1 }}>
+                                <label 
+                                    htmlFor="pickupNameAr" 
+                                    style={{ 
+                                        display: 'block',
+                                        fontSize: '13px',
+                                        fontWeight: '500',
+                                        marginBottom: '8px',
+                                        color: 'var(--text-primary)'
+                                    }}
+                                >
+                                    Name (AR)
+                                </label>
+                                <input
+                                    id="pickupNameAr"
+                                    type="text"
+                                    dir="rtl"
+                                    value={pickupPointNameAr}
+                                    onChange={(e) => setPickupPointNameAr(e.target.value)}
+                                    placeholder="أدخل الإسم (AR)"
+                                    className="pickup-popup-input"
+                                    style={{ textAlign: 'right' }}
+                                />
+                            </div>
+                            )}
                         </div>
+                        {locationType == 'driving_school' && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <div style={{ flex: 1 }}>
+                                    <label 
+                                        htmlFor="pickupAddressFr" 
+                                        style={{ 
+                                            display: 'block',
+                                            fontSize: '13px',
+                                            fontWeight: '500',
+                                            marginBottom: '8px',
+                                            color: 'var(--text-primary)'
+                                        }}
+                                    >
+                                        Address (FR)
+                                    </label>
+                                    <input
+                                        id="pickupAddressFr"
+                                        type="text"
+                                        value={pickupPointAddressFr}
+                                        onChange={(e) => setPickupPointAddressFr(e.target.value)}
+                                        placeholder="Enter address (FR)"
+                                        className="pickup-popup-input"
+                                    />
+                                </div>
+
+                                <div style={{ flex: 1 }}>
+                                    <label 
+                                        htmlFor="pickupAddressAr" 
+                                        style={{ 
+                                            display: 'block',
+                                            fontSize: '13px',
+                                            fontWeight: '500',
+                                            marginBottom: '8px',
+                                            color: 'var(--text-primary)'
+                                        }}
+                                    >
+                                        Address (AR)
+                                    </label>
+                                    <input
+                                        id="pickupAddressAr"
+                                        type="text"
+                                        dir="rtl"
+                                        value={pickupPointAddressAr}
+                                        onChange={(e) => setPickupPointAddressAr(e.target.value)}
+                                        placeholder="أدخل العنوان (AR)"
+                                        className="pickup-popup-input"
+                                        style={{ textAlign: 'right' }}
+                                    />
+                                </div>
+                            </div>
+                        )}
 
                         <div>
                             <label 
@@ -224,34 +326,35 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                             </div>
                         </div>
 
-                        <div>
-                            <label 
-                                htmlFor="agencySelect" 
-                                style={{ 
-                                    display: 'block',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    marginBottom: '8px',
-                                    color: 'var(--text-primary)'
-                                }}
-                            >
-                                Assign Agency *
-                            </label>
-                            <select
-                                id="agencySelect"
-                                value={selectedAgency}
-                                onChange={(e) => setSelectedAgency(e.target.value)}
-                                required
-                                className="pickup-popup-select"
-                            >
-                                <option value="">Select an agency...</option>
-                                {agencies.map((agency) => (
-                                    <option key={agency.agenceId} value={agency.agenceId}>
-                                        {agency.nomAge}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                        {locationType !== 'exam_center' && (
+                            <div>
+                                <label 
+                                    htmlFor="agencySelect" 
+                                    style={{ 
+                                        display: 'block',
+                                        fontSize: '13px',
+                                        fontWeight: '500',
+                                        marginBottom: '8px',
+                                        color: 'var(--text-primary)'
+                                    }}
+                                >
+                                    Assign Agency {locationType === 'driving_school' ? '*' : '(optional)'}
+                                </label>
+                                <select
+                                    id="agencySelect"
+                                    value={selectedAgency}
+                                    onChange={(e) => setSelectedAgency(e.target.value)}
+                                    className="pickup-popup-select"
+                                >
+                                    <option value=""> Select an agency... </option>
+                                    {agencies.map((agency) => (
+                                        <option key={agency.agenceId} value={agency.agenceId}>
+                                            {agency.nomAge}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
 
                         <div style={{
                             fontSize: '12px',
@@ -295,7 +398,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                 </Button>
                 <Button 
                     onClick={handleSubmit}
-                    disabled={submitting || !selectedAgency || loading || !position.lat || !position.lng}
+                    disabled={submitting || loading || !position.lat || !position.lng || (locationType === 'driving_school' && !selectedAgency)}
                     variant="contained"
                     className="pickup-popup-btn submit"
                     style={{ textTransform: 'none' }}
