@@ -198,17 +198,72 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                             <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-block', padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>{typeLabel}</div>
                             <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)' }}>📌 {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}</div>
                         </div>
+                        {point?.nameFr && (
+                            <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12 }}>{point.nameFr}</div>
+                        )}
+                        {point?.nameAr && (
+                            <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12, direction: 'rtl' }}>{point.nameAr}</div>
+                        )}
+
                         {point?.addressFr && (
                             <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12 }}>{point.addressFr}</div>
                         )}
                         {point?.addressAr && (
                             <div style={{ fontSize: 16, color: 'rgba(255, 255, 255, 0.8)', marginBlock: 12, direction: 'rtl' }}>{point.addressAr}</div>
                         )}
+
                         {point.createdAt && (
                             <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.5)', marginTop: 4, textAlign: 'right' }}>Created: {new Date(point.createdAt).toLocaleString()}</div>
                         )}
                     </div>
 
+                    {point.type == 'pickup_point' && (
+                        <div>
+                            <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 8 }}>
+                                Add Agency
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <select
+                                    value={selectedAgency}
+                                    onChange={(e) => setSelectedAgency(e.target.value)}
+                                    disabled={loadingAgencies || addingAgency}
+                                    style={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        maxWidth: '100%',
+                                        boxSizing: 'border-box',
+                                        padding: '8px 12px',
+                                        fontSize: '14px',
+                                        borderRadius: '6px',
+                                        border: '1px solid var(--border-color, #ddd)',
+                                        backgroundColor: 'var(--bg-secondary, white)',
+                                        color: 'black',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="">
+                                        {loadingAgencies ? 'Loading...' : availableAgencies.length === 0 ? 'All agencies assigned' : 'Select an agency...'}
+                                    </option>
+                                    {availableAgencies.map((agency) => (
+                                        <option key={agency.agenceId} value={agency.agenceId}>
+                                            {agency.nomAge}
+                                        </option>
+                                    ))}
+                                </select>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleAddAgency}
+                                    disabled={!selectedAgency || addingAgency || loadingAgencies}
+                                    style={{
+                                        textTransform: 'none',
+                                        backgroundColor: addingAgency ? '#666' : '#3b82f6'
+                                    }}
+                                >
+                                    +
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                     <div>
                         {point.type == 'pickup_point' && (
                             <>
@@ -256,54 +311,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                         
                     </div>
 
-                    {point.type == 'pickup_point' && (
-                        <div>
-                            <div style={{ fontSize: 13, fontWeight: 600, color: 'white', marginBottom: 8 }}>
-                                Add Agency
-                            </div>
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <select
-                                    value={selectedAgency}
-                                    onChange={(e) => setSelectedAgency(e.target.value)}
-                                    disabled={loadingAgencies || addingAgency}
-                                    style={{
-                                        flex: 1,
-                                        minWidth: 0,
-                                        maxWidth: '100%',
-                                        boxSizing: 'border-box',
-                                        padding: '8px 12px',
-                                        fontSize: '14px',
-                                        borderRadius: '6px',
-                                        border: '1px solid var(--border-color, #ddd)',
-                                        backgroundColor: 'var(--bg-secondary, white)',
-                                        color: 'black',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <option value="">
-                                        {loadingAgencies ? 'Loading...' : availableAgencies.length === 0 ? 'All agencies assigned' : 'Select an agency...'}
-                                    </option>
-                                    {availableAgencies.map((agency) => (
-                                        <option key={agency.agenceId} value={agency.agenceId}>
-                                            {agency.nomAge}
-                                        </option>
-                                    ))}
-                                </select>
-                                <Button
-                                    variant="contained"
-                                    onClick={handleAddAgency}
-                                    disabled={!selectedAgency || addingAgency || loadingAgencies}
-                                    style={{
-                                        minWidth: '80px',
-                                        textTransform: 'none',
-                                        backgroundColor: addingAgency ? '#666' : '#3b82f6'
-                                    }}
-                                >
-                                    {addingAgency ? 'Adding...' : 'Add'}
-                                </Button>
-                            </div>
-                        </div>
-                    )}
+                    
 
                     {error && (
                         <div style={{ color: '#ef4444', fontSize: 13, padding: '8px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '4px' }}>{error}</div>
@@ -311,7 +319,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated 
                 </div>
             </div>
 
-            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '12px 0px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <Button onClick={onClose} disabled={loading} className="pickup-popup-btn cancel">Close</Button>
                 <Button onClick={handleDelete} color="error" variant="contained" disabled={loading} className="pickup-popup-btn submit">
                     {loading ? 'Deleting...' : 'Delete Location'}
