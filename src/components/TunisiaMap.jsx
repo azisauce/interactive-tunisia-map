@@ -111,10 +111,10 @@ function MapController({ flyToLocation }) {
 const styles = {
     governorate: {
         default: {
-            fillColor: '#22c55e',
+            fillColor: '#c52222',
             weight: 2,
             opacity: 1,
-            color: '#16a34a',
+            color: '#a31616',
             fillOpacity: 0.3
         },
         withAgencies: {
@@ -134,7 +134,7 @@ const styles = {
         hover: {
             fillOpacity: 0.5,
             weight: 3,
-            color: '#4ade80'
+            color: '#000000'
         },
         inactive: {
             fillColor: '#64748b',
@@ -153,30 +153,30 @@ const styles = {
     },
     municipality: {
         default: {
-            fillColor: '#3b82f6',
+            fillColor: '#c52222',
             weight: 2,
             opacity: 1,
-            color: '#2563eb',
+            color: '#a31616',
             fillOpacity: 0.3
         },
         withAgencies: {
-            fillColor: '#2563eb',
+            fillColor: '#16a34a',
             weight: 4,
             opacity: 1,
-            color: '#1e40af',
+            color: '#15803d',
             fillOpacity: 0.5
         },
         selectedWithAgencies: {
-            fillColor: '#1e40af',
+            fillColor: '#15803d',
             weight: 4,
             opacity: 1,
-            color: '#60a5fa',
+            color: '#4ade80',
             fillOpacity: 0.6
         },
         hover: {
             fillOpacity: 0.5,
             weight: 3,
-            color: '#60a5fa'
+            color: '#000000'
         },
         inactive: {
             fillColor: '#64748b',
@@ -186,46 +186,53 @@ const styles = {
             fillOpacity: 0.15
         },
         selected: {
-            fillColor: '#3b82f6',
+            fillColor: '#22c55e',
             weight: 3,
             opacity: 1,
-            color: '#60a5fa',
+            color: '#4ade80',
             fillOpacity: 0.4
         }
     },
     sector: {
         default: {
-            fillColor: '#f59e0b',
-            weight: 1.5,
+            fillColor: '#c52222',
+            weight: 2,
             opacity: 1,
-            color: '#d97706',
+            color: '#a31616',
             fillOpacity: 0.3
         },
         withAgencies: {
-            fillColor: '#d97706',
-            weight: 3.5,
+            fillColor: '#16a34a',
+            weight: 4,
             opacity: 1,
-            color: '#b45309',
+            color: '#15803d',
             fillOpacity: 0.5
         },
         selectedWithAgencies: {
-            fillColor: '#b45309',
-            weight: 3.5,
+            fillColor: '#15803d',
+            weight: 4,
             opacity: 1,
-            color: '#fbbf24',
-            fillOpacity: 0.7
+            color: '#4ade80',
+            fillOpacity: 0.6
         },
         hover: {
             fillOpacity: 0.5,
-            weight: 2,
-            color: '#fbbf24'
+            weight: 3,
+            color: '#000000'
+        },
+        inactive: {
+            fillColor: '#64748b',
+            weight: 1,
+            opacity: 0.5,
+            color: '#475569',
+            fillOpacity: 0.15
         },
         selected: {
-            fillColor: '#f59e0b',
+            fillColor: '#c5ba22',
             weight: 3,
             opacity: 1,
-            color: '#fbbf24',
-            fillOpacity: 0.6
+            color: '#de9e4a',
+            fillOpacity: 0.4
         }
     }
 }
@@ -539,6 +546,14 @@ function TunisiaMap({
         setPickupPopupPosition(null)
     }, [currentLevel])
 
+    // Clear stored layer references when the map key or level changes so
+    // stale layers from previous GeoJSON mounts aren't reused.
+    useEffect(() => {
+        if (layersRef.current && layersRef.current.size > 0) {
+            layersRef.current.clear()
+        }
+    }, [mapKey, currentLevel])
+
     // Helper: check if a feature has agencies (direct, inherited, or via children)
     const checkHasAgencies = useCallback((feature) => {
         const props = feature.properties || {}
@@ -605,7 +620,14 @@ function TunisiaMap({
         const levelStyles = currentLevel === 'municipality'
             ? styles.governorate
             : styles.municipality
-        return levelStyles.selected
+        // Render the parent/context layer primarily as an outline (no fill)
+        // to avoid visual stacking when child layers are also filled.
+        const base = levelStyles.selected || {}
+        return Object.assign({}, base, {
+            fillOpacity: 0,
+            opacity: 1,
+            weight: Math.max(base.weight || 2, 2)
+        })
     }, [currentLevel])
 
     // Event handlers for each feature

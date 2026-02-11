@@ -43,6 +43,22 @@ const aggregateGovernorates = (data) => {
             }
 
             if (unified) {
+                // Merge assigned_agencies across all source features and
+                // compute has_children_with_agencies as the OR of all flags
+                const allAssigned = features.flatMap(f => f.properties?.assigned_agencies || [])
+                // Deduplicate agencies by agencyWorkingZoneId when available
+                const seen = new Set()
+                const dedupedAssigned = []
+                allAssigned.forEach(a => {
+                    const id = a && (a.agencyWorkingZoneId || a.id || JSON.stringify(a))
+                    if (!seen.has(id)) {
+                        seen.add(id)
+                        dedupedAssigned.push(a)
+                    }
+                })
+
+                const anyChildrenWithAgencies = features.some(f => !!f.properties?.has_children_with_agencies)
+
                 aggregatedFeatures.push({
                     ...unified,
                     properties: {
@@ -52,8 +68,8 @@ const aggregateGovernorates = (data) => {
                         reg: features[0].properties.reg,
                         reg_en: features[0].properties.reg_en,
                         reg_ar: features[0].properties.reg_ar,
-                        assigned_agencies: features[0].properties.assigned_agencies || [],
-                        has_children_with_agencies: features[0].properties.has_children_with_agencies || false
+                        assigned_agencies: dedupedAssigned,
+                        has_children_with_agencies: anyChildrenWithAgencies
                     }
                 })
             }
