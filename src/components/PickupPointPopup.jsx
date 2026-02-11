@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@mui/material'
-import { fetchActiveAgenciesCached as fetchActiveAgencies, createLocation } from '../utils/api'
+import { fetchActiveAgenciesCached as fetchActiveAgencies, fetchExamCenters, createLocation } from '../utils/api'
 
 function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinatesChange, initialType = 'pickup_point', initialCoords = null }) {
     const [agencies, setAgencies] = useState([])
+    const [examCenters, setExamCenters] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
+    const [selectedExamCenter, setSelectedExamCenter] = useState('')
     const [pickupPointNameFr, setPickupPointNameFr] = useState('')
     const [pickupPointNameAr, setPickupPointNameAr] = useState('')
     const [pickupPointAddressFr, setPickupPointAddressFr] = useState('')
@@ -44,6 +46,29 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
         }
         loadAgencies()
     }, [])
+
+    // Load exam centers when user selects exam_center type
+    useEffect(() => {
+        let mounted = true
+        async function loadExamCenters() {
+            try {
+                setLoading(true)
+                const data = await fetchExamCenters()
+                if (!mounted) return
+                setExamCenters(data)
+            } catch (err) {
+                console.error('Error fetching exam centers:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        if (locationType === 'exam_center') {
+            loadExamCenters()
+        }
+
+        return () => { mounted = false }
+    }, [locationType])
 
     const handleSubmit = async () => {
         const latNum = typeof coords.lat === 'number' ? coords.lat : parseFloat(coords.lat)
@@ -127,6 +152,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     if (locationType === 'pickup_point') {
         if (!pickupPointNameFr) missingRequired.push('Name (FR)')
         if (!isCoordsValid) missingRequired.push('Coordinates')
+        if (!selectedExamCenter) missingRequired.push('Assigned exam center')
     } else if (locationType === 'driving_school') {
         if (!isCoordsValid) missingRequired.push('Coordinates')
         if (!pickupPointAddressFr) missingRequired.push('Address (FR)')
@@ -287,6 +313,39 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                                         style={{ textAlign: 'right' }}
                                     />
                                 </div>
+                            </div>
+                        )}
+
+                        {locationType == 'exam_center' && (
+                            <div>
+                                <label 
+                                    htmlFor="examCenterSelect" 
+                                    style={{ 
+                                        display: 'block',
+                                        fontSize: '13px',
+                                        fontWeight: '500',
+                                        marginBottom: '8px',
+                                        color: 'var(--text-primary)'
+                                    }}
+                                >
+                                    Select Exam Center (optional)
+                                </label>
+                                <select
+                                    id="examCenterSelect"
+                                    value={selectedExamCenter}
+                                    onChange={(e) => {
+                                        const val = e.target.value
+                                        setSelectedExamCenter(val)
+                                    }}
+                                    className="pickup-popup-select"
+                                >
+                                    <option value=""> Select an exam center... </option>
+                                    {examCenters.map((center) => (
+                                        <option key={center.id} value={center.id}>
+                                            {center.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         )}
 

@@ -207,6 +207,18 @@ export async function fetchLocations(sectorId = null, type = null) {
     return response.json()
 }
 
+export async function fetchExamCenters(sectorId = null, type = null) {
+    const url = `${API_BASE_URL}/exam-centers`
+    
+    const response = await fetch(url, {
+        headers: getAuthHeaders()
+    })
+    if (!response.ok) {
+        throw new Error('Failed to fetch exam centers')
+    }
+    return response.json()
+}
+
 export async function createLocation(locationData) {
     const response = await fetch(`${API_BASE_URL}/locations`, {
         method: 'POST',
