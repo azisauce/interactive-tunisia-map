@@ -70,6 +70,30 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
         return () => { mounted = false }
     }, [locationType])
 
+    // Helper to compute initial coords (from initialCoords prop or current position)
+    const getInitialCoords = () => ({
+        lat: initialCoords && typeof initialCoords.lat === 'number' ? initialCoords.lat : (position?.lat ?? null),
+        lng: initialCoords && typeof initialCoords.lng === 'number' ? initialCoords.lng : (position?.lng ?? null)
+    })
+
+    // Reset all input fields to their initial state
+    const resetFields = () => {
+        setPickupPointNameFr('')
+        setPickupPointNameAr('')
+        setPickupPointAddressFr('')
+        setPickupPointAddressAr('')
+        setSelectedAgency('')
+        setSelectedExamCenter('')
+        setError(null)
+        setSubmitting(false)
+        setCoords(getInitialCoords())
+    }
+
+    // Reset fields when switching types
+    useEffect(() => {
+        resetFields()
+    }, [locationType])
+
     const handleSubmit = async () => {
         const latNum = typeof coords.lat === 'number' ? coords.lat : parseFloat(coords.lat)
         const lngNum = typeof coords.lng === 'number' ? coords.lng : parseFloat(coords.lng)
@@ -136,7 +160,9 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                     needsRefresh: true
                 })
             }
-            
+
+            // reset local form state then close
+            resetFields()
             onClose()
         } catch (err) {
             console.error('Error creating location:', err)
@@ -147,6 +173,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     }
 
     const handleCancel = () => {
+        resetFields()
         onClose()
     }
 
@@ -157,13 +184,13 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     if (locationType === 'pickup_point') {
         if (!pickupPointNameFr) missingRequired.push('Name (FR)')
         if (!isCoordsValid) missingRequired.push('Coordinates')
-        if (!selectedExamCenter) missingRequired.push('Assigned exam center')
     } else if (locationType === 'driving_school') {
         if (!isCoordsValid) missingRequired.push('Coordinates')
         if (!pickupPointAddressFr) missingRequired.push('Address (FR)')
         if (!selectedAgency) missingRequired.push('Assigned agency')
     } else if (locationType === 'exam_center') {
         if (!isCoordsValid) missingRequired.push('Coordinates')
+        if (!selectedExamCenter) missingRequired.push('Selected exam center')
     }
 
     const isAddDisabled = submitting || loading || missingRequired.length > 0
