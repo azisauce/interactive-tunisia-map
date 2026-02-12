@@ -11,6 +11,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     const [examCenters, setExamCenters] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
     const [selectedExamCenter, setSelectedExamCenter] = useState('')
+    const [searchExamCenter, setSearchExamCenter] = useState('')
     const [pickupPointNameFr, setPickupPointNameFr] = useState('')
     const [pickupPointNameAr, setPickupPointNameAr] = useState('')
     const [pickupPointAddressFr, setPickupPointAddressFr] = useState('')
@@ -96,6 +97,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
         setPickupPointAddressAr('')
         setSelectedAgency('')
         setSelectedExamCenter('')
+        setSearchExamCenter('')
         setError(null)
         setSubmitting(false)
         setCoords({lat: null, lng: null})
@@ -206,6 +208,11 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     }
 
     const isAddDisabled = submitting || loading || missingRequired.length > 0
+
+    // Filter exam centers based on user search input
+    const filteredExamCenters = searchExamCenter
+        ? examCenters.filter((c) => String(c.name).toLowerCase().includes(String(searchExamCenter).toLowerCase()))
+        : examCenters
 
     return (
         <div
@@ -376,7 +383,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                         {locationType == 'exam_center' && (
                             <div>
                                 <label 
-                                    htmlFor="examCenterSelect" 
+                                    htmlFor="examCenterInput" 
                                     style={{ 
                                         display: 'block',
                                         fontSize: '13px',
@@ -387,22 +394,31 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                                 >
                                     Select Exam Center
                                 </label>
-                                <select
-                                    id="examCenterSelect"
-                                    value={selectedExamCenter}
+                                <input
+                                    id="examCenterInput"
+                                    list="examCentersList"
+                                    type="text"
+                                    value={searchExamCenter}
                                     onChange={(e) => {
                                         const val = e.target.value
-                                        setSelectedExamCenter(val)
+                                        setSearchExamCenter(val)
+                                        const match = examCenters.find(c => String(c.name) === String(val))
+                                        if (match) {
+                                            setSelectedExamCenter(match.id)
+                                        } else {
+                                            setSelectedExamCenter('')
+                                        }
                                     }}
+                                    placeholder="Search or select an exam center..."
                                     className="pickup-popup-select"
-                                >
-                                    <option value=""> Select an exam center... </option>
-                                    {examCenters.map((center) => (
-                                        <option key={center.id} value={center.id}>
-                                            {center.name}
-                                        </option>
+                                    style={{ marginBottom: '8px' }}
+                                    autoFocus
+                                />
+                                <datalist id="examCentersList">
+                                    {filteredExamCenters.map((center) => (
+                                        <option key={center.id} value={center.name} />
                                     ))}
-                                </select>
+                                </datalist>
                             </div>
                         )}
 
