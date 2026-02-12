@@ -950,6 +950,8 @@ body {
 .location-type-btn__icon {
   font-size: 20px;
   transition: transform 0.2s ease;
+  color: white;
+  font-weight: 700;
 }
 
 /* Inactive state - greyed out */

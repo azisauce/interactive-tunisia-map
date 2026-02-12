@@ -304,6 +304,7 @@ function App() {
     const handleResetPopup = useCallback(() => {
         setPickupPopupPosition({ lat: null, lng: null })
         setTempMarkerPosition(null)
+        setEnableAddLocations(false)
     }, [])
 
     // Handler for coordinate changes from PickupPointPopup
