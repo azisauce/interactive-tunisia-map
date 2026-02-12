@@ -153,38 +153,38 @@ export async function refreshActiveAgencies() {
     return fetchActiveAgenciesCached({ forceRefresh: true })
 }
 
-export async function addAgencyToList(agencyId, workingZoneType, workingZoneId) {
-    const payload = { agencyId, workingZoneType, workingZoneId }
+// export async function addAgencyToList(agencyId, workingZoneType, workingZoneId) {
+//     const payload = { agencyId, workingZoneType, workingZoneId }
 
-    const response = await fetch(`${API_BASE_URL}/agency-working-zone`, {
-        method: 'POST',
-        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(payload)
-    })
+//     const response = await fetch(`${API_BASE_URL}/agency-working-zone`, {
+//         method: 'POST',
+//         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+//         body: JSON.stringify(payload)
+//     })
 
-    if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        throw new Error(text || 'Failed to add agency')
-    }
+//     if (!response.ok) {
+//         const text = await response.text().catch(() => '')
+//         throw new Error(text || 'Failed to add agency')
+//     }
 
-    return response.json()
-}
+//     return response.json()
+// }
 
-export async function removeAgencyFromList(agencyWorkingZoneId) {
-    const url = `${API_BASE_URL}/agency-working-zone/${agencyWorkingZoneId}`
+// export async function removeAgencyFromList(agencyWorkingZoneId) {
+//     const url = `${API_BASE_URL}/agency-working-zone/${agencyWorkingZoneId}`
 
-    const response = await fetch(url, { 
-        method: 'DELETE',
-        headers: getAuthHeaders()
-    })
+//     const response = await fetch(url, { 
+//         method: 'DELETE',
+//         headers: getAuthHeaders()
+//     })
 
-    if (!response.ok) {
-        const text = await response.text().catch(() => '')
-        throw new Error(text || 'Failed to remove agency')
-    }
+//     if (!response.ok) {
+//         const text = await response.text().catch(() => '')
+//         throw new Error(text || 'Failed to remove agency')
+//     }
 
-    return response.json()
-}
+//     return response.json()
+// }
 
 // ========== Locations API (pickup points, driving schools, exam centers) ==========
 

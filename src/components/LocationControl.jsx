@@ -16,7 +16,7 @@ function LocationControl({
     showDrivagoOnly,
     onToggleDrivagoOnly 
 }) {
-    const [expanded, setExpanded] = useState(false)
+    const [expanded, setExpanded] = useState(true)
     const allTypesSelected = LOCATION_TYPES.every(type => locationTypeFilters[type.id])
     const noTypesSelected = LOCATION_TYPES.every(type => !locationTypeFilters[type.id])
 

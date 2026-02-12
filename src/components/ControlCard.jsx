@@ -1,4 +1,4 @@
-import AgencyAssignment from './AgencyAssignment'
+// import AgencyAssignment from './AgencyAssignment'
 import LocationControl from './LocationControl'
 import AddLocationsToggle from './AddLocationsToggle'
 
@@ -211,7 +211,7 @@ function ControlCard({
             )}
 
             {/* Agency Assignment Component */}
-            <AgencyAssignment currentLevel={currentLevel} selectedRegion={selectedRegion} />
+            {/* <AgencyAssignment currentLevel={currentLevel} selectedRegion={selectedRegion} /> */}
 
             {/* Navigation Buttons */}
             <div className="btn-group">
