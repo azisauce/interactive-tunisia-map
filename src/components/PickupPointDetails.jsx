@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button, IconButton } from '@mui/material'
+import { Button, IconButton, Switch } from '@mui/material'
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward'
 import EditIcon from '@mui/icons-material/Edit'
 import CloseIcon from '@mui/icons-material/Close'
@@ -10,7 +10,7 @@ import PushPinIcon from '@mui/icons-material/PushPin'
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'
 import DeleteIcon from '@mui/icons-material/Delete'
 import LoyaltyIcon from '@mui/icons-material/Loyalty';
-import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies, updateLocation } from '../utils/api'
+import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies, updateLocation, updateAgencyShowInDrivago } from '../utils/api'
 import ConfirmDialog from './ConfirmDialog'
 
 function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated, onEditModeChange, onEditCoordsChange, externalEditCoords }) {
@@ -322,6 +322,30 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
         const url = `${baseUrl}/agences/detailsagence/${drivingSchoolId}`
         window.open(url, '_blank', 'noopener,noreferrer')
     }
+
+    const handleToggleDrivago = async (e) => {
+        e.stopPropagation()
+        const newValue = !point.showInDrivago
+        
+        // Get the first agency's profile ID
+        const agency = point.agencies?.[0]
+        if (!agency || !agency.agencyId) {
+            setError('No agency profile found to update')
+            return
+        }
+        
+        try {
+            await updateAgencyShowInDrivago(agency.agencyId, newValue)
+            
+            // Update the point's top-level showInDrivago property
+            point.showInDrivago = newValue
+            
+            if (onUpdated) onUpdated(point)
+        } catch (err) {
+            console.error('Failed to update showInDrivago', err)
+            setError(err?.message || 'Failed to update')
+        }
+    }
     
     if (!open) return null
 
@@ -333,12 +357,43 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
             position: 'fixed',
             top: '20px',
             right: '20px',
-            width: '400px',
+            width: '440px',
             maxHeight: 'calc(100vh - 40px)',
             display: 'flex',
             flexDirection: 'column',
             zIndex: 1000
         }}>
+            {/* Toggle for showInDrivago - only show if not null */}
+            {point.showInDrivago !== null && point.showInDrivago !== undefined && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 8,
+                        right: 56,
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: 20,
+                        padding: '4px 8px'
+                    }}
+                    title={`Show in Drivago: ${point.showInDrivago ? 'On' : 'Off'}`}
+                >
+                    <Switch
+                        checked={point.showInDrivago === true}
+                        onChange={handleToggleDrivago}
+                        size="small"
+                        sx={{
+                            '& .MuiSwitch-switchBase.Mui-checked': {
+                                color: '#3b82f6',
+                            },
+                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                                backgroundColor: '#3b82f6',
+                            },
+                        }}
+                    />
+                </div>
+            )}
+
             {/* Edit button in top right corner */}
             <IconButton
                 onClick={isEditMode ? handleCancelEdit : handleEnterEditMode}
@@ -369,7 +424,9 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                                 gap: 6, 
                                 textDecoration: point.type === 'driving_school' ? 'underline' : 'none',
                                 cursor: point.type === 'driving_school' ? 'pointer' : 'default',
-                                paddingRight: 40
+                                paddingRight: 40,
+                                maxWidth: '300px',
+                                textWrap: 'auto',
                             }}
                             onClick={point.type === 'driving_school' ? handleDrivingSchoolClick : undefined}
                         >

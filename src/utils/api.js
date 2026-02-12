@@ -327,3 +327,27 @@ export async function updateLocation(locationId, updateData) {
 
     return response.json()
 }
+
+export async function updateAgencyShowInDrivago(agencyId, showInDrivago) {
+    const response = await fetch(`${API_BASE_URL}/show-in-drivago/${agencyId}`, {
+        method: 'PUT',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ showInDrivago: showInDrivago })
+    })
+
+    if (!response.ok) {
+        const contentType = response.headers.get('content-type') || ''
+        let text = await response.text().catch(() => '')
+        if (contentType.includes('application/json')) {
+            try {
+                const j = JSON.parse(text)
+                text = j?.error || j?.message || text
+            } catch (e) {
+                // ignore JSON parse errors
+            }
+        }
+        throw new Error(text || 'Failed to update show_in_drivago')
+    }
+
+    return response.json()
+}
