@@ -3,7 +3,7 @@ import TunisiaMap from './components/TunisiaMap'
 import ControlCard from './components/ControlCard'
 import PickupPointPopup from './components/PickupPointPopup'
 import PickupPointDetails from './components/PickupPointDetails'
-import { fetchGovernorates, fetchLocations, fetchZoneColoring } from './utils/api'
+import { fetchGovernorates, fetchLocations, fetchZoneColoring, invalidateZoneColoringCache } from './utils/api'
 import * as turf from '@turf/turf'
 import 'leaflet/dist/leaflet.css'
 
@@ -328,6 +328,11 @@ function App() {
         try {
             const data = await fetchLocations()
             setLocations(data || [])
+            
+            // Invalidate and refresh zone coloring data since zones may have changed
+            invalidateZoneColoringCache()
+            const coloringData = await fetchZoneColoring({ forceRefresh: true })
+            setZoneColoringData(coloringData)
         } catch (err) {
             console.error('Error refreshing locations:', err)
             // Fallback: add the location without agencies
@@ -343,12 +348,21 @@ function App() {
     }, [])
 
     // Handler for pickup point deleted
-    const handlePickupPointDeleted = useCallback((id) => {
+    const handlePickupPointDeleted = useCallback(async (id) => {
         setLocations(prev => prev.filter(p => String(p.id) !== String(id)))
+        
+        // Refresh zone coloring since zones may have changed after deletion
+        try {
+            invalidateZoneColoringCache()
+            const coloringData = await fetchZoneColoring({ forceRefresh: true })
+            setZoneColoringData(coloringData)
+        } catch (err) {
+            console.error('Error refreshing zone coloring:', err)
+        }
     }, [])
 
     // Handler for pickup point updated
-    const handlePickupPointUpdated = useCallback((updatedPoint) => {
+    const handlePickupPointUpdated = useCallback(async (updatedPoint) => {
         setLocations(prev => prev.map(p => 
             String(p.id) === String(updatedPoint.id) ? updatedPoint : p
         ))
@@ -356,6 +370,15 @@ function App() {
         // Update edit marker position if still editing
         if (isEditingLocation) {
             setEditMarkerPosition({ lat: updatedPoint.latitude, lng: updatedPoint.longitude })
+        }
+        
+        // Refresh zone coloring in case location type or agency changed
+        try {
+            invalidateZoneColoringCache()
+            const coloringData = await fetchZoneColoring({ forceRefresh: true })
+            setZoneColoringData(coloringData)
+        } catch (err) {
+            console.error('Error refreshing zone coloring:', err)
         }
     }, [isEditingLocation])
 
