@@ -253,6 +253,12 @@ function App() {
 
     const handleToggleAddLocations = useCallback((value) => {
         setEnableAddLocations(value)
+        // When add mode is enabled, exit edit mode
+        if (value) {
+            setIsEditingLocation(false)
+            setEditMarkerPosition(null)
+            setExternalEditCoords(null)
+        }
     }, [])
 
     const handleToggleAddLocationsOn = useCallback(() => {
@@ -277,6 +283,12 @@ function App() {
 
     const handlePickupPointSelect = useCallback((point) => {
         setSelectedPickupPoint(point)
+        // When details is opened, close popup
+        if (point) {
+            setPickupPopupPosition(null)
+            setTempMarkerPosition(null)
+            setEnableAddLocations(false)
+        }
     }, [])
 
     const handlePopupPositionChange = useCallback((position) => {
@@ -284,6 +296,14 @@ function App() {
             setPickupPopupPosition(position)
         } else {
             setPickupPopupPosition(position)
+        }
+        // When popup is opened with actual coordinates (not just { lat: null, lng: null }), 
+        // close details and disable edit mode
+        if (position && position.lat !== null && position.lng !== null) {
+            setSelectedPickupPoint(null)
+            setIsEditingLocation(false)
+            setEditMarkerPosition(null)
+            setExternalEditCoords(null)
         }
     }, [])
 
@@ -387,6 +407,8 @@ function App() {
         setIsEditingLocation(isEditing)
         if (isEditing && coords) {
             setEditMarkerPosition({ lat: coords.latitude, lng: coords.longitude })
+            // Disable add mode when edit mode is active
+            setEnableAddLocations(false)
         } else {
             setEditMarkerPosition(null)
         }
