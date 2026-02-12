@@ -15,8 +15,6 @@ function ControlCard({
     onToggleLocations,
     locationTypeFilters,
     onLocationTypeFilterChange,
-    showDrivagoOnly,
-    onToggleDrivagoOnly,
     enableAddLocations = false,
     onToggleAddLocations,
     onToggleAddLocationsOn,
@@ -195,8 +193,6 @@ function ControlCard({
                 onToggleLocations={onToggleLocations}
                 locationTypeFilters={locationTypeFilters}
                 onLocationTypeFilterChange={onLocationTypeFilterChange}
-                showDrivagoOnly={showDrivagoOnly}
-                onToggleDrivagoOnly={onToggleDrivagoOnly}
             />
 
             {currentLevel === 'sector' && (

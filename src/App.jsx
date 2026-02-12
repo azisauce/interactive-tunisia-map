@@ -95,10 +95,10 @@ function App() {
     const [showLocations, setShowLocations] = useState(true)
     const [locationTypeFilters, setLocationTypeFilters] = useState({
         pickup_point: true,
-        driving_school: true,
+        driving_school_drivago: true,
+        driving_school_non_drivago: true,
         exam_center: true
     })
-    const [showDrivagoOnly, setShowDrivagoOnly] = useState(false)
     const [enableAddLocations, setEnableAddLocations] = useState(false)
     const [openPopupWithoutCoords, setOpenPopupWithoutCoords] = useState(0)
     const [selectedLocationType, setSelectedLocationType] = useState('pickup_point')
@@ -244,10 +244,6 @@ function App() {
         setLocationTypeFilters(filters)
     }, [])
 
-    const handleToggleDrivagoOnly = useCallback(() => {
-        setShowDrivagoOnly(prev => !prev)
-    }, [])
-
     const handleToggleAddLocations = useCallback((value) => {
         setEnableAddLocations(value)
     }, [])
@@ -384,7 +380,6 @@ function App() {
                 onRegionHover={handleRegionHover}
                 showLocations={showLocations}
                 locationTypeFilters={locationTypeFilters}
-                showDrivagoOnly={showDrivagoOnly}
                 enableAddLocations={enableAddLocations}
                 openPopupWithoutCoords={openPopupWithoutCoords}
                 selectedLocationType={selectedLocationType}
@@ -417,8 +412,6 @@ function App() {
                 onToggleLocations={handleToggleLocations}
                 locationTypeFilters={locationTypeFilters}
                 onLocationTypeFilterChange={handleLocationTypeFilterChange}
-                showDrivagoOnly={showDrivagoOnly}
-                onToggleDrivagoOnly={handleToggleDrivagoOnly}
                 enableAddLocations={enableAddLocations}
                 onToggleAddLocations={handleToggleAddLocations}
                 onToggleAddLocationsOn={handleToggleAddLocationsOn}

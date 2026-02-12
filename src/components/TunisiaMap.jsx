@@ -267,8 +267,7 @@ function TunisiaMap({
     onRegionSelect,
     onRegionHover,
     showLocations = true,
-    locationTypeFilters = { pickup_point: true, driving_school: true, exam_center: true },
-    showDrivagoOnly = false,
+    locationTypeFilters = { pickup_point: true, driving_school_drivago: true, driving_school_non_drivago: true, exam_center: true },
     enableAddLocations = false,
     openPopupWithoutCoords,
     selectedLocationType = 'pickup_point',
@@ -753,30 +752,27 @@ function TunisiaMap({
         }
     }, [filteredFeatures])
 
-    // Filter locations based on type filters and Drivago-only flag
+    // Filter locations based on type filters with separate Drivago/Non-Drivago handling
     const filteredLocations = useMemo(() => {
         let filtered = locations
 
         // Filter by location type
         filtered = filtered.filter(location => {
             const locationType = location.type || 'pickup_point'
+            
+            // For driving schools, check if they should be shown based on Drivago status
+            if (locationType === 'driving_school') {
+                const isDrivago = location.agencies?.some(agency => agency.show_in_drivago === true)
+                const filterKey = isDrivago ? 'driving_school_drivago' : 'driving_school_non_drivago'
+                return locationTypeFilters[filterKey] === true
+            }
+            
+            // For other location types, use the type directly
             return locationTypeFilters[locationType] === true
         })
 
-        // Filter by Drivago agencies if enabled
-        if (showDrivagoOnly) {
-            filtered = filtered.filter(location => {
-                // Check if location has at least one agency with show_in_drivago = true
-                if (!location.agencies || !Array.isArray(location.agencies)) {
-                    return false
-                }
-
-                return location.agencies.some(agency => agency.show_in_drivago === true)
-            })
-        }
-
         return filtered
-    }, [locations, locationTypeFilters, showDrivagoOnly])
+    }, [locations, locationTypeFilters])
 
     // Zoom-aware markers: only show driving school title above the icon when zoomed in
     const ZoomAwareMarkers = ({ locations, isPointVisible, onSelect, editingLocationId }) => {
@@ -808,14 +804,17 @@ function TunisiaMap({
                     if (point.type === 'driving_school') {
                         const rawTitle = point.name || 'Driving School'
                         const title = escapeHtml(rawTitle.length > 30 ? `${rawTitle.slice(0, 27)}...` : rawTitle)
+                        const isDrivago = point.agencies?.some(agency => agency.show_in_drivago === true)
+                        const schoolIcon = isDrivago ? '🚗' : '🏫'
+                        const bgColor = isDrivago ? 'rgba(33, 150, 243, 0.85)' : 'rgba(0, 0, 0, 0.6)'
 
                         if (zoom >= SHOW_TITLE_ZOOM) {
                             icon = L.divIcon({
                                 className: 'driving-school-icon',
                                 html: `
                                     <div style="display:flex;flex-direction:column;align-items:center;">
-                                        <div style="background:rgba(0,0,0,0.6);color:white;padding:2px 6px;border-radius:4px;font-size:12px;margin-bottom:4px;white-space:nowrap;">${title}</div>
-                                        <div class="pickup-marker" style="font-size:20px;">🏫</div>
+                                        <div style="background:${bgColor};color:white;padding:2px 6px;border-radius:4px;font-size:12px;margin-bottom:4px;white-space:nowrap;">${title}</div>
+                                        <div class="pickup-marker" style="font-size:20px;">${schoolIcon}</div>
                                     </div>
                                 `,
                                 iconSize: [100, 40],
@@ -826,7 +825,7 @@ function TunisiaMap({
                             // Small icon without title when zoomed out
                             icon = L.divIcon({
                                 className: 'pickup-marker-icon',
-                                html: '<div class="pickup-marker">🏫</div>',
+                                html: `<div class="pickup-marker">${schoolIcon}</div>`,
                                 iconSize: [30, 30],
                                 iconAnchor: [15, 30],
                                 popupAnchor: [0, -30]

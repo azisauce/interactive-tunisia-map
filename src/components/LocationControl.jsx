@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import PushPinIcon from '@mui/icons-material/PushPin'
-import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 
 const LOCATION_TYPES = [
+    { id: 'driving_school_non_drivago', label: 'Non-Drivago Driving Schools', icon: 'ND' },
+    { id: 'driving_school_drivago', label: 'Drivago Driving Schools', icon: 'D' },
     { id: 'pickup_point', label: 'Pickup Points', icon: '📍' },
-    { id: 'driving_school', label: 'Driving Schools', icon: '🏫' },
     { id: 'exam_center', label: 'Exam Centers', icon: '📝' }
 ]
 
@@ -12,34 +12,32 @@ function LocationControl({
     showLocations, 
     onToggleLocations, 
     locationTypeFilters, 
-    onLocationTypeFilterChange,
-    showDrivagoOnly,
-    onToggleDrivagoOnly 
+    onLocationTypeFilterChange
 }) {
     const [expanded, setExpanded] = useState(true)
-    const allTypesSelected = LOCATION_TYPES.every(type => locationTypeFilters[type.id])
-    const noTypesSelected = LOCATION_TYPES.every(type => !locationTypeFilters[type.id])
+    // const allTypesSelected = LOCATION_TYPES.every(type => locationTypeFilters[type.id])
+    // const noTypesSelected = LOCATION_TYPES.every(type => !locationTypeFilters[type.id])
 
-    const handleToggleAll = () => {
-        // Use the visible state to decide action so the button always toggles
-        if (showLocations) {
-            // Hide all locations and clear type filters
-            const newFilters = {}
-            LOCATION_TYPES.forEach(type => {
-                newFilters[type.id] = false
-            })
-            onLocationTypeFilterChange(newFilters)
-            onToggleLocations(false)
-        } else {
-            // Show all locations and enable all type filters
-            const newFilters = {}
-            LOCATION_TYPES.forEach(type => {
-                newFilters[type.id] = true
-            })
-            onLocationTypeFilterChange(newFilters)
-            onToggleLocations(true)
-        }
-    }
+    // const handleToggleAll = () => {
+    //     // Use the visible state to decide action so the button always toggles
+    //     if (showLocations) {
+    //         // Hide all locations and clear type filters
+    //         const newFilters = {}
+    //         LOCATION_TYPES.forEach(type => {
+    //             newFilters[type.id] = false
+    //         })
+    //         onLocationTypeFilterChange(newFilters)
+    //         onToggleLocations(false)
+    //     } else {
+    //         // Show all locations and enable all type filters
+    //         const newFilters = {}
+    //         LOCATION_TYPES.forEach(type => {
+    //             newFilters[type.id] = true
+    //         })
+    //         onLocationTypeFilterChange(newFilters)
+    //         onToggleLocations(true)
+    //     }
+    // }
 
     const handleTypeToggle = (typeId) => {
         const newFilters = {
@@ -96,20 +94,6 @@ function LocationControl({
                                 </button>
                             ))}
                         </div>
-                    </div>
-
-                    {/* Drivago Filter */}
-                    <div className="location-control__section">
-                        <div className="location-control__label">
-                            <span><DirectionsCarIcon style={{ fontSize: 16 }} /> Drivago Agencies:</span>
-                        </div>
-                        <button
-                            className={`btn ${showDrivagoOnly ? 'btn--primary' : 'btn--secondary'}`}
-                            onClick={onToggleDrivagoOnly}
-                            style={{ width: '100%' }}
-                        >
-                            {showDrivagoOnly ? 'Showing Drivago Only' : 'Show All Agencies'}
-                        </button>
                     </div>
                 </>
             )}
