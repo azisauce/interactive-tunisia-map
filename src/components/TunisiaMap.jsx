@@ -105,41 +105,27 @@ function MapController({ flyToLocation }) {
     return null
 }
 
-// Component that tracks map center and reports it back - used for center-locked marker mode
-function CenterMarkerMode({ onCenterChange, active }) {
+// Component to fly map to a given position (used when coordinates are edited manually)
+function FlyToPosition({ position }) {
     const map = useMap()
-
-    useMapEvents({
-        moveend: () => {
-            if (!active) return
-            const center = map.getCenter()
-            onCenterChange({ lat: center.lat, lng: center.lng })
-        }
-    })
-
-    return null
-}
-
-// Component to pan/fly the map to a target position once
-function MapPanTo({ target }) {
-    const map = useMap()
-    const prevTargetRef = useRef(null)
+    const prevPositionRef = useRef(null)
 
     useEffect(() => {
-        if (target && target.lat && target.lng) {
-            // Only pan if the target actually changed (avoid infinite loops)
-            const prev = prevTargetRef.current
-            if (!prev || prev.lat !== target.lat || prev.lng !== target.lng) {
-                prevTargetRef.current = target
+        if (position && position.lat && position.lng) {
+            const prev = prevPositionRef.current
+            if (!prev || prev.lat !== position.lat || prev.lng !== position.lng) {
+                prevPositionRef.current = position
                 const currentZoom = map.getZoom()
-                const targetZoom = Math.max(currentZoom, 13)
-                map.flyTo([target.lat, target.lng], targetZoom, { duration: 0.5 })
+                const targetZoom = Math.max(currentZoom, 15)
+                map.flyTo([position.lat, position.lng], targetZoom, { duration: 0.5 })
             }
         }
-    }, [map, target])
+    }, [map, position])
 
     return null
 }
+
+
 
 // Style configurations - unified light-green baseline
 const styles = {
@@ -311,12 +297,8 @@ function TunisiaMap({
     const geoJsonRef = useRef()
     const layersRef = useRef(new Map())
 
-    // State for center-locked marker: stores the initial pan target
-    const [panTarget, setPanTarget] = useState(null)
-    // Whether the center-locked marker mode is active (for temp or edit marker)
-    const isCenterMarkerActive = !!(tempMarkerPosition || (isEditingLocation && editMarkerPosition))
-    // Flag to distinguish map-driven changes from external coordinate changes
-    const isMapDrivenChangeRef = useRef(false)
+    // Position to fly the map to (triggered by manual coordinate edits)
+    const [flyToTarget, setFlyToTarget] = useState(null)
 
     // Parent region for context display (needed for click validation)
     const parentFeatures = useMemo(() => {
@@ -349,83 +331,91 @@ function TunisiaMap({
         return null
     }, [currentLevel, navigationPath, governorates, municipalities])
 
-    // Handle map click for pickup points - center-locked marker mode
+    // Handle map click for pickup points - places a draggable marker
     const handleMapClick = useCallback((latlng, clickedFeature = null) => {
 
         console.log('clickedFeature======>', clickedFeature);
 
-        // If popup is open with null position, update it with clicked coordinates and pan to center
+        // If popup is open with null position, update it with clicked coordinates
         if (pickupPopupPosition && !pickupPopupPosition.lat && !pickupPopupPosition.lng) {
             if (onPopupPositionChange) onPopupPositionChange({ lat: latlng.lat, lng: latlng.lng })
             if (onTempMarkerPositionChange) onTempMarkerPositionChange({ lat: latlng.lat, lng: latlng.lng })
-            setPanTarget({ lat: latlng.lat, lng: latlng.lng })
             return
         }
 
         // If popup is already open, don't update position (prevents re-renders while typing)
         if (pickupPopupPosition) return
 
-        // Set marker position and pan the map to center on the clicked point
+        // Set marker position at clicked point (marker is draggable)
         const markerData = { lat: latlng.lat, lng: latlng.lng }
         if (clickedFeature) markerData.feature = clickedFeature
 
         if (onTempMarkerPositionChange) onTempMarkerPositionChange(markerData)
-        setPanTarget({ lat: latlng.lat, lng: latlng.lng })
     }, [pickupPopupPosition, onPopupPositionChange, onTempMarkerPositionChange])
 
-    // Handle center marker position update (called on map moveend when center-locked marker is active)
-    const handleCenterChange = useCallback((center) => {
-        isMapDrivenChangeRef.current = true
-        if (tempMarkerPosition && !isEditingLocation) {
-            // Update temp marker position with new center, preserving feature context
-            const updatedPosition = { ...tempMarkerPosition, lat: center.lat, lng: center.lng }
-            if (onTempMarkerPositionChange) onTempMarkerPositionChange(updatedPosition)
-            // Also update popup position if it's open
-            if (onPopupPositionChange && pickupPopupPosition && pickupPopupPosition.lat) {
-                onPopupPositionChange({ lat: center.lat, lng: center.lng })
-            }
-        } else if (isEditingLocation && editMarkerPosition) {
-            // Update edit marker position with new center
-            if (onEditMarkerPositionChange) onEditMarkerPositionChange({ lat: center.lat, lng: center.lng })
-            if (onExternalEditCoordsChange) onExternalEditCoordsChange({ latitude: center.lat, longitude: center.lng })
+    // Handle temp marker drag end - update marker position (NOT the map)
+    const handleTempMarkerDrag = useCallback((e) => {
+        const { lat, lng } = e.target.getLatLng()
+        const updatedPosition = { ...tempMarkerPosition, lat, lng }
+        if (onTempMarkerPositionChange) onTempMarkerPositionChange(updatedPosition)
+        // Also update popup position if it's open
+        if (onPopupPositionChange && pickupPopupPosition && pickupPopupPosition.lat) {
+            onPopupPositionChange({ lat, lng })
         }
-        // Reset flag after a tick to allow external changes to be detected
-        setTimeout(() => { isMapDrivenChangeRef.current = false }, 100)
-    }, [tempMarkerPosition, isEditingLocation, editMarkerPosition, onTempMarkerPositionChange, onPopupPositionChange, pickupPopupPosition, onEditMarkerPositionChange, onExternalEditCoordsChange])
+    }, [tempMarkerPosition, onTempMarkerPositionChange, onPopupPositionChange, pickupPopupPosition])
 
-    // Handle center marker click - show popup with current marker position
-    const handleCenterMarkerClick = useCallback(() => {
+    // Handle edit marker drag end - update marker position (NOT the map)
+    const handleEditMarkerDrag = useCallback((e) => {
+        const { lat, lng } = e.target.getLatLng()
+        if (onEditMarkerPositionChange) onEditMarkerPositionChange({ lat, lng })
+        if (onExternalEditCoordsChange) onExternalEditCoordsChange({ latitude: lat, longitude: lng })
+    }, [onEditMarkerPositionChange, onExternalEditCoordsChange])
+
+    // Handle temp marker click - show popup with current marker position
+    const handleTempMarkerClick = useCallback(() => {
         if (tempMarkerPosition && onPopupPositionChange) {
             onPopupPositionChange({ ...tempMarkerPosition })
         }
     }, [tempMarkerPosition, onPopupPositionChange])
 
-    // When edit mode is activated, pan map to center on the edited location
+    // When edit mode is activated, fly map to show the edited location
     useEffect(() => {
         if (isEditingLocation && editMarkerPosition) {
-            setPanTarget({ lat: editMarkerPosition.lat, lng: editMarkerPosition.lng })
+            setFlyToTarget({ lat: editMarkerPosition.lat, lng: editMarkerPosition.lng })
         } else if (!isEditingLocation) {
-            // Clear panTarget when leaving edit mode
-            setPanTarget(prev => prev && !tempMarkerPosition ? null : prev)
+            setFlyToTarget(null)
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEditingLocation]) // Only react to edit mode toggle, not position changes
 
-    // Reverse sync: when tempMarkerPosition changes externally (manual coord input), pan map to it
+    // When editMarkerPosition changes externally (manual coord input in PickupPointDetails),
+    // fly the map to show the new position. The marker moves because editMarkerPosition is its position prop.
+    const prevEditCoordsRef = useRef(null)
     useEffect(() => {
-        if (isMapDrivenChangeRef.current) return // Skip if this was a map-driven change
-        if (tempMarkerPosition && tempMarkerPosition.lat && tempMarkerPosition.lng) {
-            setPanTarget({ lat: tempMarkerPosition.lat, lng: tempMarkerPosition.lng })
+        if (!isEditingLocation || !editMarkerPosition) return
+        const prev = prevEditCoordsRef.current
+        if (prev && (prev.lat !== editMarkerPosition.lat || prev.lng !== editMarkerPosition.lng)) {
+            // Coordinates changed externally (form edit) → fly map to show the marker
+            setFlyToTarget({ lat: editMarkerPosition.lat, lng: editMarkerPosition.lng })
         }
-    }, [tempMarkerPosition?.lat, tempMarkerPosition?.lng])
-
-    // Reverse sync: when editMarkerPosition changes externally (manual coord input), pan map to it
-    useEffect(() => {
-        if (isMapDrivenChangeRef.current) return // Skip if this was a map-driven change
-        if (isEditingLocation && editMarkerPosition && editMarkerPosition.lat && editMarkerPosition.lng) {
-            setPanTarget({ lat: editMarkerPosition.lat, lng: editMarkerPosition.lng })
-        }
+        prevEditCoordsRef.current = editMarkerPosition ? { lat: editMarkerPosition.lat, lng: editMarkerPosition.lng } : null
     }, [editMarkerPosition?.lat, editMarkerPosition?.lng, isEditingLocation])
+
+    // When tempMarkerPosition changes externally (manual coord input in PickupPointPopup),
+    // fly the map to show the new position.
+    const prevTempCoordsRef = useRef(null)
+    useEffect(() => {
+        if (!tempMarkerPosition || !tempMarkerPosition.lat || !tempMarkerPosition.lng) {
+            prevTempCoordsRef.current = null
+            return
+        }
+        const prev = prevTempCoordsRef.current
+        if (prev && (prev.lat !== tempMarkerPosition.lat || prev.lng !== tempMarkerPosition.lng)) {
+            // Coordinates changed (could be from form edit) → fly map to show the marker
+            setFlyToTarget({ lat: tempMarkerPosition.lat, lng: tempMarkerPosition.lng })
+        }
+        prevTempCoordsRef.current = { lat: tempMarkerPosition.lat, lng: tempMarkerPosition.lng }
+    }, [tempMarkerPosition?.lat, tempMarkerPosition?.lng])
 
     // Open popup without coordinates when toggle is turned on
     const prevOpenPopupWithoutCoordsRef = useRef(openPopupWithoutCoords)
@@ -435,7 +425,7 @@ function TunisiaMap({
             // Open popup with null coordinates - will be set when map is clicked
             if (onPopupPositionChange) onPopupPositionChange({ lat: null, lng: null })
             if (onTempMarkerPositionChange) onTempMarkerPositionChange(null)
-            setPanTarget(null)
+            setFlyToTarget(null)
         }
         prevOpenPopupWithoutCoordsRef.current = openPopupWithoutCoords
     }, [openPopupWithoutCoords, onPopupPositionChange, onTempMarkerPositionChange])
@@ -450,7 +440,7 @@ function TunisiaMap({
         if (!enableAddLocations) {
             if (onPopupPositionChange) onPopupPositionChange(null)
             if (onTempMarkerPositionChange) onTempMarkerPositionChange(null)
-            setPanTarget(null)
+            setFlyToTarget(null)
         }
     }, [enableAddLocations, onPopupPositionChange, onTempMarkerPositionChange])
 
@@ -892,14 +882,8 @@ function TunisiaMap({
             {/* Controller for programmatic map movements (zoom to location) */}
             <MapController flyToLocation={selectedPickupPoint} />
 
-            {/* Pan to target when center-locked marker is placed */}
-            <MapPanTo target={panTarget} />
-
-            {/* Track map center for center-locked marker mode */}
-            <CenterMarkerMode
-                active={isCenterMarkerActive}
-                onCenterChange={handleCenterChange}
-            />
+            {/* Fly to position when coordinates are edited manually */}
+            <FlyToPosition position={flyToTarget} />
 
             {/* Map click handler for pickup points */}
             <MapClickHandler
@@ -943,21 +927,29 @@ function TunisiaMap({
                 editingLocationId={isEditingLocation ? selectedPickupPoint?.id : null}
             />
 
-            {/* Center-locked crosshair overlay for positioning markers */}
-            {isCenterMarkerActive && (
-                <div className="center-marker-overlay" onClick={handleCenterMarkerClick}>
-                    <div className={`center-marker-pin ${isEditingLocation ? 'center-marker-pin--edit' : ''}`}>
-                        <div className="center-marker-pin__icon">{isEditingLocation ? '📍' : '📍'}</div>
-                        <div className="center-marker-pin__pulse"></div>
-                    </div>
-                    <div className="center-marker-crosshair">
-                        <div className="center-marker-crosshair__line center-marker-crosshair__line--h"></div>
-                        <div className="center-marker-crosshair__line center-marker-crosshair__line--v"></div>
-                    </div>
-                    <div className="center-marker-hint">
-                        {isEditingLocation ? 'Pan map to reposition' : 'Pan map to position • Click pin to confirm'}
-                    </div>
-                </div>
+            {/* Draggable marker for new location placement */}
+            {tempMarkerPosition && tempMarkerPosition.lat && tempMarkerPosition.lng && !isEditingLocation && (
+                <Marker
+                    position={[tempMarkerPosition.lat, tempMarkerPosition.lng]}
+                    icon={locationIcons[selectedLocationType] || locationIcons.pickup_point}
+                    draggable={true}
+                    eventHandlers={{
+                        dragend: handleTempMarkerDrag,
+                        click: handleTempMarkerClick
+                    }}
+                />
+            )}
+
+            {/* Draggable marker for editing an existing location */}
+            {isEditingLocation && editMarkerPosition && editMarkerPosition.lat && editMarkerPosition.lng && (
+                <Marker
+                    position={[editMarkerPosition.lat, editMarkerPosition.lng]}
+                    icon={locationIcons[selectedPickupPoint?.type] || locationIcons.pickup_point}
+                    draggable={true}
+                    eventHandlers={{
+                        dragend: handleEditMarkerDrag
+                    }}
+                />
             )}
         </MapContainer>
     )
