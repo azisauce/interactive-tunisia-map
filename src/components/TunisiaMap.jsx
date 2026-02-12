@@ -36,7 +36,7 @@ function MapClickHandler({ onMapClick, selectedRegion, enableAddLocations, curre
             // If enableAddLocations toggle is ON, allow clicks anywhere.
             // Pass the feature that contains the click when available, otherwise null.
             console.log('enableAddLocations:', enableAddLocations);
-            
+
             if (enableAddLocations) {
                 let clickedFeature = null
                 if (currentGeoData && currentGeoData.features) {
@@ -52,7 +52,7 @@ function MapClickHandler({ onMapClick, selectedRegion, enableAddLocations, curre
                 onMapClick(e.latlng, clickedFeature)
                 // Original behavior: Allow creating pickup points when a region is selected (any level).
                 console.log('selectedRegion', selectedRegion);
-                
+
                 if (selectedRegion && selectedRegion.type === 'Feature') {
                     const pt = turf.point([e.latlng.lng, e.latlng.lat])
                     try {
@@ -101,6 +101,42 @@ function MapController({ flyToLocation }) {
             })
         }
     }, [map, flyToLocation])
+
+    return null
+}
+
+// Component that tracks map center and reports it back - used for center-locked marker mode
+function CenterMarkerMode({ onCenterChange, active }) {
+    const map = useMap()
+
+    useMapEvents({
+        moveend: () => {
+            if (!active) return
+            const center = map.getCenter()
+            onCenterChange({ lat: center.lat, lng: center.lng })
+        }
+    })
+
+    return null
+}
+
+// Component to pan/fly the map to a target position once
+function MapPanTo({ target }) {
+    const map = useMap()
+    const prevTargetRef = useRef(null)
+
+    useEffect(() => {
+        if (target && target.lat && target.lng) {
+            // Only pan if the target actually changed (avoid infinite loops)
+            const prev = prevTargetRef.current
+            if (!prev || prev.lat !== target.lat || prev.lng !== target.lng) {
+                prevTargetRef.current = target
+                const currentZoom = map.getZoom()
+                const targetZoom = Math.max(currentZoom, 13)
+                map.flyTo([target.lat, target.lng], targetZoom, { duration: 0.5 })
+            }
+        }
+    }, [map, target])
 
     return null
 }
@@ -237,13 +273,13 @@ const styles = {
 
 
 
-function TunisiaMap({ 
-    currentLevel, 
-    selectedRegion, 
-    navigationPath, 
-    governorates, 
-    onRegionSelect, 
-    onRegionHover, 
+function TunisiaMap({
+    currentLevel,
+    selectedRegion,
+    navigationPath,
+    governorates,
+    onRegionSelect,
+    onRegionHover,
     showLocations = true,
     locationTypeFilters = { pickup_point: true, driving_school: true, exam_center: true },
     showDrivagoOnly = false,
@@ -274,6 +310,13 @@ function TunisiaMap({
     const [mapKey, setMapKey] = useState(0)
     const geoJsonRef = useRef()
     const layersRef = useRef(new Map())
+
+    // State for center-locked marker: stores the initial pan target
+    const [panTarget, setPanTarget] = useState(null)
+    // Whether the center-locked marker mode is active (for temp or edit marker)
+    const isCenterMarkerActive = !!(tempMarkerPosition || (isEditingLocation && editMarkerPosition))
+    // Flag to distinguish map-driven changes from external coordinate changes
+    const isMapDrivenChangeRef = useRef(false)
 
     // Parent region for context display (needed for click validation)
     const parentFeatures = useMemo(() => {
@@ -306,64 +349,83 @@ function TunisiaMap({
         return null
     }, [currentLevel, navigationPath, governorates, municipalities])
 
-    // Handle map click for pickup points - now even more strictly validated
+    // Handle map click for pickup points - center-locked marker mode
     const handleMapClick = useCallback((latlng, clickedFeature = null) => {
 
         console.log('clickedFeature======>', clickedFeature);
-        
-        // If popup is open with null position, update it with clicked coordinates
+
+        // If popup is open with null position, update it with clicked coordinates and pan to center
         if (pickupPopupPosition && !pickupPopupPosition.lat && !pickupPopupPosition.lng) {
             if (onPopupPositionChange) onPopupPositionChange({ lat: latlng.lat, lng: latlng.lng })
             if (onTempMarkerPositionChange) onTempMarkerPositionChange({ lat: latlng.lat, lng: latlng.lng })
+            setPanTarget({ lat: latlng.lat, lng: latlng.lng })
             return
         }
-        
+
         // If popup is already open, don't update position (prevents re-renders while typing)
         if (pickupPopupPosition) return
 
-        // If enableAddLocations is on and we have a clicked feature, use it as context
-        if (enableAddLocations && clickedFeature) {
-            // Show temporary draggable marker instead of popup
-            if (onTempMarkerPositionChange) onTempMarkerPositionChange({ lat: latlng.lat, lng: latlng.lng, feature: clickedFeature })
-            return
-        }
+        // Set marker position and pan the map to center on the clicked point
+        const markerData = { lat: latlng.lat, lng: latlng.lng }
+        if (clickedFeature) markerData.feature = clickedFeature
 
-        // MapClickHandler already validates the click is inside the selected region.
-        // Show temporary draggable marker instead of immediately showing popup
-        if (onTempMarkerPositionChange) onTempMarkerPositionChange({ lat: latlng.lat, lng: latlng.lng })
-    }, [pickupPopupPosition, enableAddLocations, onPopupPositionChange, onTempMarkerPositionChange])
-    
-    // Handle temporary marker drag
-    const handleTempMarkerDrag = useCallback((e) => {
-        const newPos = e.target.getLatLng()
-        const updatedPosition = {
-            lat: newPos.lat,
-            lng: newPos.lng
+        if (onTempMarkerPositionChange) onTempMarkerPositionChange(markerData)
+        setPanTarget({ lat: latlng.lat, lng: latlng.lng })
+    }, [pickupPopupPosition, onPopupPositionChange, onTempMarkerPositionChange])
+
+    // Handle center marker position update (called on map moveend when center-locked marker is active)
+    const handleCenterChange = useCallback((center) => {
+        isMapDrivenChangeRef.current = true
+        if (tempMarkerPosition && !isEditingLocation) {
+            // Update temp marker position with new center, preserving feature context
+            const updatedPosition = { ...tempMarkerPosition, lat: center.lat, lng: center.lng }
+            if (onTempMarkerPositionChange) onTempMarkerPositionChange(updatedPosition)
+            // Also update popup position if it's open
+            if (onPopupPositionChange && pickupPopupPosition && pickupPopupPosition.lat) {
+                onPopupPositionChange({ lat: center.lat, lng: center.lng })
+            }
+        } else if (isEditingLocation && editMarkerPosition) {
+            // Update edit marker position with new center
+            if (onEditMarkerPositionChange) onEditMarkerPositionChange({ lat: center.lat, lng: center.lng })
+            if (onExternalEditCoordsChange) onExternalEditCoordsChange({ latitude: center.lat, longitude: center.lng })
         }
-        // Merge with existing tempMarkerPosition if available
-        if (onTempMarkerPositionChange) {
-            const newTempPos = tempMarkerPosition ? { ...tempMarkerPosition, ...updatedPosition } : updatedPosition
-            onTempMarkerPositionChange(newTempPos)
-        }
-        // Also update popup position if it's open
-        if (onPopupPositionChange && pickupPopupPosition) {
-            onPopupPositionChange(updatedPosition)
-        }
-    }, [onTempMarkerPositionChange, onPopupPositionChange, pickupPopupPosition, tempMarkerPosition])
-    
-    // Handle temporary marker click - show popup with current marker position (marker stays visible)
-    const handleTempMarkerClick = useCallback(() => {
+        // Reset flag after a tick to allow external changes to be detected
+        setTimeout(() => { isMapDrivenChangeRef.current = false }, 100)
+    }, [tempMarkerPosition, isEditingLocation, editMarkerPosition, onTempMarkerPositionChange, onPopupPositionChange, pickupPopupPosition, onEditMarkerPositionChange, onExternalEditCoordsChange])
+
+    // Handle center marker click - show popup with current marker position
+    const handleCenterMarkerClick = useCallback(() => {
         if (tempMarkerPosition && onPopupPositionChange) {
             onPopupPositionChange({ ...tempMarkerPosition })
         }
     }, [tempMarkerPosition, onPopupPositionChange])
 
-    // Handle edit marker drag
-    const handleEditMarkerDrag = useCallback((e) => {
-        const newPos = e.target.getLatLng()
-        if (onEditMarkerPositionChange) onEditMarkerPositionChange({ lat: newPos.lat, lng: newPos.lng })
-        if (onExternalEditCoordsChange) onExternalEditCoordsChange({ latitude: newPos.lat, longitude: newPos.lng })
-    }, [onEditMarkerPositionChange, onExternalEditCoordsChange])
+    // When edit mode is activated, pan map to center on the edited location
+    useEffect(() => {
+        if (isEditingLocation && editMarkerPosition) {
+            setPanTarget({ lat: editMarkerPosition.lat, lng: editMarkerPosition.lng })
+        } else if (!isEditingLocation) {
+            // Clear panTarget when leaving edit mode
+            setPanTarget(prev => prev && !tempMarkerPosition ? null : prev)
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEditingLocation]) // Only react to edit mode toggle, not position changes
+
+    // Reverse sync: when tempMarkerPosition changes externally (manual coord input), pan map to it
+    useEffect(() => {
+        if (isMapDrivenChangeRef.current) return // Skip if this was a map-driven change
+        if (tempMarkerPosition && tempMarkerPosition.lat && tempMarkerPosition.lng) {
+            setPanTarget({ lat: tempMarkerPosition.lat, lng: tempMarkerPosition.lng })
+        }
+    }, [tempMarkerPosition?.lat, tempMarkerPosition?.lng])
+
+    // Reverse sync: when editMarkerPosition changes externally (manual coord input), pan map to it
+    useEffect(() => {
+        if (isMapDrivenChangeRef.current) return // Skip if this was a map-driven change
+        if (isEditingLocation && editMarkerPosition && editMarkerPosition.lat && editMarkerPosition.lng) {
+            setPanTarget({ lat: editMarkerPosition.lat, lng: editMarkerPosition.lng })
+        }
+    }, [editMarkerPosition?.lat, editMarkerPosition?.lng, isEditingLocation])
 
     // Open popup without coordinates when toggle is turned on
     const prevOpenPopupWithoutCoordsRef = useRef(openPopupWithoutCoords)
@@ -373,6 +435,7 @@ function TunisiaMap({
             // Open popup with null coordinates - will be set when map is clicked
             if (onPopupPositionChange) onPopupPositionChange({ lat: null, lng: null })
             if (onTempMarkerPositionChange) onTempMarkerPositionChange(null)
+            setPanTarget(null)
         }
         prevOpenPopupWithoutCoordsRef.current = openPopupWithoutCoords
     }, [openPopupWithoutCoords, onPopupPositionChange, onTempMarkerPositionChange])
@@ -387,6 +450,7 @@ function TunisiaMap({
         if (!enableAddLocations) {
             if (onPopupPositionChange) onPopupPositionChange(null)
             if (onTempMarkerPositionChange) onTempMarkerPositionChange(null)
+            setPanTarget(null)
         }
     }, [enableAddLocations, onPopupPositionChange, onTempMarkerPositionChange])
 
@@ -457,7 +521,7 @@ function TunisiaMap({
     // Filter features based on current level and selection
     const filteredFeatures = useMemo(() => {
         console.log('filteredFeatures called. Level:', currentLevel)
-        
+
         if (currentLevel === 'governorate') {
             return governorates
         }
@@ -593,7 +657,7 @@ function TunisiaMap({
     // Event handlers for each feature
     const onEachFeature = useCallback((feature, layer) => {
         const levelStyles = styles[currentLevel] || styles.governorate
-        
+
         // Store layer reference for later updates
         const featureId = feature.properties.sec_uid || feature.properties.mun_uid || feature.properties.gov_id
         layersRef.current.set(featureId, layer)
@@ -632,14 +696,14 @@ function TunisiaMap({
 
         const addableLevels = new Set(['sector', 'municipality', 'governorate'])
 
-            layer.on({
+        layer.on({
             mouseover: (e) => {
                 const target = e.target
                 const baseStyle = target.__baseStyle || getStyle(feature) || levelStyles.default
                 const hoverStyle = Object.assign({}, baseStyle, levelStyles.hover || {})
-                try { target.setStyle(hoverStyle) } catch (err) {}
-                try { target.bringToFront() } catch (err) {}
-                try { target.openTooltip() } catch (err) {}
+                try { target.setStyle(hoverStyle) } catch (err) { }
+                try { target.bringToFront() } catch (err) { }
+                try { target.openTooltip() } catch (err) { }
                 // Notify parent about hover - but only if no popup or temp marker is open to avoid re-rendering
                 // which causes input focus issues
                 if (!pickupPopupPosition && !tempMarkerPosition) {
@@ -649,8 +713,8 @@ function TunisiaMap({
             mouseout: (e) => {
                 const target = e.target
                 const originalStyle = target.__baseStyle || getStyle(feature) || levelStyles.default
-                try { target.setStyle(originalStyle) } catch (err) {}
-                try { target.closeTooltip() } catch (err) {}
+                try { target.setStyle(originalStyle) } catch (err) { }
+                try { target.closeTooltip() } catch (err) { }
 
                 // Clear hover state
                 if (!pickupPopupPosition && !tempMarkerPosition) {
@@ -716,7 +780,7 @@ function TunisiaMap({
                 if (!location.agencies || !Array.isArray(location.agencies)) {
                     return false
                 }
-                
+
                 return location.agencies.some(agency => agency.show_in_drivago === true)
             })
         }
@@ -828,10 +892,19 @@ function TunisiaMap({
             {/* Controller for programmatic map movements (zoom to location) */}
             <MapController flyToLocation={selectedPickupPoint} />
 
+            {/* Pan to target when center-locked marker is placed */}
+            <MapPanTo target={panTarget} />
+
+            {/* Track map center for center-locked marker mode */}
+            <CenterMarkerMode
+                active={isCenterMarkerActive}
+                onCenterChange={handleCenterChange}
+            />
+
             {/* Map click handler for pickup points */}
-            <MapClickHandler 
-                currentLevel={currentLevel} 
-                onMapClick={handleMapClick} 
+            <MapClickHandler
+                currentLevel={currentLevel}
+                onMapClick={handleMapClick}
                 selectedRegion={selectedRegion}
                 enableAddLocations={enableAddLocations}
                 currentGeoData={filteredFeatures}
@@ -857,9 +930,9 @@ function TunisiaMap({
             )}
 
             {/* Existing location markers (visible for current view) */}
-            <ZoomAwareMarkers 
-                locations={filteredLocations} 
-                isPointVisible={isPointVisible} 
+            <ZoomAwareMarkers
+                locations={filteredLocations}
+                isPointVisible={isPointVisible}
                 onSelect={(p) => {
                     // Reset edit mode when selecting a different location
                     if (onEditModeChange) onEditModeChange(false)
@@ -870,42 +943,21 @@ function TunisiaMap({
                 editingLocationId={isEditingLocation ? selectedPickupPoint?.id : null}
             />
 
-            {/* Temporary draggable marker for positioning before creating pickup point */}
-            {tempMarkerPosition && (
-                <Marker
-                    position={[tempMarkerPosition.lat, tempMarkerPosition.lng]}
-                    draggable={true}
-                    eventHandlers={{
-                        dragend: handleTempMarkerDrag,
-                        click: handleTempMarkerClick
-                    }}
-                    icon={L.divIcon({
-                        className: 'temp-marker-icon',
-                        html: '<div class="temp-marker" style="font-size: 40px; cursor: move;">📍</div>',
-                        iconSize: [40, 40],
-                        iconAnchor: [20, 40],
-                        popupAnchor: [0, -40]
-                    })}
-                >
-                </Marker>
-            )}
-
-            {/* Draggable edit marker when editing a location's coordinates */}
-            {isEditingLocation && editMarkerPosition && (
-                <Marker
-                    position={[editMarkerPosition.lat, editMarkerPosition.lng]}
-                    draggable={true}
-                    eventHandlers={{
-                        dragend: handleEditMarkerDrag
-                    }}
-                    icon={L.divIcon({
-                        className: 'edit-marker-icon',
-                        html: '<div class="edit-marker" style="font-size: 40px; cursor: move; filter: hue-rotate(200deg);">📍</div>',
-                        iconSize: [40, 40],
-                        iconAnchor: [20, 40],
-                        popupAnchor: [0, -40]
-                       })}
-                />
+            {/* Center-locked crosshair overlay for positioning markers */}
+            {isCenterMarkerActive && (
+                <div className="center-marker-overlay" onClick={handleCenterMarkerClick}>
+                    <div className={`center-marker-pin ${isEditingLocation ? 'center-marker-pin--edit' : ''}`}>
+                        <div className="center-marker-pin__icon">{isEditingLocation ? '📍' : '📍'}</div>
+                        <div className="center-marker-pin__pulse"></div>
+                    </div>
+                    <div className="center-marker-crosshair">
+                        <div className="center-marker-crosshair__line center-marker-crosshair__line--h"></div>
+                        <div className="center-marker-crosshair__line center-marker-crosshair__line--v"></div>
+                    </div>
+                    <div className="center-marker-hint">
+                        {isEditingLocation ? 'Pan map to reposition' : 'Pan map to position • Click pin to confirm'}
+                    </div>
+                </div>
             )}
         </MapContainer>
     )
