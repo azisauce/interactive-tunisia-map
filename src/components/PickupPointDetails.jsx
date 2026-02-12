@@ -11,6 +11,7 @@ import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'
 import DeleteIcon from '@mui/icons-material/Delete'
 import LoyaltyIcon from '@mui/icons-material/Loyalty';
 import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies, updateLocation } from '../utils/api'
+import ConfirmDialog from './ConfirmDialog'
 
 function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated, onEditModeChange, onEditCoordsChange, externalEditCoords }) {
     const [loading, setLoading] = useState(false)
@@ -20,6 +21,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
     const [addingAgency, setAddingAgency] = useState(false)
     const [removingAgencyId, setRemovingAgencyId] = useState(null)
     const [loadingAgencies, setLoadingAgencies] = useState(true)
+    const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null, confirmText: 'Confirm', cancelText: 'Cancel' })
     
     // Edit mode states
     const [isEditMode, setIsEditMode] = useState(false)
@@ -96,11 +98,11 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
         loadAgencies()
     }, [])
 
-    const handleDelete = async () => {
+    const performDelete = async () => {
         setError(null)
         setLoading(true)
         try {
-            await deleteLocation(point.id)
+            await deleteLocation(point.id, point.type)
             if (onDeleted) onDeleted(point.id)
             onClose()
         } catch (err) {
@@ -109,6 +111,10 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
         } finally {
             setLoading(false)
         }
+    }
+
+    const requestDelete = () => {
+        setConfirm({ open: true, title: 'Delete location', message: 'Are you sure you want to delete this location? This action cannot be undone.', onConfirm: performDelete, confirmText: 'Delete', cancelText: 'Cancel' })
     }
 
     const handleAddAgency = async () => {
@@ -144,13 +150,13 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
         }
     }
 
-    const handleRemoveAgency = async (locationAgencyId) => {
+    const performRemoveAgency = async (locationAgencyId) => {
         setError(null)
         setRemovingAgencyId(locationAgencyId)
         try {
             // For driving schools, we delete the entire location since they're in agency_location table
             if (point.type === 'driving_school') {
-                await deleteLocation(point.id)
+                await deleteLocation(point.id, point.type)
                 if (onDeleted) onDeleted(point.id)
                 onClose()
             } else {
@@ -172,6 +178,19 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
             setError(err?.message || 'Failed to remove agency')
         } finally {
             setRemovingAgencyId(null)
+        }
+    }
+
+    const requestRemoveAgency = (locationAgencyId) => {
+        setConfirm({ open: true, title: 'Remove agency', message: 'Are you sure you want to remove this agency from the location?', onConfirm: () => performRemoveAgency(locationAgencyId), confirmText: 'Remove', cancelText: 'Cancel' })
+    }
+
+    const closeConfirm = () => setConfirm(prev => ({ ...prev, open: false }))
+    const executeConfirm = () => {
+        if (confirm.onConfirm) {
+            Promise.resolve(confirm.onConfirm()).finally(() => closeConfirm())
+        } else {
+            closeConfirm()
         }
     }
 
@@ -608,7 +627,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                                             <div style={{ color: 'white', fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{agency.agencyName || 'Unknown Agency'}</div>
                                             <IconButton
                                                 size="small"
-                                                onClick={() => handleRemoveAgency(agency.locationAgencyId)}
+                                                onClick={() => requestRemoveAgency(agency.locationAgencyId)}
                                                 disabled={removingAgencyId === agency.locationAgencyId}
                                                 style={{ 
                                                     color: '#ef4444',
@@ -654,12 +673,21 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                 ) : (
                     <>
                         <Button onClick={onClose} disabled={loading} className="pickup-popup-btn cancel">Close</Button>
-                        <Button onClick={handleDelete} color="error" variant="contained" disabled={loading} className="pickup-popup-btn submit">
+                        <Button onClick={requestDelete} color="error" variant="contained" disabled={loading} className="pickup-popup-btn submit">
                             {loading ? 'Deleting...' : 'Delete Location'}
                         </Button>
                     </>
                 )}
             </div>
+            <ConfirmDialog
+                open={confirm.open}
+                title={confirm.title}
+                message={confirm.message}
+                onCancel={closeConfirm}
+                onConfirm={executeConfirm}
+                confirmText={confirm.confirmText}
+                cancelText={confirm.cancelText}
+            />
         </div>
     )
 }

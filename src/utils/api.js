@@ -244,12 +244,16 @@ export async function createLocation(locationData) {
     return response.json()
 }
 
-export async function deleteLocation(locationId) {
+export async function deleteLocation(locationId, type) {
     const url = `${API_BASE_URL}/locations/${locationId}`
 
     const response = await fetch(url, { 
         method: 'DELETE',
-        headers: getAuthHeaders()
+        headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ type })
     })
 
     if (!response.ok) {
