@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Button } from '@mui/material'
+import { Button, Autocomplete, TextField } from '@mui/material'
 import LocationOnIcon from '@mui/icons-material/LocationOn'
 import PushPinIcon from '@mui/icons-material/PushPin'
 import { fetchActiveAgenciesCached as fetchActiveAgencies, fetchExamCenters, createLocation } from '../utils/api'
@@ -436,41 +436,87 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                                 </div>
 
                                 <div>
-                                    <label 
-                                        htmlFor="examCenterInput" 
-                                        style={{ 
-                                            display: 'block',
-                                            fontSize: '13px',
-                                            fontWeight: '500',
-                                            marginBottom: '8px',
-                                            color: 'var(--text-primary)'
-                                        }}
-                                    >
-                                        Select Exam Center
-                                    </label>
-                                    <input
-                                        id="examCenterInput"
-                                        list="examCentersList"
-                                        type="text"
-                                        value={searchExamCenter}
-                                        onChange={(e) => {
-                                            const val = e.target.value
-                                            setSearchExamCenter(val)
-                                            const match = filteredExamCenters.find(c => String(c.name) === String(val))
-                                            if (match) {
-                                                setSelectedExamCenter(match.id)
+                                    <Autocomplete
+                                        options={filteredExamCenters}
+                                        getOptionLabel={(option) => option.name || ''}
+                                        value={filteredExamCenters.find(c => c.id === selectedExamCenter) || null}
+                                        onChange={(event, newValue) => {
+                                            if (newValue) {
+                                                setSelectedExamCenter(newValue.id)
+                                                setSearchExamCenter(newValue.name)
                                             } else {
                                                 setSelectedExamCenter('')
+                                                setSearchExamCenter('')
                                             }
                                         }}
-                                        placeholder="Search or select an exam center..."
-                                        className="pickup-popup-select"
+                                        inputValue={searchExamCenter}
+                                        onInputChange={(event, newInputValue) => {
+                                            setSearchExamCenter(newInputValue)
+                                        }}
+                                        renderInput={(params) => (
+                                            <TextField
+                                                {...params}
+                                                label="Select Exam Center"
+                                                placeholder="Search or select an exam center..."
+                                                variant="outlined"
+                                                size="small"
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                        color: 'var(--text-primary)',
+                                                        '& fieldset': {
+                                                            borderColor: 'var(--border-color)',
+                                                        },
+                                                        '&:hover fieldset': {
+                                                            borderColor: 'var(--primary-light)',
+                                                        },
+                                                        '&.Mui-focused fieldset': {
+                                                            borderColor: 'var(--primary-light)',
+                                                        },
+                                                    },
+                                                    '& .MuiInputLabel-root': {
+                                                        color: 'var(--text-primary)',
+                                                        fontSize: '14px',
+                                                        '&.Mui-focused': {
+                                                            color: 'var(--primary-light)',
+                                                        },
+                                                    },
+                                                    '& .MuiInputBase-input': {
+                                                        color: 'var(--text-primary)',
+                                                    },
+                                                    '& .MuiSvgIcon-root': {
+                                                        color: 'var(--text-secondary)',
+                                                    },
+                                                }}
+                                            />
+                                        )}
+                                        noOptionsText="No exam centers found"
+                                        clearOnEscape
+                                        componentsProps={{
+                                            popper: {
+                                                sx: {
+                                                    '& .MuiPaper-root': {
+                                                        backgroundColor: '#1e293b',
+                                                        color: 'var(--text-primary)',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid var(--border-color)',
+                                                    },
+                                                    '& .MuiAutocomplete-option': {
+                                                        color: 'var(--text-primary)',
+                                                        '&:hover': {
+                                                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                                        },
+                                                        '&[aria-selected="true"]': {
+                                                            backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                                                        },
+                                                    },
+                                                    '& .MuiAutocomplete-noOptions': {
+                                                        color: 'var(--text-secondary)',
+                                                    },
+                                                },
+                                            },
+                                        }}
                                     />
-                                    <datalist id="examCentersList">
-                                        {filteredExamCenters.map((center) => (
-                                            <option key={center.id} value={center.name} />
-                                        ))}
-                                    </datalist>
                                 </div>
                             </div>
                         )}
@@ -530,41 +576,105 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
 
                         {locationType == 'driving_school' && (
                             <div>
-                                <label 
-                                    htmlFor="agencyInput" 
-                                    style={{ 
-                                        display: 'block',
-                                        fontSize: '13px',
-                                        fontWeight: '500',
-                                        marginBottom: '8px',
-                                        color: 'var(--text-primary)'
-                                    }}
-                                >
-                                    Assign Agency {locationType === 'driving_school' ? '*' : '(optional)'}
-                                </label>
-                                <input
-                                    id="agencyInput"
-                                    list="agenciesList"
-                                    type="text"
-                                    value={searchAgency}
-                                    onChange={(e) => {
-                                        const val = e.target.value
-                                        setSearchAgency(val)
-                                        const match = agencies.find(a => String(a.nomAge) === String(val))
-                                        if (match) {
-                                            setSelectedAgency(match.agenceId)
+                                <Autocomplete
+                                    options={filteredAgencies}
+                                    getOptionLabel={(option) => option.nomAge || ''}
+                                    value={filteredAgencies.find(a => a.agenceId === selectedAgency) || null}
+                                    onChange={(event, newValue) => {
+                                        if (newValue) {
+                                            setSelectedAgency(newValue.agenceId)
+                                            setSearchAgency(newValue.nomAge)
                                         } else {
                                             setSelectedAgency('')
+                                            setSearchAgency('')
                                         }
                                     }}
-                                    placeholder="Search or select an agency..."
-                                    className="pickup-popup-select"
+                                    inputValue={searchAgency}
+                                    onInputChange={(event, newInputValue) => {
+                                        setSearchAgency(newInputValue)
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label={`Assign Agency ${locationType === 'driving_school' ? '*' : '(optional)'}`}
+                                            placeholder="Search or select an agency..."
+                                            variant="outlined"
+                                            size="small"
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                    color: 'var(--text-primary)',
+                                                    '& fieldset': {
+                                                        borderColor: 'var(--border-color)',
+                                                    },
+                                                    '&:hover fieldset': {
+                                                        borderColor: 'var(--primary-light)',
+                                                    },
+                                                    '&.Mui-focused fieldset': {
+                                                        borderColor: 'var(--primary-light)',
+                                                    },
+                                                },
+                                                '& .MuiInputLabel-root': {
+                                                    color: 'var(--text-primary)',
+                                                    fontSize: '14px',
+                                                    '&.Mui-focused': {
+                                                        color: 'var(--primary-light)',
+                                                    },
+                                                },
+                                                '& .MuiInputBase-input': {
+                                                    color: 'var(--text-primary)',
+                                                },
+                                                '& .MuiSvgIcon-root': {
+                                                    color: 'var(--text-secondary)',
+                                                },
+                                            }}
+                                        />
+                                    )}
+                                    noOptionsText="No agencies found"
+                                    clearOnEscape
+                                    sx={{
+                                        '& .MuiAutocomplete-popper': {
+                                            '& .MuiPaper-root': {
+                                                backgroundColor: '#1e293b',
+                                                color: 'var(--text-primary)',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--border-color)',
+                                            },
+                                            '& .MuiAutocomplete-option': {
+                                                '&:hover': {
+                                                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                                },
+                                                '&[aria-selected="true"]': {
+                                                    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                                                },
+                                            },
+                                        },
+                                    }}
+                                    componentsProps={{
+                                        popper: {
+                                            sx: {
+                                                '& .MuiPaper-root': {
+                                                    backgroundColor: '#1e293b',
+                                                    color: 'var(--text-primary)',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid var(--border-color)',
+                                                },
+                                                '& .MuiAutocomplete-option': {
+                                                    color: 'var(--text-primary)',
+                                                    '&:hover': {
+                                                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                                    },
+                                                    '&[aria-selected="true"]': {
+                                                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                                                    },
+                                                },
+                                                '& .MuiAutocomplete-noOptions': {
+                                                    color: 'var(--text-secondary)',
+                                                },
+                                            },
+                                        },
+                                    }}
                                 />
-                                <datalist id="agenciesList">
-                                    {filteredAgencies.map((agency) => (
-                                        <option key={agency.agenceId} value={agency.nomAge} />
-                                    ))}
-                                </datalist>
                             </div>
                         )}
 
