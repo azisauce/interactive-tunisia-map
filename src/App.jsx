@@ -3,7 +3,7 @@ import TunisiaMap from './components/TunisiaMap'
 import ControlCard from './components/ControlCard'
 import PickupPointPopup from './components/PickupPointPopup'
 import PickupPointDetails from './components/PickupPointDetails'
-import { fetchGovernorates, fetchLocations } from './utils/api'
+import { fetchGovernorates, fetchLocations, fetchZoneColoring } from './utils/api'
 import * as turf from '@turf/turf'
 import 'leaflet/dist/leaflet.css'
 
@@ -45,22 +45,6 @@ const aggregateGovernorates = (data) => {
             }
 
             if (unified) {
-                // Merge assigned_agencies across all source features and
-                // compute has_children_with_agencies as the OR of all flags
-                const allAssigned = features.flatMap(f => f.properties?.assigned_agencies || [])
-                // Deduplicate agencies by agencyWorkingZoneId when available
-                const seen = new Set()
-                const dedupedAssigned = []
-                allAssigned.forEach(a => {
-                    const id = a && (a.agencyWorkingZoneId || a.id || JSON.stringify(a))
-                    if (!seen.has(id)) {
-                        seen.add(id)
-                        dedupedAssigned.push(a)
-                    }
-                })
-
-                const anyChildrenWithAgencies = features.some(f => !!f.properties?.has_children_with_agencies)
-
                 aggregatedFeatures.push({
                     ...unified,
                     properties: {
@@ -69,9 +53,7 @@ const aggregateGovernorates = (data) => {
                         gov_ar: features[0].properties.gov_ar,
                         reg: features[0].properties.reg,
                         reg_en: features[0].properties.reg_en,
-                        reg_ar: features[0].properties.reg_ar,
-                        assigned_agencies: dedupedAssigned,
-                        has_children_with_agencies: anyChildrenWithAgencies
+                        reg_ar: features[0].properties.reg_ar
                     }
                 })
             }
@@ -103,6 +85,14 @@ function App() {
     const [openPopupWithoutCoords, setOpenPopupWithoutCoords] = useState(0)
     const [selectedLocationType, setSelectedLocationType] = useState('pickup_point')
 
+    // Zone coloring filters (multi-select)
+    const [zoneColorFilters, setZoneColorFilters] = useState({
+        drivago_ds: false,
+        non_drivago_ds: false,
+        pickup_points: false
+    })
+    const [zoneColoringData, setZoneColoringData] = useState(null)
+
     // Location-related state (lifted from TunisiaMap)
     const [locations, setLocations] = useState([])
     const [selectedPickupPoint, setSelectedPickupPoint] = useState(null)
@@ -129,6 +119,19 @@ function App() {
             }
         }
         loadGovs()
+    }, [])
+
+    // Load zone coloring data once at app level
+    useEffect(() => {
+        const loadZoneColoring = async () => {
+            try {
+                const data = await fetchZoneColoring()
+                setZoneColoringData(data)
+            } catch (err) {
+                console.error('Failed to load zone coloring:', err)
+            }
+        }
+        loadZoneColoring()
     }, [])
 
     const handleRegionHover = useCallback((region) => {
@@ -242,6 +245,10 @@ function App() {
 
     const handleLocationTypeFilterChange = useCallback((filters) => {
         setLocationTypeFilters(filters)
+    }, [])
+
+    const handleZoneColorFilterChange = useCallback((filters) => {
+        setZoneColorFilters(filters)
     }, [])
 
     const handleToggleAddLocations = useCallback((value) => {
@@ -381,6 +388,8 @@ function App() {
                 onRegionHover={handleRegionHover}
                 showLocations={showLocations}
                 locationTypeFilters={locationTypeFilters}
+                zoneColorFilters={zoneColorFilters}
+                zoneColoringData={zoneColoringData}
                 enableAddLocations={enableAddLocations}
                 openPopupWithoutCoords={openPopupWithoutCoords}
                 selectedLocationType={selectedLocationType}
@@ -417,6 +426,8 @@ function App() {
                 onToggleAddLocations={handleToggleAddLocations}
                 onToggleAddLocationsOn={handleToggleAddLocationsOn}
                 onTypeSelect={handleTypeSelect}
+                zoneColorFilters={zoneColorFilters}
+                onZoneColorFilterChange={handleZoneColorFilterChange}
             />
 
             {/* Pickup point popup - now rendered in App */}

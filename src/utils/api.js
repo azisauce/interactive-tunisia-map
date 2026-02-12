@@ -153,38 +153,47 @@ export async function refreshActiveAgencies() {
     return fetchActiveAgenciesCached({ forceRefresh: true })
 }
 
-// export async function addAgencyToList(agencyId, workingZoneType, workingZoneId) {
-//     const payload = { agencyId, workingZoneType, workingZoneId }
+// ========== Zone Coloring API ==========
 
-//     const response = await fetch(`${API_BASE_URL}/agency-working-zone`, {
-//         method: 'POST',
-//         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
-//         body: JSON.stringify(payload)
-//     })
+// Module-level cache for zone coloring data
+let _zoneColoringCache = null
+let _zoneColoringPromise = null
+let _zoneColoringLastFetched = 0
+const ZONE_COLORING_TTL = 1000 * 60 * 5 // 5 minutes
 
-//     if (!response.ok) {
-//         const text = await response.text().catch(() => '')
-//         throw new Error(text || 'Failed to add agency')
-//     }
+export async function fetchZoneColoring({ forceRefresh = false } = {}) {
+    const now = Date.now()
 
-//     return response.json()
-// }
+    if (!forceRefresh && _zoneColoringCache && (now - _zoneColoringLastFetched) < ZONE_COLORING_TTL) {
+        return _zoneColoringCache
+    }
 
-// export async function removeAgencyFromList(agencyWorkingZoneId) {
-//     const url = `${API_BASE_URL}/agency-working-zone/${agencyWorkingZoneId}`
+    if (!forceRefresh && _zoneColoringPromise) {
+        return _zoneColoringPromise
+    }
 
-//     const response = await fetch(url, { 
-//         method: 'DELETE',
-//         headers: getAuthHeaders()
-//     })
+    _zoneColoringPromise = (async () => {
+        try {
+            const response = await fetch(`${API_BASE_URL}/zone-coloring`, {
+                headers: getAuthHeaders()
+            })
+            if (!response.ok) throw new Error('Failed to fetch zone coloring')
+            const data = await response.json()
+            _zoneColoringCache = data
+            _zoneColoringLastFetched = Date.now()
+            return data
+        } finally {
+            _zoneColoringPromise = null
+        }
+    })()
 
-//     if (!response.ok) {
-//         const text = await response.text().catch(() => '')
-//         throw new Error(text || 'Failed to remove agency')
-//     }
+    return _zoneColoringPromise
+}
 
-//     return response.json()
-// }
+export function invalidateZoneColoringCache() {
+    _zoneColoringCache = null
+    _zoneColoringLastFetched = 0
+}
 
 // ========== Locations API (pickup points, driving schools, exam centers) ==========
 
@@ -318,19 +327,3 @@ export async function updateLocation(locationId, updateData) {
 
     return response.json()
 }
-
-// export async function fetchAssignedAgencies(workingZoneType, workingZoneId) {
-//     const params = new URLSearchParams()
-//     params.append('workingZoneType', workingZoneType)
-//     params.append('workingZoneId', workingZoneId)
-    
-//     const url = `${API_BASE_URL}/assigned-agencies?${params.toString()}`
-    
-//     const response = await fetch(url, {
-//         headers: getAuthHeaders()
-//     })
-//     if (!response.ok) {
-//         throw new Error('Failed to fetch assigned agencies')
-//     }
-//     return response.json()
-// }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import PushPinIcon from '@mui/icons-material/PushPin'
+import MapIcon from '@mui/icons-material/Map'
 
 const LOCATION_TYPES = [
     { id: 'driving_school_non_drivago', label: 'Non-Drivago Driving Schools', icon: 'ND' },
@@ -8,11 +9,19 @@ const LOCATION_TYPES = [
     { id: 'exam_center', label: 'Exam Centers', icon: '📝' }
 ]
 
+const ZONE_COLOR_TYPES = [
+    { id: 'drivago_ds', label: 'Drivago DS', icon: '🚗', color: '#2196f3' },
+    { id: 'non_drivago_ds', label: 'Non Drivago DS', icon: '🏫', color: '#ff9800' },
+    { id: 'pickup_points', label: 'Pickup Points', icon: '📍', color: '#9c27b0' }
+]
+
 function LocationControl({ 
     showLocations, 
     onToggleLocations, 
     locationTypeFilters, 
-    onLocationTypeFilterChange
+    onLocationTypeFilterChange,
+    zoneColorFilters,
+    onZoneColorFilterChange
 }) {
     const [expanded, setExpanded] = useState(true)
     // const allTypesSelected = LOCATION_TYPES.every(type => locationTypeFilters[type.id])
@@ -55,6 +64,14 @@ function LocationControl({
         }
     }
 
+    const handleZoneColorToggle = (typeId) => {
+        const newFilters = {
+            ...zoneColorFilters,
+            [typeId]: !zoneColorFilters[typeId]
+        }
+        onZoneColorFilterChange(newFilters)
+    }
+
     return (
         <div className="location-control">
             <div className="location-control__header">
@@ -91,6 +108,27 @@ function LocationControl({
                                     title={type.label}
                                 >
                                     <span className="location-type-btn__icon">{type.icon}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="location-control__section">
+                        <div className="location-control__label"><MapIcon style={{ fontSize: 14 }} /> Zone Coloring:</div>
+                        <div className="zone-color-filters">
+                            {ZONE_COLOR_TYPES.map(type => (
+                                <button
+                                    key={type.id}
+                                    className={`zone-color-btn ${zoneColorFilters[type.id] ? 'zone-color-btn--active' : ''}`}
+                                    onClick={() => handleZoneColorToggle(type.id)}
+                                    title={type.label}
+                                    style={zoneColorFilters[type.id] ? { 
+                                        borderColor: type.color, 
+                                        boxShadow: `0 0 0 3px ${type.color}33` 
+                                    } : {}}
+                                >
+                                    <span className="zone-color-btn__icon">{type.icon}</span>
+                                    <span className="zone-color-btn__label">{type.label}</span>
                                 </button>
                             ))}
                         </div>

@@ -137,20 +137,6 @@ const styles = {
             color: '#a31616',
             fillOpacity: 0.3
         },
-        withAgencies: {
-            fillColor: '#16a34a',
-            weight: 4,
-            opacity: 1,
-            color: '#15803d',
-            fillOpacity: 0.5
-        },
-        selectedWithAgencies: {
-            fillColor: '#15803d',
-            weight: 4,
-            opacity: 1,
-            color: '#4ade80',
-            fillOpacity: 0.6
-        },
         hover: {
             fillOpacity: 0.5,
             weight: 3,
@@ -179,20 +165,6 @@ const styles = {
             color: '#a31616',
             fillOpacity: 0.3
         },
-        withAgencies: {
-            fillColor: '#16a34a',
-            weight: 4,
-            opacity: 1,
-            color: '#15803d',
-            fillOpacity: 0.5
-        },
-        selectedWithAgencies: {
-            fillColor: '#15803d',
-            weight: 4,
-            opacity: 1,
-            color: '#4ade80',
-            fillOpacity: 0.6
-        },
         hover: {
             fillOpacity: 0.5,
             weight: 3,
@@ -220,20 +192,6 @@ const styles = {
             opacity: 1,
             color: '#a31616',
             fillOpacity: 0.3
-        },
-        withAgencies: {
-            fillColor: '#16a34a',
-            weight: 4,
-            opacity: 1,
-            color: '#15803d',
-            fillOpacity: 0.5
-        },
-        selectedWithAgencies: {
-            fillColor: '#15803d',
-            weight: 4,
-            opacity: 1,
-            color: '#4ade80',
-            fillOpacity: 0.6
         },
         hover: {
             fillOpacity: 0.5,
@@ -268,6 +226,8 @@ function TunisiaMap({
     onRegionHover,
     showLocations = true,
     locationTypeFilters = { pickup_point: true, driving_school_drivago: true, driving_school_non_drivago: true, exam_center: true },
+    zoneColorFilters = { drivago_ds: false, non_drivago_ds: false, pickup_points: false },
+    zoneColoringData = null,
     enableAddLocations = false,
     openPopupWithoutCoords,
     selectedLocationType = 'pickup_point',
@@ -299,6 +259,8 @@ function TunisiaMap({
     // Refs to track current mode state for event handlers
     const enableAddLocationsRef = useRef(enableAddLocations)
     const isEditingLocationRef = useRef(isEditingLocation)
+    const zoneColorFiltersRef = useRef(zoneColorFilters)
+    const zoneColoringDataRef = useRef(zoneColoringData)
 
     // Position to fly the map to (triggered by manual coordinate edits)
     const [flyToTarget, setFlyToTarget] = useState(null)
@@ -307,7 +269,9 @@ function TunisiaMap({
     useEffect(() => {
         enableAddLocationsRef.current = enableAddLocations
         isEditingLocationRef.current = isEditingLocation
-    }, [enableAddLocations, isEditingLocation])
+        zoneColorFiltersRef.current = zoneColorFilters
+        zoneColoringDataRef.current = zoneColoringData
+    }, [enableAddLocations, isEditingLocation, zoneColorFilters, zoneColoringData])
 
     // Parent region for context display (needed for click validation)
     const parentFeatures = useMemo(() => {
@@ -563,10 +527,9 @@ function TunisiaMap({
         }
     }, [selectedRegion, navigationPath, currentLevel, tunisiaBounds])
 
-    // Update map key to force re-render ONLY on level change
+    // Update map key to force re-render on level change
     useEffect(() => {
         setMapKey(prev => prev + 1)
-        // Reset pickup popup on level change too - handled in the dedicated effect below
     }, [currentLevel])
 
     // Clear stored layer references when the map key or level changes so
@@ -577,47 +540,57 @@ function TunisiaMap({
         }
     }, [mapKey, currentLevel])
 
-    // Helper: check if a feature has agencies (direct, inherited, or via children)
-    const checkHasAgencies = useCallback((feature) => {
+    // Check if any zone color filter is active
+    const isZoneColoringActive = useMemo(() => {
+        return Object.values(zoneColorFilters).some(v => v)
+    }, [zoneColorFilters])
+
+    // Helper: check if a feature matches any active zone color filter.
+    // Returns true if the feature's zone matches at least one active filter.
+    // Only checks at the CURRENT level (governorate/municipality/sector).
+    const doesFeatureMatchZoneFilters = useCallback((feature) => {
+        if (!isZoneColoringActive || !zoneColoringData) return false
+
         const props = feature.properties || {}
-        const hasDirectAgencies = Array.isArray(props.assigned_agencies) && props.assigned_agencies.length > 0
-        const hasInheritedAgencies = (Array.isArray(props.inherited_agencies) && props.inherited_agencies.length > 0)
-            || (Array.isArray(props.inherited_assigned_agencies) && props.inherited_assigned_agencies.length > 0)
-            || (Array.isArray(props.parent_assigned_agencies) && props.parent_assigned_agencies.length > 0)
-        const hasChildrenWithAgencies = props.has_children_with_agencies === true || (Number(props.children_with_agencies_count) > 0)
-        return hasDirectAgencies || hasInheritedAgencies || hasChildrenWithAgencies
-    }, [])
+        // Use String() for reliable comparison – backend may return numbers,
+        // GeoJSON properties may be strings or vice-versa.
+        const govId = props.gov_id != null ? String(props.gov_id) : null
+        const munUid = props.mun_uid != null ? String(props.mun_uid) : null
+        const secUid = props.sec_uid != null ? String(props.sec_uid) : null
 
-    // Update layer styles when selection changes (especially for sectors)
-    useEffect(() => {
-        if (currentLevel === 'sector' && layersRef.current.size > 0 && filteredFeatures) {
-            const levelStyles = styles.sector
-            layersRef.current.forEach((layer, featureId) => {
-                // Find the feature data for this layer to check agencies
-                const feature = filteredFeatures.features?.find(f => {
-                    const fid = f.properties.sec_uid || f.properties.mun_uid || f.properties.gov_id
-                    return fid === featureId
-                })
-                const hasAgencies = feature ? checkHasAgencies(feature) : false
-                const isSelected = selectedRegion && selectedRegion.properties.sec_uid === featureId
+        // Determine which zone ID to check based on current level
+        let zoneIdToCheck = null
+        let zoneArrayKey = null
 
-                let newStyle
-                if (isSelected && hasAgencies) {
-                    newStyle = levelStyles.selectedWithAgencies
-                } else if (isSelected) {
-                    newStyle = levelStyles.selected
-                } else if (hasAgencies) {
-                    newStyle = levelStyles.withAgencies
-                } else {
-                    newStyle = levelStyles.default
-                }
-                layer.setStyle(newStyle)
-                layer.__baseStyle = newStyle
-            })
+        if (currentLevel === 'governorate') {
+            zoneIdToCheck = govId
+            zoneArrayKey = 'gov_ids'
+        } else if (currentLevel === 'municipality') {
+            zoneIdToCheck = munUid
+            zoneArrayKey = 'mun_uids'
+        } else if (currentLevel === 'sector') {
+            zoneIdToCheck = secUid
+            zoneArrayKey = 'sec_uids'
         }
-    }, [selectedRegion, currentLevel, filteredFeatures, checkHasAgencies])
 
-    // Get style function for current level - highlights selected sector and checks for direct, inherited or child agencies
+        if (!zoneIdToCheck || !zoneArrayKey) return false
+
+        // Check each active filter – if ANY active filter matches at this level, the feature is "matched"
+        for (const [filterKey, isActive] of Object.entries(zoneColorFilters)) {
+            if (!isActive) continue
+            const zoneData = zoneColoringData[filterKey]
+            if (!zoneData) continue
+
+            const zoneArray = zoneData[zoneArrayKey]
+            if (zoneArray && zoneArray.map(String).includes(zoneIdToCheck)) {
+                return true
+            }
+        }
+
+        return false
+    }, [isZoneColoringActive, zoneColorFilters, zoneColoringData, currentLevel])
+
+    // Get style function for current level
     const getStyle = useCallback((feature) => {
         // When in edit or add mode, show only borders (no fill, no selection, no hover)
         if (enableAddLocations || isEditingLocation) {
@@ -631,25 +604,38 @@ function TunisiaMap({
         }
 
         const levelStyles = styles[currentLevel] || styles.governorate
-        const hasAgencies = checkHasAgencies(feature)
 
-        let baseStyle
+        const selectedId = selectedRegion?.properties?.sec_uid || selectedRegion?.properties?.mun_uid || selectedRegion?.properties?.gov_id
+        const featureId = feature.properties?.sec_uid || feature.properties?.mun_uid || feature.properties?.gov_id
+        const isSelected = selectedId != null && featureId != null && String(selectedId) === String(featureId)
 
-        // Check if this feature is the selected one
-        if (selectedRegion) {
-            const selectedId = selectedRegion.properties?.sec_uid || selectedRegion.properties?.mun_uid || selectedRegion.properties?.gov_id
-            const featureId = feature.properties?.sec_uid || feature.properties?.mun_uid || feature.properties?.gov_id
-            if (selectedId === featureId) {
-                baseStyle = hasAgencies ? levelStyles.selectedWithAgencies : levelStyles.selected
+        // Zone coloring: when any filter is active, matched regions → green, unmatched → stay red
+        if (isZoneColoringActive) {
+            const matched = doesFeatureMatchZoneFilters(feature)
+
+            if (matched) {
+                // Green for matched zones
+                return {
+                    fillColor: '#22c55e',
+                    weight: isSelected ? 3 : 2,
+                    opacity: 1,
+                    color: isSelected ? '#ffffff' : '#16a34a',
+                    fillOpacity: isSelected ? 0.6 : 0.45
+                }
+            }
+            // Unmatched → red (default style), with slightly reduced opacity
+            return {
+                fillColor: '#c52222',
+                weight: isSelected ? 2 : 1.5,
+                opacity: isSelected ? 1 : 0.7,
+                color: isSelected ? '#ffffff' : '#a31616',
+                fillOpacity: isSelected ? 0.35 : 0.2
             }
         }
 
-        if (!baseStyle) {
-            baseStyle = hasAgencies ? levelStyles.withAgencies : levelStyles.default
-        }
-
-        return baseStyle
-    }, [currentLevel, selectedRegion, checkHasAgencies, enableAddLocations, isEditingLocation])
+        // No zone filter active → default red / selected green
+        return isSelected ? levelStyles.selected : levelStyles.default
+    }, [currentLevel, selectedRegion, enableAddLocations, isEditingLocation, isZoneColoringActive, doesFeatureMatchZoneFilters])
 
     // Get style for parent/context layer
     const getParentStyle = useCallback(() => {
@@ -665,6 +651,24 @@ function TunisiaMap({
             weight: Math.max(base.weight || 2, 2)
         })
     }, [currentLevel])
+
+    // Update layer styles when selection, zone coloring filters, or zone data changes.
+    // This avoids remounting the GeoJSON component – instead we update each layer in place.
+    useEffect(() => {
+        if (layersRef.current.size > 0 && filteredFeatures) {
+            layersRef.current.forEach((layer, featureId) => {
+                const feature = filteredFeatures.features?.find(f => {
+                    const fid = f.properties.sec_uid || f.properties.mun_uid || f.properties.gov_id
+                    return String(fid) === String(featureId)
+                })
+                if (!feature) return
+
+                const newStyle = getStyle(feature)
+                layer.setStyle(newStyle)
+                layer.__baseStyle = newStyle
+            })
+        }
+    }, [selectedRegion, currentLevel, filteredFeatures, getStyle, zoneColorFilters, zoneColoringData])
 
     // Event handlers for each feature
     const onEachFeature = useCallback((feature, layer) => {
