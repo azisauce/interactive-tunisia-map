@@ -9,6 +9,7 @@ import DescriptionIcon from '@mui/icons-material/Description'
 import PushPinIcon from '@mui/icons-material/PushPin'
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'
 import DeleteIcon from '@mui/icons-material/Delete'
+import LoyaltyIcon from '@mui/icons-material/Loyalty';
 import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies, updateLocation } from '../utils/api'
 
 function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated, onEditModeChange, onEditCoordsChange, externalEditCoords }) {
@@ -358,18 +359,24 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                                 <ArrowOutwardIcon style={{ fontSize: 18, marginLeft: 6 }} />
                             )}
                         </div>
-                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+                        <div style={{display: 'flex', justifyContent: 'flex-start', alignItems: 'center', gap: 8, marginBottom: 8}}>
                             <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>
                                 {typeLabel.icon}
                                 {typeLabel.text}
                             </div>
+                            { point.subDivision && (
+                                <div style={{ fontSize: 12, color: 'rgba(255, 255, 255, 0.6)', marginBottom: 4, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 4 }}>
+                                    <LoyaltyIcon style={{ fontSize: 12 }} />
+                                    {point.subDivision}
+                                </div>
+                            )}
+                        </div>
                             {!isEditMode && (
-                                <div style={{ fontSize: 13, color: 'rgba(255, 255, 255, 0.7)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                <div style={{ fontSize: 15, color: 'rgba(255, 255, 255, 0.7)', textAlign: 'right' }}>
                                     <PushPinIcon style={{ fontSize: 16 }} />
                                     {Number(point.latitude).toFixed(6)}, {Number(point.longitude).toFixed(6)}
                                 </div>
                             )}
-                        </div>
                         
                         {/* Edit Mode Fields */}
                         {isEditMode ? (
