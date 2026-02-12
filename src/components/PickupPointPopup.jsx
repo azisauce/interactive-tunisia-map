@@ -9,6 +9,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     const [examCenters, setExamCenters] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
     const [selectedExamCenter, setSelectedExamCenter] = useState('')
+    const [selectedSubDivision, setSelectedSubDivision] = useState('')
     const [searchExamCenter, setSearchExamCenter] = useState('')
     const [searchAgency, setSearchAgency] = useState('')
     const [pickupPointNameFr, setPickupPointNameFr] = useState('')
@@ -96,6 +97,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
         setPickupPointAddressAr('')
         setSelectedAgency('')
         setSelectedExamCenter('')
+        setSelectedSubDivision('')
         setSearchAgency('')
         setSearchExamCenter('')
         setError(null)
@@ -209,10 +211,22 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
 
     const isAddDisabled = submitting || loading || missingRequired.length > 0
 
-    // Filter exam centers based on user search input
-    const filteredExamCenters = searchExamCenter
-        ? examCenters.filter((c) => String(c.name).toLowerCase().includes(String(searchExamCenter).toLowerCase()))
-        : examCenters
+    // Get unique subdivisions from exam centers
+    const subDivisions = [...new Set(examCenters.map(c => c.subDivision).filter(Boolean))].sort()
+
+    // Filter exam centers based on selected subdivision and search input
+    const filteredExamCenters = examCenters
+        .filter((c) => {
+            // Filter by subdivision if one is selected
+            if (selectedSubDivision && c.subDivision !== selectedSubDivision) {
+                return false
+            }
+            // Filter by search term if one is entered
+            if (searchExamCenter && !String(c.name).toLowerCase().includes(String(searchExamCenter).toLowerCase())) {
+                return false
+            }
+            return true
+        })
 
     // Filter agencies based on user search input
     const filteredAgencies = searchAgency
@@ -386,44 +400,78 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                         )}
 
                         {locationType == 'exam_center' && (
-                            <div>
-                                <label 
-                                    htmlFor="examCenterInput" 
-                                    style={{ 
-                                        display: 'block',
-                                        fontSize: '13px',
-                                        fontWeight: '500',
-                                        marginBottom: '8px',
-                                        color: 'var(--text-primary)'
-                                    }}
-                                >
-                                    Select Exam Center
-                                </label>
-                                <input
-                                    id="examCenterInput"
-                                    list="examCentersList"
-                                    type="text"
-                                    value={searchExamCenter}
-                                    onChange={(e) => {
-                                        const val = e.target.value
-                                        setSearchExamCenter(val)
-                                        const match = examCenters.find(c => String(c.name) === String(val))
-                                        if (match) {
-                                            setSelectedExamCenter(match.id)
-                                        } else {
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                <div>
+                                    <label 
+                                        htmlFor="subDivisionSelect" 
+                                        style={{ 
+                                            display: 'block',
+                                            fontSize: '13px',
+                                            fontWeight: '500',
+                                            marginBottom: '8px',
+                                            color: 'var(--text-primary)'
+                                        }}
+                                    >
+                                        Select Subdivision
+                                    </label>
+                                    <select
+                                        id="subDivisionSelect"
+                                        value={selectedSubDivision}
+                                        onChange={(e) => {
+                                            setSelectedSubDivision(e.target.value)
+                                            // Reset exam center selection when subdivision changes
                                             setSelectedExamCenter('')
-                                        }
-                                    }}
-                                    placeholder="Search or select an exam center..."
-                                    className="pickup-popup-select"
-                                    style={{ marginBottom: '8px' }}
-                                    autoFocus
-                                />
-                                <datalist id="examCentersList">
-                                    {filteredExamCenters.map((center) => (
-                                        <option key={center.id} value={center.name} />
-                                    ))}
-                                </datalist>
+                                            setSearchExamCenter('')
+                                        }}
+                                        className="pickup-popup-select"
+                                        autoFocus
+                                    >
+                                        <option value="">All Subdivisions</option>
+                                        {subDivisions.map((division) => (
+                                            <option key={division} value={division}>
+                                                {division}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label 
+                                        htmlFor="examCenterInput" 
+                                        style={{ 
+                                            display: 'block',
+                                            fontSize: '13px',
+                                            fontWeight: '500',
+                                            marginBottom: '8px',
+                                            color: 'var(--text-primary)'
+                                        }}
+                                    >
+                                        Select Exam Center
+                                    </label>
+                                    <input
+                                        id="examCenterInput"
+                                        list="examCentersList"
+                                        type="text"
+                                        value={searchExamCenter}
+                                        onChange={(e) => {
+                                            const val = e.target.value
+                                            setSearchExamCenter(val)
+                                            const match = filteredExamCenters.find(c => String(c.name) === String(val))
+                                            if (match) {
+                                                setSelectedExamCenter(match.id)
+                                            } else {
+                                                setSelectedExamCenter('')
+                                            }
+                                        }}
+                                        placeholder="Search or select an exam center..."
+                                        className="pickup-popup-select"
+                                    />
+                                    <datalist id="examCentersList">
+                                        {filteredExamCenters.map((center) => (
+                                            <option key={center.id} value={center.name} />
+                                        ))}
+                                    </datalist>
+                                </div>
                             </div>
                         )}
 
