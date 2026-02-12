@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@mui/material'
 import LocationOnIcon from '@mui/icons-material/LocationOn'
-import SchoolIcon from '@mui/icons-material/School'
-import DescriptionIcon from '@mui/icons-material/Description'
 import PushPinIcon from '@mui/icons-material/PushPin'
 import { fetchActiveAgenciesCached as fetchActiveAgencies, fetchExamCenters, createLocation } from '../utils/api'
 
@@ -12,6 +10,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     const [selectedAgency, setSelectedAgency] = useState('')
     const [selectedExamCenter, setSelectedExamCenter] = useState('')
     const [searchExamCenter, setSearchExamCenter] = useState('')
+    const [searchAgency, setSearchAgency] = useState('')
     const [pickupPointNameFr, setPickupPointNameFr] = useState('')
     const [pickupPointNameAr, setPickupPointNameAr] = useState('')
     const [pickupPointAddressFr, setPickupPointAddressFr] = useState('')
@@ -97,6 +96,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
         setPickupPointAddressAr('')
         setSelectedAgency('')
         setSelectedExamCenter('')
+        setSearchAgency('')
         setSearchExamCenter('')
         setError(null)
         setSubmitting(false)
@@ -213,6 +213,11 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
     const filteredExamCenters = searchExamCenter
         ? examCenters.filter((c) => String(c.name).toLowerCase().includes(String(searchExamCenter).toLowerCase()))
         : examCenters
+
+    // Filter agencies based on user search input
+    const filteredAgencies = searchAgency
+        ? agencies.filter((a) => String(a.nomAge).toLowerCase().includes(String(searchAgency).toLowerCase()))
+        : agencies
 
     return (
         <div
@@ -478,7 +483,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                         {locationType == 'driving_school' && (
                             <div>
                                 <label 
-                                    htmlFor="agencySelect" 
+                                    htmlFor="agencyInput" 
                                     style={{ 
                                         display: 'block',
                                         fontSize: '13px',
@@ -489,19 +494,29 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                                 >
                                     Assign Agency {locationType === 'driving_school' ? '*' : '(optional)'}
                                 </label>
-                                <select
-                                    id="agencySelect"
-                                    value={selectedAgency}
-                                    onChange={(e) => setSelectedAgency(e.target.value)}
+                                <input
+                                    id="agencyInput"
+                                    list="agenciesList"
+                                    type="text"
+                                    value={searchAgency}
+                                    onChange={(e) => {
+                                        const val = e.target.value
+                                        setSearchAgency(val)
+                                        const match = agencies.find(a => String(a.nomAge) === String(val))
+                                        if (match) {
+                                            setSelectedAgency(match.agenceId)
+                                        } else {
+                                            setSelectedAgency('')
+                                        }
+                                    }}
+                                    placeholder="Search or select an agency..."
                                     className="pickup-popup-select"
-                                >
-                                    <option value=""> Select an agency... </option>
-                                    {agencies.map((agency) => (
-                                        <option key={agency.agenceId} value={agency.agenceId}>
-                                            {agency.nomAge}
-                                        </option>
+                                />
+                                <datalist id="agenciesList">
+                                    {filteredAgencies.map((agency) => (
+                                        <option key={agency.agenceId} value={agency.nomAge} />
                                     ))}
-                                </select>
+                                </datalist>
                             </div>
                         )}
 
