@@ -438,7 +438,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                                 <div>
                                     <Autocomplete
                                         options={filteredExamCenters}
-                                        getOptionLabel={(option) => option.name || ''}
+                                        getOptionLabel={(option) => `${option.name}${option.latitude ? ` (${option.latitude}, ${option.longitude})` : ''}` || ''}
                                         value={filteredExamCenters.find(c => c.id === selectedExamCenter) || null}
                                         onChange={(event, newValue) => {
                                             if (newValue) {
