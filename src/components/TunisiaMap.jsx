@@ -296,8 +296,18 @@ function TunisiaMap({
     const geoJsonRef = useRef()
     const layersRef = useRef(new Map())
 
+    // Refs to track current mode state for event handlers
+    const enableAddLocationsRef = useRef(enableAddLocations)
+    const isEditingLocationRef = useRef(isEditingLocation)
+
     // Position to fly the map to (triggered by manual coordinate edits)
     const [flyToTarget, setFlyToTarget] = useState(null)
+
+    // Keep refs in sync with mode state
+    useEffect(() => {
+        enableAddLocationsRef.current = enableAddLocations
+        isEditingLocationRef.current = isEditingLocation
+    }, [enableAddLocations, isEditingLocation])
 
     // Parent region for context display (needed for click validation)
     const parentFeatures = useMemo(() => {
@@ -609,24 +619,37 @@ function TunisiaMap({
 
     // Get style function for current level - highlights selected sector and checks for direct, inherited or child agencies
     const getStyle = useCallback((feature) => {
-        const levelStyles = styles[currentLevel] || styles.governorate
-        const hasAgencies = checkHasAgencies(feature)
-
-        // Check if this feature is the selected one
-        if (selectedRegion) {
-            const selectedId = selectedRegion.properties.sec_uid || selectedRegion.properties.mun_uid || selectedRegion.properties.gov_id
-            const featureId = feature.properties.sec_uid || feature.properties.mun_uid || feature.properties.gov_id
-            if (selectedId === featureId) {
-                return hasAgencies ? levelStyles.selectedWithAgencies : levelStyles.selected
+        // When in edit or add mode, show only borders (no fill, no selection, no hover)
+        if (enableAddLocations || isEditingLocation) {
+            return {
+                fillColor: 'transparent',
+                fillOpacity: 0,
+                weight: 2,
+                opacity: 1,
+                color: '#666666'
             }
         }
 
-        if (hasAgencies) {
-            return levelStyles.withAgencies
+        const levelStyles = styles[currentLevel] || styles.governorate
+        const hasAgencies = checkHasAgencies(feature)
+
+        let baseStyle
+
+        // Check if this feature is the selected one
+        if (selectedRegion) {
+            const selectedId = selectedRegion.properties?.sec_uid || selectedRegion.properties?.mun_uid || selectedRegion.properties?.gov_id
+            const featureId = feature.properties?.sec_uid || feature.properties?.mun_uid || feature.properties?.gov_id
+            if (selectedId === featureId) {
+                baseStyle = hasAgencies ? levelStyles.selectedWithAgencies : levelStyles.selected
+            }
         }
 
-        return levelStyles.default
-    }, [currentLevel, selectedRegion, checkHasAgencies])
+        if (!baseStyle) {
+            baseStyle = hasAgencies ? levelStyles.withAgencies : levelStyles.default
+        }
+
+        return baseStyle
+    }, [currentLevel, selectedRegion, checkHasAgencies, enableAddLocations, isEditingLocation])
 
     // Get style for parent/context layer
     const getParentStyle = useCallback(() => {
@@ -687,6 +710,9 @@ function TunisiaMap({
 
         layer.on({
             mouseover: (e) => {
+                // Skip hover effects when in edit or add mode
+                if (enableAddLocationsRef.current || isEditingLocationRef.current) return
+
                 const target = e.target
                 const baseStyle = target.__baseStyle || getStyle(feature) || levelStyles.default
                 const hoverStyle = Object.assign({}, baseStyle, levelStyles.hover || {})
@@ -700,6 +726,9 @@ function TunisiaMap({
                 }
             },
             mouseout: (e) => {
+                // Skip when in edit or add mode
+                if (enableAddLocationsRef.current || isEditingLocationRef.current) return
+
                 const target = e.target
                 const originalStyle = target.__baseStyle || getStyle(feature) || levelStyles.default
                 try { target.setStyle(originalStyle) } catch (err) { }
@@ -711,6 +740,8 @@ function TunisiaMap({
                 }
             },
             click: (e) => {
+                // Skip region selection when in edit or add mode
+                if (enableAddLocationsRef.current || isEditingLocationRef.current) return
                 // Notify selection for any level
                 onRegionSelect(feature, currentLevel)
 
