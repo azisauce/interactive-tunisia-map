@@ -21,9 +21,30 @@ function LocationControl({
     locationTypeFilters, 
     onLocationTypeFilterChange,
     zoneColorFilters,
-    onZoneColorFilterChange
+    onZoneColorFilterChange,
+    locations = []
 }) {
     const [expanded, setExpanded] = useState(true)
+    
+    // Calculate counts for each location type
+    const getLocationCount = (typeId) => {
+        if (!locations || locations.length === 0) return 0
+
+        console.log('EXAM CENTERS ===>', locations.filter(loc => loc.type === 'exam_center'));
+        
+        switch(typeId) {
+            case 'driving_school_non_drivago':
+                return locations.filter(loc => loc.type === 'driving_school' && !loc.showInDrivago).length
+            case 'driving_school_drivago':
+                return locations.filter(loc => loc.type === 'driving_school' && loc.showInDrivago).length
+            case 'pickup_point':
+                return locations.filter(loc => loc.type === 'pickup_point').length
+            case 'exam_center':
+                return locations.filter(loc => loc.type === 'exam_center').length
+            default:
+                return 0
+        }
+    }
     // const allTypesSelected = LOCATION_TYPES.every(type => locationTypeFilters[type.id])
     // const noTypesSelected = LOCATION_TYPES.every(type => !locationTypeFilters[type.id])
 
@@ -108,6 +129,7 @@ function LocationControl({
                                     title={type.label}
                                 >
                                     <span className="location-type-btn__icon">{type.icon}</span>
+                                    <span className="location-type-btn__count">{getLocationCount(type.id)}</span>
                                 </button>
                             ))}
                         </div>

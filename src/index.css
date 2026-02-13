@@ -946,16 +946,18 @@ body {
 }
 
 .location-type-btn {
-  width: 40px;
-  height: 40px;
+  width: 50px;
+  height: 50px;
   border: 2px solid var(--border-color);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 2px;
   position: relative;
 }
 
@@ -980,6 +982,17 @@ body {
   transition: transform 0.2s ease;
   color: white;
   font-weight: 700;
+}
+
+.location-type-btn__count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.location-type-btn--active .location-type-btn__count {
+  color: var(--primary-color);
 }
 
 /* Inactive state - greyed out */

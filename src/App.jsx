@@ -494,6 +494,7 @@ function App() {
                 zoneColorFilters={zoneColorFilters}
                 onZoneColorFilterChange={handleZoneColorFilterChange}
                 onAgencySelect={handleAgencySelect}
+                locations={locations}
             />
 
             {/* Pickup point popup - now rendered in App */}

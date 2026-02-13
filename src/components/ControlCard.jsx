@@ -26,7 +26,8 @@ function ControlCard({
     onTypeSelect,
     zoneColorFilters,
     onZoneColorFilterChange,
-    onAgencySelect
+    onAgencySelect,
+    locations = []
 }) {
     const getLevelInfo = () => {
         switch (currentLevel) {
@@ -335,6 +336,7 @@ function ControlCard({
                 onLocationTypeFilterChange={onLocationTypeFilterChange}
                 zoneColorFilters={zoneColorFilters}
                 onZoneColorFilterChange={onZoneColorFilterChange}
+                locations={locations}
             />
 
             {currentLevel === 'sector' && (
