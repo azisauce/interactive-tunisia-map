@@ -101,6 +101,7 @@ function App() {
     const [isEditingLocation, setIsEditingLocation] = useState(false)
     const [editMarkerPosition, setEditMarkerPosition] = useState(null)
     const [externalEditCoords, setExternalEditCoords] = useState(null)
+    const [selectedAgency, setSelectedAgency] = useState(null)
 
     // Use ref to track the latest value of enableAddLocations to avoid stale closures
     const enableAddLocationsRef = useRef(enableAddLocations)
@@ -435,6 +436,11 @@ function App() {
         }
     }, [])
 
+    // Handler for agency selection from ControlCard
+    const handleAgencySelect = useCallback((agency) => {
+        setSelectedAgency(agency)
+    }, [])
+
     return (
         <div className="app">
             <TunisiaMap
@@ -451,6 +457,7 @@ function App() {
                 enableAddLocations={enableAddLocations}
                 openPopupWithoutCoords={openPopupWithoutCoords}
                 selectedLocationType={selectedLocationType}
+                selectedAgency={selectedAgency}
                 // Location state passed to TunisiaMap
                 locations={locations}
                 selectedPickupPoint={selectedPickupPoint}
@@ -486,6 +493,7 @@ function App() {
                 onTypeSelect={handleTypeSelect}
                 zoneColorFilters={zoneColorFilters}
                 onZoneColorFilterChange={handleZoneColorFilterChange}
+                onAgencySelect={handleAgencySelect}
             />
 
             {/* Pickup point popup - now rendered in App */}

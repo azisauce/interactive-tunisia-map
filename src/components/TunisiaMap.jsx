@@ -139,6 +139,29 @@ function FlyToPosition({ position }) {
     return null
 }
 
+// Component to zoom to selected agency location
+function AgencyZoom({ agency }) {
+    const map = useMap()
+    const prevAgencyRef = useRef(null)
+
+    useEffect(() => {
+        if (agency && agency.lat && agency.long) {
+            const prev = prevAgencyRef.current
+            // Only zoom if this is a different agency or first selection
+            if (!prev || prev.id !== agency.id) {
+                prevAgencyRef.current = agency
+                map.flyTo([agency.lat, agency.long], 16, { duration: 1 })
+            }
+        } else if (!agency && prevAgencyRef.current) {
+            // Agency deselected - zoom back out to default view
+            prevAgencyRef.current = null
+            map.setView([34.0, 9.5], 6, { duration: 1 })
+        }
+    }, [map, agency])
+
+    return null
+}
+
 
 
 // Style configurations - unified light-green baseline
@@ -245,6 +268,7 @@ function TunisiaMap({
     enableAddLocations = false,
     openPopupWithoutCoords,
     selectedLocationType = 'pickup_point',
+    selectedAgency = null,
     // Location state from parent
     locations = [],
     selectedPickupPoint = null,
@@ -805,6 +829,20 @@ function TunisiaMap({
     const filteredLocations = useMemo(() => {
         let filtered = locations
 
+        // If an agency is selected, only show that specific agency's location
+        if (selectedAgency && selectedAgency.lat && selectedAgency.long) {
+            // Create a virtual location object for the selected agency
+            const agencyLocation = {
+                id: `agency-${selectedAgency.id}`,
+                type: 'driving_school', // or determine based on agency type
+                name: selectedAgency.nomAge,
+                latitude: selectedAgency.lat,
+                longitude: selectedAgency.long,
+                agencies: [selectedAgency]
+            }
+            return [agencyLocation]
+        }
+
         // Filter by location type
         filtered = filtered.filter(location => {
             const locationType = location.type || 'pickup_point'
@@ -821,7 +859,7 @@ function TunisiaMap({
         })
 
         return filtered
-    }, [locations, locationTypeFilters])
+    }, [locations, locationTypeFilters, selectedAgency])
 
     // Zoom-aware markers: only show driving school title above the icon when zoomed in
     const ZoomAwareMarkers = ({ locations, isPointVisible, onSelect, editingLocationId }) => {
@@ -936,6 +974,9 @@ function TunisiaMap({
 
             {/* Fly to position when coordinates are edited manually */}
             <FlyToPosition position={flyToTarget} />
+
+            {/* Zoom to selected agency */}
+            <AgencyZoom agency={selectedAgency} />
 
             {/* Map click handler for pickup points */}
             <MapClickHandler
