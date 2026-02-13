@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Button, IconButton, Switch } from '@mui/material'
+import { Button, IconButton, Switch, Autocomplete, TextField } from '@mui/material'
 import ArrowOutwardIcon from '@mui/icons-material/ArrowOutward'
 import EditIcon from '@mui/icons-material/Edit'
 import CloseIcon from '@mui/icons-material/Close'
@@ -18,6 +18,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
     const [error, setError] = useState(null)
     const [agencies, setAgencies] = useState([])
     const [selectedAgency, setSelectedAgency] = useState('')
+    const [searchAgency, setSearchAgency] = useState('')
     const [addingAgency, setAddingAgency] = useState(false)
     const [removingAgencyId, setRemovingAgencyId] = useState(null)
     const [loadingAgencies, setLoadingAgencies] = useState(true)
@@ -633,33 +634,91 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                                 Add Agency
                             </div>
                             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <select
-                                    value={selectedAgency}
-                                    onChange={(e) => setSelectedAgency(e.target.value)}
-                                    disabled={loadingAgencies || addingAgency}
-                                    style={{
-                                        flex: 1,
-                                        minWidth: 0,
-                                        maxWidth: '100%',
-                                        boxSizing: 'border-box',
-                                        padding: '8px 12px',
-                                        fontSize: '14px',
-                                        borderRadius: '6px',
-                                        border: '1px solid var(--border-color, #ddd)',
-                                        backgroundColor: 'var(--bg-secondary, white)',
-                                        color: 'black',
-                                        cursor: 'pointer'
+                                <Autocomplete
+                                    style={{width: '80%'}}
+                                    options={availableAgencies}
+                                    getOptionLabel={(option) => option.nomAge || ''}
+                                    value={availableAgencies.find(a => a.agenceId === selectedAgency) || null}
+                                    onChange={(event, newValue) => {
+                                        if (newValue) {
+                                            setSelectedAgency(newValue.agenceId)
+                                            setSearchAgency(newValue.nomAge)
+                                        } else {
+                                            setSelectedAgency('')
+                                            setSearchAgency('')
+                                        }
                                     }}
-                                >
-                                    <option value="">
-                                        {loadingAgencies ? 'Loading...' : availableAgencies.length === 0 ? 'All agencies assigned' : 'Select an agency...'}
-                                    </option>
-                                    {availableAgencies.map((agency) => (
-                                        <option key={agency.agenceId} value={agency.agenceId}>
-                                            {agency.nomAge}
-                                        </option>
-                                    ))}
-                                </select>
+                                    inputValue={searchAgency}
+                                    onInputChange={(event, newInputValue) => {
+                                        setSearchAgency(newInputValue)
+                                    }}
+                                    disabled={loadingAgencies || addingAgency}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Select Agency"
+                                            placeholder={loadingAgencies ? 'Loading...' : availableAgencies.length === 0 ? 'All agencies assigned' : 'Search or select an agency...'}
+                                            variant="outlined"
+                                            size="small"
+                                            sx={{
+                                                flex: 1,
+                                                minWidth: 0,
+                                                '& .MuiOutlinedInput-root': {
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                    color: 'white',
+                                                    '& fieldset': {
+                                                        borderColor: 'rgba(255, 255, 255, 0.2)',
+                                                    },
+                                                    '&:hover fieldset': {
+                                                        borderColor: '#3b82f6',
+                                                    },
+                                                    '&.Mui-focused fieldset': {
+                                                        borderColor: '#3b82f6',
+                                                    },
+                                                },
+                                                '& .MuiInputLabel-root': {
+                                                    color: 'rgba(255, 255, 255, 0.6)',
+                                                    fontSize: '14px',
+                                                    '&.Mui-focused': {
+                                                        color: '#3b82f6',
+                                                    },
+                                                },
+                                                '& .MuiInputBase-input': {
+                                                    color: 'white',
+                                                },
+                                                '& .MuiSvgIcon-root': {
+                                                    color: 'rgba(255, 255, 255, 0.6)',
+                                                },
+                                            }}
+                                        />
+                                    )}
+                                    noOptionsText={availableAgencies.length === 0 ? 'All agencies assigned' : 'No agencies found'}
+                                    clearOnEscape
+                                    componentsProps={{
+                                        popper: {
+                                            sx: {
+                                                '& .MuiPaper-root': {
+                                                    backgroundColor: '#1e293b',
+                                                    color: 'white',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                                                },
+                                                '& .MuiAutocomplete-option': {
+                                                    color: 'white',
+                                                    '&:hover': {
+                                                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                                    },
+                                                    '&[aria-selected="true"]': {
+                                                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                                                    },
+                                                },
+                                                '& .MuiAutocomplete-noOptions': {
+                                                    color: 'rgba(255, 255, 255, 0.6)',
+                                                },
+                                            },
+                                        },
+                                    }}
+                                />
                                 <Button
                                     variant="contained"
                                     onClick={handleAddAgency}
