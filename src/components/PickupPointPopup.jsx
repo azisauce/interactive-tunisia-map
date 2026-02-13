@@ -146,6 +146,8 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
             // pickup_point may have it optionally, exam_center must not include it)
             if (locationType == 'driving_school' && selectedAgency) {
                 locationData.agencyId = parseInt(selectedAgency, 10)
+                const agency = filteredAgencies.find(a => a.agenceId === selectedAgency)
+                locationData.name = agency ? agency.nomAge : locationData.name
             }
 
             if (locationType == 'exam_center' && selectedExamCenter) {
