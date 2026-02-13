@@ -1319,6 +1319,228 @@ body {
   border: 1px solid var(--border-color);
 }
 
+/* ===========================
+   Search Control Styles
+   =========================== */
+
+.search-control {
+  position: absolute;
+  bottom: 80px;
+  right: 10px;
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+.search-control__icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  backdrop-filter: blur(10px);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.2s ease;
+}
+
+.search-control__icon-btn:hover {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: var(--primary-light);
+  transform: translateY(-2px);
+}
+
+.search-control__icon-btn svg {
+  font-size: 24px;
+}
+
+.search-control__container {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  min-width: 320px;
+  max-width: 400px;
+  overflow: hidden;
+  animation: search-expand 0.25s ease-out;
+}
+
+@keyframes search-expand {
+  from {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.search-control__input-wrapper {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.search-control__input-icon {
+  color: var(--text-secondary);
+  font-size: 20px;
+}
+
+.search-control__input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+  padding: 4px 0;
+}
+
+.search-control__input::placeholder {
+  color: var(--text-secondary);
+}
+
+.search-control__clear-btn,
+.search-control__close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.search-control__clear-btn:hover,
+.search-control__close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.search-control__close-btn {
+  border-left: 1px solid var(--border-color);
+  border-radius: 0 6px 6px 0;
+  margin-left: 4px;
+  padding-left: 8px;
+}
+
+/* Suggestions dropdown */
+.search-control__suggestions {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.search-control__suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.search-control__suggestion:last-child {
+  border-bottom: none;
+}
+
+.search-control__suggestion:hover,
+.search-control__suggestion--selected {
+  background: rgba(37, 99, 235, 0.15);
+}
+
+.search-control__suggestion-icon {
+  color: var(--primary-light);
+  font-size: 20px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.search-control__suggestion-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-control__suggestion-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-control__suggestion-address {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Loading state */
+.search-control__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.search-control__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* No results */
+.search-control__no-results {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+/* Scrollbar styling for suggestions */
+.search-control__suggestions::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-control__suggestions::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.search-control__suggestions::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.search-control__suggestions::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+}
+
 /* Type-specific cluster colors */
 /* Pickup points - Amber */
 .zone-cluster-marker[data-type="pickup_point"] .cluster-inner {

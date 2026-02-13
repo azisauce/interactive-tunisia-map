@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents, Marker } from '
 import { fetchMunicipalities, fetchSectors, fetchLocations } from '../utils/api'
 import { useZoneClustering } from '../hooks/useZoneClustering'
 import ZoneClusterMarkers from './ZoneClusterMarkers'
+import SearchControl from './SearchControl'
 import L from 'leaflet'
 import * as turf from '@turf/turf'
 
@@ -1134,6 +1135,9 @@ function TunisiaMap({
                     }}
                 />
             )}
+
+            {/* Search Control */}
+            <SearchControl />
         </MapContainer>
     )
 }
