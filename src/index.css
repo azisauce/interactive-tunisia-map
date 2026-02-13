@@ -826,6 +826,25 @@ body {
   animation: marker-bounce 0.3s ease-out;
 }
 
+/* Pickup points with agencies - RED */
+.pickup-marker--with-agency {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) 
+          hue-rotate(0deg) saturate(1.5) brightness(1.1);
+  /* Red tone enhancement */
+}
+
+/* Pickup points without agencies - BLUE */
+.pickup-marker--without-agency {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) 
+          hue-rotate(200deg) saturate(1.8) brightness(1.2);
+  /* Blue tone conversion */
+}
+
+/* Default pickup marker (fallback) */
+.pickup-marker--default {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
 @keyframes marker-bounce {
   0% {
     transform: translateY(-10px);

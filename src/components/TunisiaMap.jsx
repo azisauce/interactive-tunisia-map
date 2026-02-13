@@ -8,7 +8,21 @@ import * as turf from '@turf/turf'
 const locationIcons = {
     pickup_point: L.divIcon({
         className: 'pickup-marker-icon',
-        html: '<div class="pickup-marker">📍</div>',
+        html: '<div class="pickup-marker pickup-marker--default">📍</div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+    }),
+    pickup_point_with_agency: L.divIcon({
+        className: 'pickup-marker-icon',
+        html: '<div class="pickup-marker pickup-marker--with-agency">📍</div>',
+        iconSize: [30, 30],
+        iconAnchor: [15, 30],
+        popupAnchor: [0, -30]
+    }),
+    pickup_point_without_agency: L.divIcon({
+        className: 'pickup-marker-icon',
+        html: '<div class="pickup-marker pickup-marker--without-agency">📍</div>',
         iconSize: [30, 30],
         iconAnchor: [15, 30],
         popupAnchor: [0, -30]
@@ -836,7 +850,11 @@ function TunisiaMap({
                 }).map((point, index) => {
                     let icon = locationIcons[point.type] || locationIcons.pickup_point
 
-                    if (point.type === 'driving_school') {
+                    // Handle pickup points with agency differentiation
+                    if (point.type === 'pickup_point') {
+                        const hasAgencies = point.agencies && point.agencies.length > 0
+                        icon = hasAgencies ? locationIcons.pickup_point_with_agency : locationIcons.pickup_point_without_agency
+                    } else if (point.type === 'driving_school') {
                         const rawTitle = point.name || 'Driving School'
                         const title = escapeHtml(rawTitle.length > 30 ? `${rawTitle.slice(0, 27)}...` : rawTitle)
                         const isDrivago = point.agencies?.some(agency => agency.show_in_drivago === true)
@@ -965,7 +983,7 @@ function TunisiaMap({
             {tempMarkerPosition && tempMarkerPosition.lat && tempMarkerPosition.lng && !isEditingLocation && (
                 <Marker
                     position={[tempMarkerPosition.lat, tempMarkerPosition.lng]}
-                    icon={locationIcons[selectedLocationType] || locationIcons.pickup_point}
+                    icon={selectedLocationType === 'pickup_point' ? locationIcons.pickup_point_without_agency : (locationIcons[selectedLocationType] || locationIcons.pickup_point)}
                     draggable={true}
                     eventHandlers={{
                         dragend: handleTempMarkerDrag,
@@ -978,7 +996,13 @@ function TunisiaMap({
             {isEditingLocation && editMarkerPosition && editMarkerPosition.lat && editMarkerPosition.lng && (
                 <Marker
                     position={[editMarkerPosition.lat, editMarkerPosition.lng]}
-                    icon={locationIcons[selectedPickupPoint?.type] || locationIcons.pickup_point}
+                    icon={
+                        selectedPickupPoint?.type === 'pickup_point' 
+                            ? (selectedPickupPoint?.agencies && selectedPickupPoint.agencies.length > 0 
+                                ? locationIcons.pickup_point_with_agency 
+                                : locationIcons.pickup_point_without_agency)
+                            : (locationIcons[selectedPickupPoint?.type] || locationIcons.pickup_point)
+                    }
                     draggable={true}
                     eventHandlers={{
                         dragend: handleEditMarkerDrag
