@@ -383,22 +383,35 @@ function App() {
 
     // Handler for pickup point updated
     const handlePickupPointUpdated = useCallback(async (updatedPoint) => {
+        // Immediately update the local state with the new point reference
+        // so React detects the change and re-renders icons/markers
         setLocations(prev => prev.map(p => 
-            String(p.id) === String(updatedPoint.id) ? updatedPoint : p
+            String(p.id) === String(updatedPoint.id) ? { ...updatedPoint } : p
         ))
-        setSelectedPickupPoint(updatedPoint)
+        setSelectedPickupPoint({ ...updatedPoint })
         // Update edit marker position if still editing
         if (isEditingLocation) {
             setEditMarkerPosition({ lat: updatedPoint.latitude, lng: updatedPoint.longitude })
         }
         
-        // Refresh zone coloring in case location type or agency changed
+        // Refresh locations from backend to get authoritative data (e.g. agency details)
+        // and refresh zone coloring in case location type or agency changed
         try {
-            invalidateZoneColoringCache()
-            const coloringData = await fetchZoneColoring({ forceRefresh: true })
+            const [freshLocations, coloringData] = await Promise.all([
+                fetchLocations(),
+                (invalidateZoneColoringCache(), fetchZoneColoring({ forceRefresh: true }))
+            ])
+            if (freshLocations) {
+                setLocations(freshLocations)
+                // Also update selectedPickupPoint with the fresh data from backend
+                const freshPoint = freshLocations.find(p => String(p.id) === String(updatedPoint.id))
+                if (freshPoint) {
+                    setSelectedPickupPoint(freshPoint)
+                }
+            }
             setZoneColoringData(coloringData)
         } catch (err) {
-            console.error('Error refreshing zone coloring:', err)
+            console.error('Error refreshing data after update:', err)
         }
     }, [isEditingLocation])
 

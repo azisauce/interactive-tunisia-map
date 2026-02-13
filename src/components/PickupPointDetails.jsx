@@ -138,9 +138,13 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                 agencyName: agency?.nomAge || 'Unknown Agency'
             }
             
-            point.agencies = [...(point.agencies || []), newAgency]
+            // Create a new object reference so React detects the change and re-renders icons
+            const updatedPoint = {
+                ...point,
+                agencies: [...(point.agencies || []), newAgency]
+            }
             
-            if (onUpdated) onUpdated(point)
+            if (onUpdated) onUpdated(updatedPoint)
             setSelectedAgency('')
         } catch (err) {
             console.error('Failed to add agency', err)
@@ -168,9 +172,12 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                     if (onDeleted) onDeleted(point.id)
                     onClose()
                 } else {
-                    // Just remove the agency from the list
-                    point.agencies = (point.agencies || []).filter(a => a.locationAgencyId !== locationAgencyId)
-                    if (onUpdated) onUpdated(point)
+                    // Create a new object reference with the agency removed
+                    const updatedPoint = {
+                        ...point,
+                        agencies: (point.agencies || []).filter(a => a.locationAgencyId !== locationAgencyId)
+                    }
+                    if (onUpdated) onUpdated(updatedPoint)
                 }
             }
         } catch (err) {
@@ -337,10 +344,21 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
         try {
             await updateAgencyShowInDrivago(agency.agencyId, newValue)
             
-            // Update the point's top-level showInDrivago property
-            point.showInDrivago = newValue
+            // Create a new object reference with updated showInDrivago and
+            // also update the agency's show_in_drivago inside the agencies array
+            // (TunisiaMap icon logic checks agency.show_in_drivago, not point.showInDrivago)
+            const updatedAgencies = (point.agencies || []).map(a => 
+                String(a.agencyId) === String(agency.agencyId)
+                    ? { ...a, show_in_drivago: newValue }
+                    : a
+            )
+            const updatedPoint = {
+                ...point,
+                showInDrivago: newValue,
+                agencies: updatedAgencies
+            }
             
-            if (onUpdated) onUpdated(point)
+            if (onUpdated) onUpdated(updatedPoint)
         } catch (err) {
             console.error('Failed to update showInDrivago', err)
             setError(err?.message || 'Failed to update')
