@@ -1,6 +1,8 @@
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from 'react'
 import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents, Marker } from 'react-leaflet'
 import { fetchMunicipalities, fetchSectors, fetchLocations } from '../utils/api'
+import { useZoneClustering } from '../hooks/useZoneClustering'
+import ZoneClusterMarkers from './ZoneClusterMarkers'
 import L from 'leaflet'
 import * as turf from '@turf/turf'
 
@@ -883,6 +885,51 @@ function TunisiaMap({
         return filtered
     }, [locations, locationTypeFilters, selectedAgency])
 
+    // Component to track map zoom level
+    const ZoomTracker = ({ onZoomChange }) => {
+        const map = useMap()
+
+        useEffect(() => {
+            if (!map) return
+            const onZoom = () => onZoomChange && onZoomChange(map.getZoom())
+            map.on('zoomend', onZoom)
+            onZoom() // Initial zoom
+            return () => map.off('zoomend', onZoom)
+        }, [map, onZoomChange])
+
+        return null
+    }
+
+    // Track current zoom level for clustering
+    const [currentZoom, setCurrentZoom] = useState(6)
+
+    // Compute zone-based clusters
+    const { clusters } = useZoneClustering(
+        filteredLocations,
+        currentLevel,
+        filteredFeatures
+    )
+
+    // Zoom thresholds for clustering per level
+    // When zoom <= threshold: show clusters
+    // When zoom > threshold: show individual markers
+    const CLUSTER_ZOOM_THRESHOLDS = {
+        governorate: 9,     // At governorate level, cluster until zoom > 9
+        municipality: 12,   // At municipality level, cluster until zoom > 12
+        sector: 14          // At sector level, cluster until zoom > 14
+    }
+
+    // Determine if we should show clusters or individual markers based on zoom and level
+    const clusterThreshold = CLUSTER_ZOOM_THRESHOLDS[currentLevel] || 14
+    const shouldShowClusters = currentZoom <= clusterThreshold
+
+    // Handle cluster click - select the zone and drill down
+    const handleClusterClick = useCallback((cluster) => {
+        if (cluster.zone && onRegionSelect) {
+            onRegionSelect(cluster.zone, currentLevel)
+        }
+    }, [currentLevel, onRegionSelect])
+
     // Zoom-aware markers: only show driving school title above the icon when zoomed in
     const ZoomAwareMarkers = ({ locations, isPointVisible, onSelect, editingLocationId }) => {
         const map = useMap()
@@ -1000,6 +1047,9 @@ function TunisiaMap({
             {/* Zoom to selected agency */}
             <AgencyZoom agency={selectedAgency} />
 
+            {/* Track zoom level for clustering */}
+            <ZoomTracker onZoomChange={setCurrentZoom} />
+
             {/* Map click handler for pickup points */}
             <MapClickHandler
                 currentLevel={currentLevel}
@@ -1028,19 +1078,31 @@ function TunisiaMap({
                 />
             )}
 
-            {/* Existing location markers (visible for current view) */}
-            <ZoomAwareMarkers
-                locations={filteredLocations}
-                isPointVisible={isPointVisible}
-                onSelect={(p) => {
-                    // Reset edit mode when selecting a different location
-                    if (onEditModeChange) onEditModeChange(false)
-                    if (onEditMarkerPositionChange) onEditMarkerPositionChange(null)
-                    if (onExternalEditCoordsChange) onExternalEditCoordsChange(null)
-                    if (onPickupPointSelect) onPickupPointSelect(p)
-                }}
-                editingLocationId={isEditingLocation ? selectedPickupPoint?.id : null}
-            />
+            {/* Zone-based cluster markers */}
+            {showLocations && shouldShowClusters && (
+                <ZoneClusterMarkers
+                    clusters={clusters}
+                    onClusterClick={handleClusterClick}
+                    zoom={currentZoom}
+                    showNamesZoom={10}
+                />
+            )}
+
+            {/* Existing location markers (visible for current view when zoomed in at sector level) */}
+            {!shouldShowClusters && (
+                <ZoomAwareMarkers
+                    locations={filteredLocations}
+                    isPointVisible={isPointVisible}
+                    onSelect={(p) => {
+                        // Reset edit mode when selecting a different location
+                        if (onEditModeChange) onEditModeChange(false)
+                        if (onEditMarkerPositionChange) onEditMarkerPositionChange(null)
+                        if (onExternalEditCoordsChange) onExternalEditCoordsChange(null)
+                        if (onPickupPointSelect) onPickupPointSelect(p)
+                    }}
+                    editingLocationId={isEditingLocation ? selectedPickupPoint?.id : null}
+                />
+            )}
 
             {/* Draggable marker for new location placement */}
             {tempMarkerPosition && tempMarkerPosition.lat && tempMarkerPosition.lng && !isEditingLocation && (

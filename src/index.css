@@ -1250,3 +1250,112 @@ body {
     transform: translateX(-50%) translateY(0);
   }
 }
+
+/* ===========================
+   Zone Cluster Marker Styles
+   =========================== */
+
+.zone-cluster-marker {
+  background: transparent;
+  border: none;
+}
+
+.cluster-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.cluster-inner:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.cluster-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.cluster-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Cluster with zone name */
+.cluster-with-name {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.cluster-name {
+  background: rgba(15, 23, 42, 0.9);
+  backdrop-filter: blur(8px);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+}
+
+/* Type-specific cluster colors */
+/* Pickup points - Amber */
+.zone-cluster-marker[data-type="pickup_point"] .cluster-inner {
+  background: rgba(245, 158, 11, 0.2);
+  border: 2px solid rgba(245, 158, 11, 0.8);
+}
+
+.zone-cluster-marker[data-type="pickup_point"] .cluster-count {
+  background: rgba(245, 158, 11, 1);
+}
+
+/* Drivago driving schools - Blue */
+.zone-cluster-marker[data-type="driving_school_drivago"] .cluster-inner {
+  background: rgba(33, 150, 243, 0.2);
+  border: 2px solid rgba(33, 150, 243, 0.8);
+}
+
+.zone-cluster-marker[data-type="driving_school_drivago"] .cluster-count {
+  background: rgba(33, 150, 243, 1);
+}
+
+/* Non-Drivago driving schools - Gray */
+.zone-cluster-marker[data-type="driving_school_non_drivago"] .cluster-inner {
+  background: rgba(75, 85, 99, 0.2);
+  border: 2px solid rgba(75, 85, 99, 0.8);
+}
+
+.zone-cluster-marker[data-type="driving_school_non_drivago"] .cluster-count {
+  background: rgba(75, 85, 99, 1);
+}
+
+/* Exam centers - Emerald */
+.zone-cluster-marker[data-type="exam_center"] .cluster-inner {
+  background: rgba(16, 185, 129, 0.2);
+  border: 2px solid rgba(16, 185, 129, 0.8);
+}
+
+.zone-cluster-marker[data-type="exam_center"] .cluster-count {
+  background: rgba(16, 185, 129, 1);
+}
