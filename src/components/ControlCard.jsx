@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Autocomplete from '@mui/material/Autocomplete'
+import TextField from '@mui/material/TextField'
 // import AgencyAssignment from './AgencyAssignment'
 import LocationControl from './LocationControl'
 import AddLocationsToggle from './AddLocationsToggle'
@@ -23,7 +25,8 @@ function ControlCard({
     onToggleAddLocationsOn,
     onTypeSelect,
     zoneColorFilters,
-    onZoneColorFilterChange
+    onZoneColorFilterChange,
+    onAgencySelect
 }) {
     const getLevelInfo = () => {
         switch (currentLevel) {
@@ -41,6 +44,36 @@ function ControlCard({
     const levelInfo = getLevelInfo()
 
     const [showSearchBox, setShowSearchBox] = useState(false)
+    const [agenciesSearch, setAgenciesSearch] = useState('')
+    const [selectedAgency, setSelectedAgency] = useState('')
+    const [agencies, setAgencies] = useState([])
+    const [loadingAgencies, setLoadingAgencies] = useState(false)
+    const [agenciesError, setAgenciesError] = useState(null)
+
+    // Load active agencies and filter to those with coordinates
+    useEffect(() => {
+        async function loadAgencies() {
+            try {
+                setLoadingAgencies(true)
+                const data = await (await import('../utils/api')).fetchActiveAgencies()
+                console.log('data from API:', data);
+                
+                // Filter agencies that have coordinate info (latitude/longitude or lat/lng)
+                const filtered = (data || []).filter(a => {
+                    const lat = a.lat
+                    const lng = a.long
+                    return (lat !== undefined && lat !== null && lat !== '') && (lng !== undefined && lng !== null && lng !== '')
+                })
+                setAgencies(filtered)
+            } catch (err) {
+                console.error('Error fetching agencies:', err)
+                setAgenciesError('Failed to load agencies')
+            } finally {
+                setLoadingAgencies(false)
+            }
+        }
+        loadAgencies()
+    }, [])
 
     // Get the correct name based on the level context
     const getRegionNameForLevel = (region, level) => {
@@ -161,10 +194,88 @@ function ControlCard({
 
             {showSearchBox && (
                 <div className="search-panel" style={{ border: '1px solid var(--border)', padding: '8px', marginBottom: '12px', borderRadius: '6px' }}>
-                    <input
-                        type="text"
-                        placeholder={`Search ${levelInfo.label}`}
-                        style={{ width: '100%', padding: '8px', fontSize: '13px' }}
+                    <Autocomplete
+                        options={agencies}
+                        getOptionLabel={(option) => `${option.nomAge}${option.lat ? ` (${option.lat}, ${option.long})` : ''}` || ''}
+                        value={agencies.find(a => a.id === selectedAgency) || null}
+                        onChange={(event, newValue) => {
+                            if (newValue) {
+                                setSelectedAgency(newValue.id)
+                                setAgenciesSearch(newValue.name)
+                                if (onAgencySelect) onAgencySelect(newValue)
+                            } else {
+                                setSelectedAgency('')
+                                setAgenciesSearch('')
+                                if (onAgencySelect) onAgencySelect(null)
+                            }
+                        }}
+                        inputValue={agenciesSearch}
+                        onInputChange={(event, newInputValue) => {
+                            setAgenciesSearch(newInputValue)
+                        }}
+                        renderInput={(params) => (
+                            <TextField
+                                {...params}
+                                label="Select Agency"
+                                placeholder="Search or select an agency..."
+                                variant="outlined"
+                                size="small"
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                        color: 'var(--text-primary)',
+                                        '& fieldset': {
+                                            borderColor: 'var(--border-color)',
+                                        },
+                                        '&:hover fieldset': {
+                                            borderColor: 'var(--primary-light)',
+                                        },
+                                        '&.Mui-focused fieldset': {
+                                            borderColor: 'var(--primary-light)',
+                                        },
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        color: 'var(--text-primary)',
+                                        fontSize: '14px',
+                                        '&.Mui-focused': {
+                                            color: 'var(--primary-light)',
+                                        },
+                                    },
+                                    '& .MuiInputBase-input': {
+                                        color: 'var(--text-primary)',
+                                    },
+                                    '& .MuiSvgIcon-root': {
+                                        color: 'var(--text-secondary)',
+                                    },
+                                }}
+                            />
+                        )}
+                        noOptionsText="No agencies found"
+                        clearOnEscape
+                        componentsProps={{
+                            popper: {
+                                sx: {
+                                    '& .MuiPaper-root': {
+                                        backgroundColor: '#1e293b',
+                                        color: 'var(--text-primary)',
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--border-color)',
+                                    },
+                                    '& .MuiAutocomplete-option': {
+                                        color: 'var(--text-primary)',
+                                        '&:hover': {
+                                            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                        },
+                                        '&[aria-selected="true"]': {
+                                            backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                                        },
+                                    },
+                                    '& .MuiAutocomplete-noOptions': {
+                                        color: 'var(--text-secondary)',
+                                    },
+                                },
+                            },
+                        }}
                     />
                 </div>
             )}
