@@ -829,18 +829,40 @@ function TunisiaMap({
     const filteredLocations = useMemo(() => {
         let filtered = locations
 
-        // If an agency is selected, only show that specific agency's location
+        // If an agency is selected, show agency location + pickup points where this agency is present
         if (selectedAgency && selectedAgency.lat && selectedAgency.long) {
-            // Create a virtual location object for the selected agency
+            const result = []
+            
+            // 1. Add virtual location marker for the agency itself
             const agencyLocation = {
                 id: `agency-${selectedAgency.id}`,
-                type: 'driving_school', // or determine based on agency type
+                type: 'driving_school',
                 name: selectedAgency.nomAge,
                 latitude: selectedAgency.lat,
                 longitude: selectedAgency.long,
                 agencies: [selectedAgency]
             }
-            return [agencyLocation]
+            result.push(agencyLocation)
+            
+            // 2. Add all pickup points where this agency is present
+            const pickupPointsWithAgency = locations.filter(location => {
+                // Only check pickup points
+                if (location.type !== 'pickup_point') return false
+                console.log('location===>', location.agencies);
+                console.log('selectedAgency===>', selectedAgency);
+                // Check if this agency is in the location's agencies array
+                return location.agencies?.some(agency => 
+                    String(agency.agencyId) === String(selectedAgency.agenceId)
+                )
+            })
+
+            console.log('pickupPointsWithAgency==>', pickupPointsWithAgency);
+            
+            
+            result.push(...pickupPointsWithAgency)
+            console.log('result===>', result);
+            
+            return result
         }
 
         // Filter by location type
