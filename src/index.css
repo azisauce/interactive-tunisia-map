@@ -1104,6 +1104,28 @@ body {
   filter: hue-rotate(200deg) drop-shadow(0 4px 12px rgba(59, 130, 246, 0.5));
 }
 
+/* ===== Zone-based Cluster Markers ===== */
+.cluster-marker-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.cluster-marker {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.cluster-marker:hover {
+  transform: scale(1.15);
+}
+
+.cluster-marker__badge {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  pointer-events: none;
+}
+
 /* Pulsing ring beneath the pin */
 .center-marker-pin__pulse {
   position: absolute;

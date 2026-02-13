@@ -809,7 +809,128 @@ function TunisiaMap({
         return filtered
     }, [locations, locationTypeFilters])
 
-    // Zoom-aware markers: only show driving school title above the icon when zoomed in
+    // ===== Clustering helpers =====
+
+    // Zoom thresholds for clustering levels:
+    // zoom < 8  → cluster by governorate
+    // 8 ≤ zoom < 10 → cluster by municipality
+    // 10 ≤ zoom < 12 → cluster by sector
+    // zoom ≥ 12 → no clustering, show individual markers
+    const CLUSTER_ZOOM_GOV = 8
+    const CLUSTER_ZOOM_MUN = 10
+    const CLUSTER_ZOOM_SEC = 12
+
+    // Determine the effective display type key for a location (differentiates drivago vs non-drivago)
+    const getDisplayTypeKey = useCallback((point) => {
+        if (point.type === 'driving_school') {
+            const isDrivago = point.agencies?.some(a => a.show_in_drivago === true)
+            return isDrivago ? 'driving_school_drivago' : 'driving_school_non_drivago'
+        }
+        return point.type || 'pickup_point'
+    }, [])
+
+    // Cluster icon config per display type
+    const clusterTypeConfig = useMemo(() => ({
+        pickup_point:              { emoji: '📍', bg: '#ef4444', label: 'Pickup' },
+        driving_school_drivago:    { emoji: '🚗', bg: '#2196f3', label: 'Drivago' },
+        driving_school_non_drivago:{ emoji: '🏫', bg: '#555555', label: 'Non-Drivago' },
+        exam_center:               { emoji: '📝', bg: '#f59e0b', label: 'Exam Center' }
+    }), [])
+
+    // Assign a zone key to a location at a given clustering level.
+    // For pickup_point and driving_school the zone IDs (gov_id, mun_uid, sec_uid) are on the object.
+    // For exam_center they are missing → fall back to spatial containment against the relevant GeoJSON.
+    const getZoneKey = useCallback((point, clusterLevel) => {
+        if (clusterLevel === 'governorate') {
+            if (point.gov_id != null) return String(point.gov_id)
+        } else if (clusterLevel === 'municipality') {
+            if (point.mun_uid != null) return String(point.mun_uid)
+        } else if (clusterLevel === 'sector') {
+            if (point.sec_uid != null) return String(point.sec_uid)
+        }
+
+        // Spatial fallback (mostly for exam centers)
+        let zoneData = null
+        if (clusterLevel === 'governorate') zoneData = governorates
+        else if (clusterLevel === 'municipality') zoneData = municipalities
+        else if (clusterLevel === 'sector') zoneData = sectors
+
+        if (zoneData && zoneData.features && point.latitude && point.longitude) {
+            try {
+                const pt = turf.point([Number(point.longitude), Number(point.latitude)])
+                for (const feat of zoneData.features) {
+                    if (turf.booleanPointInPolygon(pt, feat)) {
+                        if (clusterLevel === 'governorate') return String(feat.properties.gov_id)
+                        if (clusterLevel === 'municipality') return String(feat.properties.mun_uid)
+                        if (clusterLevel === 'sector') return String(feat.properties.sec_uid)
+                    }
+                }
+            } catch { /* ignore */ }
+        }
+
+        return 'unknown'
+    }, [governorates, municipalities, sectors])
+
+    // Compute the centroid of a zone feature for positioning the cluster marker
+    const getZoneCentroid = useCallback((zoneId, clusterLevel) => {
+        let zoneData = null
+        let idKey = null
+        if (clusterLevel === 'governorate') { zoneData = governorates; idKey = 'gov_id' }
+        else if (clusterLevel === 'municipality') { zoneData = municipalities; idKey = 'mun_uid' }
+        else if (clusterLevel === 'sector') { zoneData = sectors; idKey = 'sec_uid' }
+
+        if (!zoneData || !zoneData.features) return null
+
+        const feat = zoneData.features.find(f => String(f.properties[idKey]) === String(zoneId))
+        if (!feat) return null
+
+        try {
+            const c = turf.centroid(feat)
+            return { lat: c.geometry.coordinates[1], lng: c.geometry.coordinates[0] }
+        } catch { return null }
+    }, [governorates, municipalities, sectors])
+
+    // Build cluster groups from a list of visible locations
+    const buildClusters = useCallback((visiblePoints, clusterLevel) => {
+        // Group by (zoneKey, displayType) → { points, zoneId, displayType }
+        const groups = new Map()
+
+        for (const point of visiblePoints) {
+            const zoneId = getZoneKey(point, clusterLevel)
+            const displayType = getDisplayTypeKey(point)
+            const key = `${zoneId}__${displayType}`
+
+            if (!groups.has(key)) {
+                groups.set(key, { zoneId, displayType, points: [] })
+            }
+            groups.get(key).points.push(point)
+        }
+
+        // For each group, compute centroid or average position
+        const clusters = []
+        groups.forEach(({ zoneId, displayType, points }) => {
+            // Try zone centroid first; fallback to average of points
+            let position = getZoneCentroid(zoneId, clusterLevel)
+            if (!position) {
+                const avgLat = points.reduce((s, p) => s + Number(p.latitude), 0) / points.length
+                const avgLng = points.reduce((s, p) => s + Number(p.longitude), 0) / points.length
+                position = { lat: avgLat, lng: avgLng }
+            }
+
+            clusters.push({
+                key: `${zoneId}__${displayType}`,
+                zoneId,
+                displayType,
+                count: points.length,
+                position,
+                points
+            })
+        })
+
+        return clusters
+    }, [getZoneKey, getDisplayTypeKey, getZoneCentroid])
+
+    // Zoom-aware markers with zone-based clustering
     const ZoomAwareMarkers = ({ locations, isPointVisible, onSelect, editingLocationId }) => {
         const map = useMap()
         const [zoom, setZoom] = useState(map ? map.getZoom() : 0)
@@ -825,15 +946,82 @@ function TunisiaMap({
 
         const escapeHtml = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 
+        if (!showLocations) return null
+
+        // Determine visible points (apply visibility & editing filters)
+        const visiblePoints = locations.filter(isPointVisible).filter(point => {
+            if (editingLocationId && String(point.id) === String(editingLocationId)) return false
+            return true
+        })
+
+        // Determine clustering level based on zoom
+        let clusterLevel = null
+        if (zoom < CLUSTER_ZOOM_GOV) clusterLevel = 'governorate'
+        else if (zoom < CLUSTER_ZOOM_MUN) clusterLevel = 'municipality'
+        else if (zoom < CLUSTER_ZOOM_SEC) clusterLevel = 'sector'
+        // else: null → no clustering
+
+        // If clustering is active, render cluster markers
+        if (clusterLevel) {
+            const clusters = buildClusters(visiblePoints, clusterLevel)
+
+            return (
+                <>
+                    {clusters.map((cluster) => {
+                        const cfg = clusterTypeConfig[cluster.displayType] || clusterTypeConfig.pickup_point
+                        const icon = L.divIcon({
+                            className: 'cluster-marker-icon',
+                            html: `
+                                <div class="cluster-marker" style="position:relative;display:flex;flex-direction:column;align-items:center;">
+                                    <div class="cluster-marker__badge" style="
+                                        position:absolute; top:-8px; right:-8px;
+                                        background:${cfg.bg}; color:white;
+                                        min-width:20px; height:20px; border-radius:10px;
+                                        display:flex; align-items:center; justify-content:center;
+                                        font-size:11px; font-weight:700; padding:0 5px;
+                                        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+                                        z-index:10;
+                                    ">${cluster.count}</div>
+                                    <div style="
+                                        background:rgba(255,255,255,0.95); border:2px solid ${cfg.bg};
+                                        border-radius:50%; width:36px; height:36px;
+                                        display:flex; align-items:center; justify-content:center;
+                                        font-size:18px; box-shadow:0 3px 10px rgba(0,0,0,0.2);
+                                    ">${cfg.emoji}</div>
+                                </div>
+                            `,
+                            iconSize: [44, 44],
+                            iconAnchor: [22, 22],
+                            popupAnchor: [0, -22]
+                        })
+
+                        return (
+                            <Marker
+                                key={cluster.key}
+                                position={[cluster.position.lat, cluster.position.lng]}
+                                icon={icon}
+                                eventHandlers={{
+                                    click: () => {
+                                        // Zoom into the cluster
+                                        const zoomTarget = clusterLevel === 'governorate'
+                                            ? CLUSTER_ZOOM_GOV + 1
+                                            : clusterLevel === 'municipality'
+                                                ? CLUSTER_ZOOM_MUN + 1
+                                                : CLUSTER_ZOOM_SEC + 1
+                                        map.flyTo([cluster.position.lat, cluster.position.lng], zoomTarget, { duration: 0.5 })
+                                    }
+                                }}
+                            />
+                        )
+                    })}
+                </>
+            )
+        }
+
+        // No clustering → render individual markers (original behavior)
         return (
             <>
-                {showLocations && locations.filter(isPointVisible).filter(point => {
-                    // Hide the original marker if we're editing this location (edit marker will be shown instead)
-                    if (editingLocationId && String(point.id) === String(editingLocationId)) {
-                        return false
-                    }
-                    return true
-                }).map((point, index) => {
+                {visiblePoints.map((point, index) => {
                     let icon = locationIcons[point.type] || locationIcons.pickup_point
 
                     if (point.type === 'driving_school') {

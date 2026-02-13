@@ -3,8 +3,8 @@ import PushPinIcon from '@mui/icons-material/PushPin'
 import MapIcon from '@mui/icons-material/Map'
 
 const LOCATION_TYPES = [
-    { id: 'driving_school_non_drivago', label: 'Non-Drivago Driving Schools', icon: 'ND' },
-    { id: 'driving_school_drivago', label: 'Drivago Driving Schools', icon: 'D' },
+    { id: 'driving_school_non_drivago', label: 'Non-Drivago Driving Schools', icon: '🏫' },
+    { id: 'driving_school_drivago', label: 'Drivago Driving Schools', icon: '🚗' },
     { id: 'pickup_point', label: 'Pickup Points', icon: '📍' },
     { id: 'exam_center', label: 'Exam Centers', icon: '📝' }
 ]
