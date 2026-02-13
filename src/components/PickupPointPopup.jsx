@@ -144,10 +144,12 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
 
             // Only include agencyId when appropriate (driving_school requires it,
             // pickup_point may have it optionally, exam_center must not include it)
-            if (locationType == 'driving_school' && selectedAgency) {
+            if ((locationType == 'driving_school' || locationType == 'pickup_point') && selectedAgency) {
                 locationData.agencyId = parseInt(selectedAgency, 10)
                 const agency = filteredAgencies.find(a => a.agenceId === selectedAgency)
-                locationData.name = agency ? agency.nomAge : locationData.name
+                if (locationType == 'driving_school') {
+                    locationData.name = agency ? agency.nomAge : locationData.name
+                }
             }
 
             if (locationType == 'exam_center' && selectedExamCenter) {
@@ -165,6 +167,14 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
             // Notify parent of new location with agencies array
             if (onPickupPointCreated) {
                 const agency = agencies.find(a => String(a.agenceId) === String(selectedAgency))
+                // Build agencies array if an agency was assigned
+                const assignedAgencies = (locationType === 'pickup_point' && selectedAgency && agency)
+                    ? [{
+                        locationAgencyId: result.locationAgencyId || null,
+                        agencyId: parseInt(selectedAgency, 10),
+                        agencyName: agency.nomAge
+                    }]
+                    : []
                 onPickupPointCreated({
                     ...result,
                     latitude: locationData.latitude || latitude,
@@ -174,7 +184,7 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                     nameAr: locationData.nameAr,
                     type: locationData.type,
                     examCenterId: locationData.examCenterId || null,
-                    agencies: [],
+                    agencies: assignedAgencies,
                     needsRefresh: true
                 })
             }
@@ -299,55 +309,160 @@ function PickupPointPopup({ position, onClose, onPickupPointCreated, onCoordinat
                         </div>
 
                         {locationType == 'pickup_point' && (
+                            <>
                             <div style={{ display: 'flex', gap: '8px' }}>
-                            <div style={{ flex: 1 }}>
-                                <label 
-                                    htmlFor="pickupNameFr" 
-                                    style={{ 
-                                        display: 'block',
-                                        fontSize: '13px',
-                                        fontWeight: '500',
-                                        marginBottom: '8px',
-                                        color: 'var(--text-primary)'
+                                <div style={{ flex: 1 }}>
+                                    <label
+                                        htmlFor="pickupNameFr"
+                                        style={{
+                                            display: 'block',
+                                            fontSize: '13px',
+                                            fontWeight: '500',
+                                            marginBottom: '8px',
+                                            color: 'var(--text-primary)'
+                                        }}
+                                    >
+                                        Name (FR)
+                                    </label>
+                                    <input
+                                        id="pickupNameFr"
+                                        type="text"
+                                        value={pickupPointNameFr}
+                                        onChange={(e) => setPickupPointNameFr(e.target.value)}
+                                        placeholder="Enter name (FR)"
+                                        autoFocus
+                                        className="pickup-popup-input"
+                                    />
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                    <label
+                                        htmlFor="pickupNameAr"
+                                        style={{
+                                            display: 'block',
+                                            fontSize: '13px',
+                                            fontWeight: '500',
+                                            marginBottom: '8px',
+                                            color: 'var(--text-primary)'
+                                        }}
+                                    >
+                                        Name (AR)
+                                    </label>
+                                    <input
+                                        id="pickupNameAr"
+                                        type="text"
+                                        dir="rtl"
+                                        value={pickupPointNameAr}
+                                        onChange={(e) => setPickupPointNameAr(e.target.value)}
+                                        placeholder="أدخل الإسم (AR)"
+                                        className="pickup-popup-input"
+                                        style={{ textAlign: 'right' }}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Optional Agency Assignment for Pickup Point */}
+                            <div>
+                                <Autocomplete
+                                    options={filteredAgencies}
+                                    getOptionLabel={(option) => option.nomAge || ''}
+                                    value={filteredAgencies.find(a => a.agenceId === selectedAgency) || null}
+                                    onChange={(event, newValue) => {
+                                        if (newValue) {
+                                            setSelectedAgency(newValue.agenceId)
+                                            setSearchAgency(newValue.nomAge)
+                                        } else {
+                                            setSelectedAgency('')
+                                            setSearchAgency('')
+                                        }
                                     }}
-                                >
-                                    Name (FR)
-                                </label>
-                                <input
-                                    id="pickupNameFr"
-                                    type="text"
-                                    value={pickupPointNameFr}
-                                    onChange={(e) => setPickupPointNameFr(e.target.value)}
-                                    placeholder="Enter name (FR)"
-                                    autoFocus
-                                    className="pickup-popup-input"
+                                    inputValue={searchAgency}
+                                    onInputChange={(event, newInputValue) => {
+                                        setSearchAgency(newInputValue)
+                                    }}
+                                    renderInput={(params) => (
+                                        <TextField
+                                            {...params}
+                                            label="Assign Driving School (optional)"
+                                            placeholder="Search or select a driving school..."
+                                            variant="outlined"
+                                            size="small"
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                                    color: 'var(--text-primary)',
+                                                    '& fieldset': {
+                                                        borderColor: 'var(--border-color)',
+                                                    },
+                                                    '&:hover fieldset': {
+                                                        borderColor: 'var(--primary-light)',
+                                                    },
+                                                    '&.Mui-focused fieldset': {
+                                                        borderColor: 'var(--primary-light)',
+                                                    },
+                                                },
+                                                '& .MuiInputLabel-root': {
+                                                    color: 'var(--text-primary)',
+                                                    fontSize: '14px',
+                                                    '&.Mui-focused': {
+                                                        color: 'var(--primary-light)',
+                                                    },
+                                                },
+                                                '& .MuiInputBase-input': {
+                                                    color: 'var(--text-primary)',
+                                                },
+                                                '& .MuiSvgIcon-root': {
+                                                    color: 'var(--text-secondary)',
+                                                },
+                                            }}
+                                        />
+                                    )}
+                                    noOptionsText="No driving schools found"
+                                    clearOnEscape
+                                    sx={{
+                                        '& .MuiAutocomplete-popper': {
+                                            '& .MuiPaper-root': {
+                                                backgroundColor: '#1e293b',
+                                                color: 'var(--text-primary)',
+                                                borderRadius: '8px',
+                                                border: '1px solid var(--border-color)',
+                                            },
+                                            '& .MuiAutocomplete-option': {
+                                                '&:hover': {
+                                                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                                },
+                                                '&[aria-selected="true"]': {
+                                                    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                                                },
+                                            },
+                                        },
+                                    }}
+                                    componentsProps={{
+                                        popper: {
+                                            sx: {
+                                                '& .MuiPaper-root': {
+                                                    backgroundColor: '#1e293b',
+                                                    color: 'var(--text-primary)',
+                                                    borderRadius: '8px',
+                                                    border: '1px solid var(--border-color)',
+                                                },
+                                                '& .MuiAutocomplete-option': {
+                                                    color: 'var(--text-primary)',
+                                                    '&:hover': {
+                                                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                                                    },
+                                                    '&[aria-selected="true"]': {
+                                                        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                                                    },
+                                                },
+                                                '& .MuiAutocomplete-noOptions': {
+                                                    color: 'var(--text-secondary)',
+                                                },
+                                            },
+                                        },
+                                    }}
                                 />
                             </div>
-                            <div style={{ flex: 1 }}>
-                                <label 
-                                    htmlFor="pickupNameAr" 
-                                    style={{ 
-                                        display: 'block',
-                                        fontSize: '13px',
-                                        fontWeight: '500',
-                                        marginBottom: '8px',
-                                        color: 'var(--text-primary)'
-                                    }}
-                                >
-                                    Name (AR)
-                                </label>
-                                <input
-                                    id="pickupNameAr"
-                                    type="text"
-                                    dir="rtl"
-                                    value={pickupPointNameAr}
-                                    onChange={(e) => setPickupPointNameAr(e.target.value)}
-                                    placeholder="أدخل الإسم (AR)"
-                                    className="pickup-popup-input"
-                                    style={{ textAlign: 'right' }}
-                                />
-                            </div>
-                        </div>
+                            </>
                         )}
                         {locationType == 'driving_school' && (
                             <div style={{ display: 'flex', gap: '8px' }}>
