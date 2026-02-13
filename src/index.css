@@ -206,6 +206,16 @@ body {
   font-size: 14px;
 }
 
+.search-btn {
+  width: 40px;
+  height: 40px;
+  background-color: #2e3a4b;
+  color: white;
+  border: 1px solid #425061;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 .region-info__label {
   font-size: 11px;
   text-transform: uppercase;
@@ -236,7 +246,6 @@ body {
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
-  margin-bottom: 16px;
 }
 
 .level-badge--governorate {

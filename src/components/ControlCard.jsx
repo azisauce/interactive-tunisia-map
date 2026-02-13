@@ -1,6 +1,9 @@
+import { useState } from 'react'
 // import AgencyAssignment from './AgencyAssignment'
 import LocationControl from './LocationControl'
 import AddLocationsToggle from './AddLocationsToggle'
+import SearchIcon from '@mui/icons-material/Search';
+import CloseIcon from '@mui/icons-material/Close';
 
 function ControlCard({ 
     currentLevel, 
@@ -36,6 +39,8 @@ function ControlCard({
     }
 
     const levelInfo = getLevelInfo()
+
+    const [showSearchBox, setShowSearchBox] = useState(false)
 
     // Get the correct name based on the level context
     const getRegionNameForLevel = (region, level) => {
@@ -137,10 +142,32 @@ function ControlCard({
             </div>
 
             {/* Current Level Badge */}
-            <div className={`level-badge level-badge--${currentLevel}`}>
-                <span>{levelInfo.icon}</span>
-                <span>Viewing {levelInfo.label}</span>
+            <div style={{display:"flex", justifyContent: "space-between", alignItems: "center", marginBlock: "12px"}}>
+                <div className={`level-badge level-badge--${currentLevel}`}>
+                    <span>{levelInfo.icon}</span>
+                    <span>Viewing {levelInfo.label}</span>
+                </div>
+                <div>
+                    <button
+                        className="search-btn"
+                        onClick={() => setShowSearchBox(prev => !prev)}
+                        aria-expanded={showSearchBox}
+                        aria-label="Toggle search"
+                    >
+                        {showSearchBox ? <CloseIcon style={{ fontSize: 18 }} /> : <SearchIcon style={{ fontSize: 18 }} />}
+                    </button>
+                </div>
             </div>
+
+            {showSearchBox && (
+                <div className="search-panel" style={{ border: '1px solid var(--border)', padding: '8px', marginBottom: '12px', borderRadius: '6px' }}>
+                    <input
+                        type="text"
+                        placeholder={`Search ${levelInfo.label}`}
+                        style={{ width: '100%', padding: '8px', fontSize: '13px' }}
+                    />
+                </div>
+            )}
 
             {/* Hovered Region Info */}
             {hoveredName && (
