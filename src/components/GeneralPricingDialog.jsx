@@ -10,8 +10,8 @@ import { fetchGeneralPricing } from '../utils/api'
 
 function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Pricing', body = 'Confirm the pricing action.' }) {
     const [items, setItems] = useState([])
-
     const [values, setValues] = useState({})
+    const [initialValues, setInitialValues] = useState({})
 
     useEffect(() => {
         if (open) {
@@ -53,6 +53,7 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                 const initial = {}
                 mapped.forEach(m => { initial[m.key] = m.price != null ? m.price : '' })
                 setValues(initial)
+                setInitialValues(initial)
             } catch (err) {
                 console.error('Failed to fetch general pricing:', err)
             }
@@ -64,6 +65,19 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
         if (v !== '' && (Number.isNaN(v) || v < 0)) v = 0
         setValues(prev => ({ ...prev, [id]: v }))
     }
+
+    const hasChanges = (() => {
+        if (!items || items.length === 0) return false
+        for (const item of items) {
+            const k = item.key
+            const cur = values[k]
+            const orig = initialValues[k]
+            const ncur = cur === '' ? '' : Number(cur)
+            const norig = orig === '' ? '' : Number(orig)
+            if (ncur !== norig) return true
+        }
+        return false
+    })()
 
     return (
         <Dialog
@@ -98,6 +112,7 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                         if (onClose) onClose()
                     }}
                     className="general-pricing-dialog__confirm"
+                    disabled={!hasChanges}
                 >
                     Confirm
                 </Button>

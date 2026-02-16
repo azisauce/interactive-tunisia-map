@@ -464,6 +464,25 @@ body {
   filter: brightness(0.95);
 }
 
+/* Disabled confirm button appearance */
+.general-pricing-dialog__confirm[disabled],
+.general-pricing-dialog__confirm.Mui-disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none !important;
+  background: linear-gradient(135deg, rgba(148,163,184,0.06), rgba(148,163,184,0.03));
+  color: var(--text-secondary) !important;
+  transform: none !important;
+  pointer-events: none;
+  border: 1px solid var(--border-color);
+}
+
+.general-pricing-dialog__confirm[disabled]:hover,
+.general-pricing-dialog__confirm.Mui-disabled:hover {
+  transform: none;
+  filter: none;
+}
+
 .switch input {
   opacity: 0;
   width: 0;
