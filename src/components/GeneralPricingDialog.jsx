@@ -9,20 +9,17 @@ import TextField from '@mui/material/TextField'
 import { fetchGeneralPricing } from '../utils/api'
 
 function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Pricing', body = 'Confirm the pricing action.' }) {
-    const items = [
-        { id: 'frais_code', label: "Frai d'inscription (Code)" },
-        { id: 'frais_conduit', label: "Frai d'inscription (Conduit)" },
-        { id: 'seance_code', label: 'Séance Code' },
-        { id: 'seance_conduit', label: 'Séance Conduit' },
-        { id: 'seance_recyclage', label: 'Séance Recyclage' },
-    ]
+    const [items, setItems] = useState([])
 
     const [values, setValues] = useState({})
 
     useEffect(() => {
         if (open) {
             const initial = {}
-            items.forEach(i => { initial[i.id] = '' })
+            // initialize from current items if we already fetched them
+            if (items && items.length > 0) {
+                items.forEach(i => { initial[i.key] = i.price != null ? i.price : '' })
+            }
             setValues(initial)
         }
     }, [open])
@@ -34,6 +31,28 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
             try {
                 const resp = await fetchGeneralPricing()
                 console.log('general pricing response:', resp)
+                // resp is expected to be an array of rows: { id, label, price, reference, category }
+                const mapped = (resp || []).map(r => ({
+                    key: r.reference || String(r.id),
+                    reference: r.reference || null,
+                    id: r.id,
+                    label: r.label,
+                    price: r.price
+                }))
+                // Desired custom ordering by reference
+                const order = ['enrollement-fees', 'conduit-exam-fees', 'conduite-session', 'recyclage-session']
+                mapped.sort((a, b) => {
+                    const ia = order.indexOf(a.reference)
+                    const ib = order.indexOf(b.reference)
+                    const va = ia === -1 ? Number.POSITIVE_INFINITY : ia
+                    const vb = ib === -1 ? Number.POSITIVE_INFINITY : ib
+                    return va - vb
+                })
+                setItems(mapped)
+                // initialize values from fetched prices
+                const initial = {}
+                mapped.forEach(m => { initial[m.key] = m.price != null ? m.price : '' })
+                setValues(initial)
             } catch (err) {
                 console.error('Failed to fetch general pricing:', err)
             }
@@ -56,15 +75,15 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
             <DialogContent className="general-pricing-dialog__content">
                 <ul className="general-pricing-dialog__list">
                     {items.map(item => (
-                        <li key={item.id} className="general-pricing-dialog__item">
+                        <li key={item.key} className="general-pricing-dialog__item">
                             <span className="general-pricing-dialog__label">{item.label}</span>
                             <TextField
                                 className="general-pricing-dialog__number"
                                 type="number"
                                 size="small"
                                 inputProps={{ min: 0 }}
-                                value={values[item.id] ?? ''}
-                                onChange={e => handleChange(item.id, e.target.value)}
+                                value={values[item.key] ?? ''}
+                                onChange={e => handleChange(item.key, e.target.value)}
                             />
                         </li>
                     ))}
