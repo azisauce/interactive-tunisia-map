@@ -6,6 +6,8 @@ import LocationControl from './LocationControl'
 import AddLocationsToggle from './AddLocationsToggle'
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import GeneralPricingDialog from './GeneralPricingDialog'
 
 function ControlCard({ 
     currentLevel, 
@@ -27,6 +29,7 @@ function ControlCard({
     zoneColorFilters,
     onZoneColorFilterChange,
     onAgencySelect,
+    onMoneyClick,
     locations = []
 }) {
     const getLevelInfo = () => {
@@ -50,6 +53,7 @@ function ControlCard({
     const [agencies, setAgencies] = useState([])
     const [loadingAgencies, setLoadingAgencies] = useState(false)
     const [agenciesError, setAgenciesError] = useState(null)
+    const [moneyDialogOpen, setMoneyDialogOpen] = useState(false)
 
     // Load active agencies and filter to those with coordinates
     useEffect(() => {
@@ -167,13 +171,31 @@ function ControlCard({
                 </div>
 
                 {/* Add Locations Toggle (applies to all layers) */}
-                <AddLocationsToggle 
-                    value={enableAddLocations}
-                    onChange={onToggleAddLocations}
-                    onToggleOn={onToggleAddLocationsOn}
-                    onTypeSelect={onTypeSelect}
-                />
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <AddLocationsToggle 
+                        value={enableAddLocations}
+                        onChange={onToggleAddLocations}
+                        onToggleOn={onToggleAddLocationsOn}
+                        onTypeSelect={onTypeSelect}
+                    />
+                    <button
+                        type="button"
+                        className="add-toggle-button"
+                        onClick={() => setMoneyDialogOpen(true)}
+                        aria-label="Money"
+                        title="Money"
+                    >
+                        <AttachMoneyIcon style={{ fontSize: 20 }} />
+                    </button>
+                </div>
             </div>
+            <GeneralPricingDialog
+                open={moneyDialogOpen}
+                onClose={() => setMoneyDialogOpen(false)}
+                onConfirm={() => { if (onMoneyClick) onMoneyClick() }}
+                title="Money Action"
+                body="Confirm performing the money-related action."
+            />
 
             {/* Current Level Badge */}
             <div style={{display:"flex", justifyContent: "space-between", alignItems: "center", marginBlock: "12px"}}>

@@ -419,6 +419,51 @@ body {
   height: 28px;
 }
 
+/* GeneralPricingDialog styling follows app theme variables */
+.general-pricing-dialog__paper {
+  background: rgb(24 34 57) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  min-width: 420px;
+  padding: 12px;
+}
+
+.general-pricing-dialog__title {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 28px !important;
+  padding-inline: 12px !important;
+}
+
+.general-pricing-dialog__content {
+  color: var(--text-secondary);
+  padding-top: 0;
+  padding-inline: 12px !important;
+}
+
+.general-pri12cing-dialog__body {
+  color: var(--text-secondary);
+}
+
+.general-pricing-dialog__actions {
+  padding: 12px;
+}
+
+.general-pricing-dialog__cancel {
+  color: var(--text-primary);
+}
+
+.general-pricing-dialog__confirm {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(37,99,235,0.28);
+}
+
+.general-pricing-dialog__confirm:hover {
+  filter: brightness(0.95);
+}
+
 .switch input {
   opacity: 0;
   width: 0;
@@ -866,6 +911,29 @@ body {
     transform: translateY(0);
     opacity: 1;
   }
+}
+.general-pricing-dialog__list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0 0 0;
+}
+
+.general-pricing-dialog__item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.01);
+  margin-bottom: 8px;
+  font-size: 20px;
+  padding: 16px;
+}
+
+.general-pricing-dialog__item:nth-child(odd) {
+  background: rgba(255,255,255,0.02);
+}
+
+.general-pricing-dialog__item:last-child {
+  margin-bottom: 0;
 }
 
 /* Temporary Draggable Marker Styles */
