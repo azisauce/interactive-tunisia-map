@@ -6,12 +6,14 @@ import DialogActions from '@mui/material/DialogActions'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { fetchGeneralPricing } from '../utils/api'
 
 function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Pricing', body = 'Confirm the pricing action.' }) {
     const [items, setItems] = useState([])
     const [values, setValues] = useState({})
     const [initialValues, setInitialValues] = useState({})
+    const [expanded, setExpanded] = useState({})
 
     useEffect(() => {
         if (open) {
@@ -36,6 +38,7 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                     key: r.reference || String(r.id),
                     reference: r.reference || null,
                     id: r.id,
+                    default_count: r.default_count ?? null,
                     label: r.label,
                     price: r.price
                 }))
@@ -54,6 +57,10 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                 mapped.forEach(m => { initial[m.key] = m.price != null ? m.price : '' })
                 setValues(initial)
                 setInitialValues(initial)
+                // reset expanded state
+                const exp = {}
+                mapped.forEach(m => { exp[m.key] = false })
+                setExpanded(exp)
             } catch (err) {
                 console.error('Failed to fetch general pricing:', err)
             }
@@ -90,15 +97,30 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                 <ul className="general-pricing-dialog__list">
                     {items.map(item => (
                         <li key={item.key} className="general-pricing-dialog__item">
-                            <span className="general-pricing-dialog__label">{item.label}</span>
-                            <TextField
-                                className="general-pricing-dialog__number"
-                                type="number"
-                                size="small"
-                                inputProps={{ min: 0 }}
-                                value={values[item.key] ?? ''}
-                                onChange={e => handleChange(item.key, e.target.value)}
-                            />
+                            <div className="general-pricing-dialog__row">
+                                {item.default_count != null && (
+                                    <button
+                                        type="button"
+                                        aria-expanded={!!expanded[item.key]}
+                                        onClick={() => setExpanded(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
+                                        className={`general-pricing-dialog__toggle ${expanded[item.key] ? 'expanded' : ''}`}
+                                    >
+                                        <ExpandMoreIcon style={{ fontSize: 18 }} />
+                                    </button>
+                                )}
+                                <span className="general-pricing-dialog__label">{item.label}</span>
+                                <TextField
+                                    className="general-pricing-dialog__number"
+                                    type="number"
+                                    size="small"
+                                    inputProps={{ min: 0 }}
+                                    value={values[item.key] ?? ''}
+                                    onChange={e => handleChange(item.key, e.target.value)}
+                                />
+                            </div>
+                            {expanded[item.key] && (
+                                <div className="general-pricing-dialog__expanded">Default count: {item.default_count}</div>
+                            )}
                         </li>
                     ))}
                 </ul>
