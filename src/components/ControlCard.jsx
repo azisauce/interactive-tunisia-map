@@ -337,6 +337,7 @@ function ControlCard({
                 zoneColorFilters={zoneColorFilters}
                 onZoneColorFilterChange={onZoneColorFilterChange}
                 locations={locations}
+                selectedRegion={selectedRegion}
             />
 
             {currentLevel === 'sector' && (

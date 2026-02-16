@@ -22,7 +22,8 @@ function LocationControl({
     onLocationTypeFilterChange,
     zoneColorFilters,
     onZoneColorFilterChange,
-    locations = []
+    locations = [],
+    selectedRegion = null
 }) {
     const [expanded, setExpanded] = useState(true)
     
@@ -30,7 +31,35 @@ function LocationControl({
     const getLocationCount = (typeId) => {
         if (!locations || locations.length === 0) return 0
 
-        console.log('EXAM CENTERS ===>', locations.filter(loc => loc.type === 'exam_center'));
+        const isGouvernorate = selectedRegion && (
+            selectedRegion.sec_uid === null && selectedRegion.mun_uid === null
+        )
+        const isMunicipality = selectedRegion && (
+            selectedRegion.sec_uid === null && selectedRegion.mun_uid !== null
+        )
+        const isSector = selectedRegion && (
+            selectedRegion.sec_uid !== null
+        )
+
+        // console.log('isGouvernorate:', isGouvernorate);
+        // console.log('isMunicipality:', isMunicipality);
+        // console.log('isSector:', isSector);
+
+        // console.log('DRIVAGO ===>', locations.filter(loc => loc.type === 'driving_school' && loc.showInDrivago));
+        // console.log('NON DRIVAGO ===>', locations.filter(loc => loc.type === 'driving_school' && !loc.showInDrivago));
+        // console.log('EXAM CENTERS ===>', locations.filter(loc => loc.type === 'exam_center'));
+
+        locations = locations.filter(loc => {
+            if (isGouvernorate) {
+                return loc.govId == selectedRegion.gov_id
+            } else if (isMunicipality) {
+                return loc.munUid == selectedRegion.mun_uid
+            } else if (isSector) {
+                return loc.secUid == selectedRegion.sec_uid
+            }
+            return true
+        });
+        // console.log('Filtered locations:', locations)
         
         switch(typeId) {
             case 'driving_school_non_drivago':
