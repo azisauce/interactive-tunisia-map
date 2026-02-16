@@ -193,8 +193,7 @@ function ControlCard({
                 open={moneyDialogOpen}
                 onClose={() => setMoneyDialogOpen(false)}
                 onConfirm={() => { if (onMoneyClick) onMoneyClick() }}
-                title="Money Action"
-                body="Confirm performing the money-related action."
+                title="General Pricing"
             />
 
             {/* Current Level Badge */}

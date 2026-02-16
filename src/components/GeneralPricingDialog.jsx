@@ -6,14 +6,14 @@ import DialogActions from '@mui/material/DialogActions'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import { fetchGeneralPricing } from '../utils/api'
+// Expand toggle removed — expanded area is always visible when applicable
+import { fetchGeneralPricing, updateGeneralPricing } from '../utils/api'
 
 function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Pricing', body = 'Confirm the pricing action.' }) {
     const [items, setItems] = useState([])
     const [values, setValues] = useState({})
     const [initialValues, setInitialValues] = useState({})
-    const [expanded, setExpanded] = useState({})
+    // expanded state removed; expanded area will always render when item.default_count is present
 
     useEffect(() => {
         if (open) {
@@ -63,10 +63,7 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                 })
                 setValues(initial)
                 setInitialValues(initial)
-                // reset expanded state
-                const exp = {}
-                mapped.forEach(m => { exp[m.key] = false })
-                setExpanded(exp)
+                // no expanded state to initialize
             } catch (err) {
                 console.error('Failed to fetch general pricing:', err)
             }
@@ -98,6 +95,8 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
         return false
     })()
 
+    const [isSaving, setIsSaving] = useState(false)
+
     return (
         <Dialog
             open={open}
@@ -110,16 +109,7 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                     {items.map(item => (
                         <li key={item.key} className="general-pricing-dialog__item">
                             <div className="general-pricing-dialog__row">
-                                {item.default_count != null && (
-                                    <button
-                                        type="button"
-                                        aria-expanded={!!expanded[item.key]}
-                                        onClick={() => setExpanded(prev => ({ ...prev, [item.key]: !prev[item.key] }))}
-                                        className={`general-pricing-dialog__toggle ${expanded[item.key] ? 'expanded' : ''}`}
-                                    >
-                                        <ExpandMoreIcon style={{ fontSize: 18 }} />
-                                    </button>
-                                )}
+                                {item.default_count != null && null}
                                 <span className="general-pricing-dialog__label">{item.label}</span>
                                 <TextField
                                     className="general-pricing-dialog__number"
@@ -130,7 +120,7 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                                     onChange={e => handleChange(item.key, e.target.value)}
                                 />
                             </div>
-                            {expanded[item.key] && (
+                            {item.default_count != null && (
                                 <div className="general-pricing-dialog__expanded">
                                     <TextField
                                         label="Default count"
@@ -151,14 +141,57 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                 <Button onClick={onClose} className="general-pricing-dialog__cancel">Cancel</Button>
                 <Button
                     variant="contained"
-                    onClick={() => {
-                        if (onConfirm && typeof onConfirm === 'function') onConfirm(values)
-                        if (onClose) onClose()
-                    }}
+                        onClick={async () => {
+                            if (isSaving) return
+                            // Build payload with only changed fields
+                            const updates = []
+                            for (const item of items) {
+                                const k = item.key
+                                const curPrice = values[k]
+                                const origPrice = initialValues[k]
+                                const ncurPrice = curPrice === '' ? '' : Number(curPrice)
+                                const norigPrice = origPrice === '' ? '' : Number(origPrice)
+
+                                const curCount = values[`${k}_count`]
+                                const origCount = initialValues[`${k}_count`]
+                                const ncurCount = curCount === '' ? '' : Number(curCount)
+                                const norigCount = origCount === '' ? '' : Number(origCount)
+
+                                const changed = {}
+                                if (ncurPrice !== norigPrice) changed.price = (ncurPrice === '' ? null : ncurPrice)
+                                if (ncurCount !== norigCount) changed.default_count = (ncurCount === '' ? null : ncurCount)
+                                if (Object.keys(changed).length > 0) {
+                                    updates.push({ id: item.id, reference: item.reference, ...changed })
+                                }
+                            }
+
+                            if (updates.length === 0) return
+
+                            setIsSaving(true)
+                            try {
+                                const resp = await updateGeneralPricing({ updates })
+                                // update initialValues to reflect saved values so Confirm disables
+                                const nextInitial = { ...initialValues }
+                                for (const u of updates) {
+                                    const key = u.reference || String(u.id)
+                                    if ('price' in u) nextInitial[key] = u.price
+                                    if ('default_count' in u) nextInitial[`${key}_count`] = u.default_count
+                                }
+                                setInitialValues(nextInitial)
+                                // reflect saved initial values in values as well (keep inputs)
+                                setValues(prev => ({ ...prev, ...nextInitial }))
+                                if (onConfirm && typeof onConfirm === 'function') onConfirm(resp)
+                                // do NOT close the dialog per request
+                            } catch (err) {
+                                console.error('Failed to update general pricing:', err)
+                            } finally {
+                                setIsSaving(false)
+                            }
+                        }}
                     className="general-pricing-dialog__confirm"
-                    disabled={!hasChanges}
+                    disabled={!hasChanges || isSaving}
                 >
-                    Confirm
+                    {isSaving ? 'Saving...' : 'Confirm'}
                 </Button>
             </DialogActions>
         </Dialog>
