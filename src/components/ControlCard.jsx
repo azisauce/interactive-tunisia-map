@@ -6,17 +6,19 @@ import LocationControl from './LocationControl'
 import AddLocationsToggle from './AddLocationsToggle'
 import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
+import EditIcon from '@mui/icons-material/Edit';
+import PricingDialog from './PricingDialog';
 
-function ControlCard({ 
-    currentLevel, 
-    selectedRegion, 
-    hoveredRegion, 
-    navigationPath, 
-    onBack, 
-    onReset, 
-    onNavigate, 
-    onLevelChange, 
-    showLocations = true, 
+function ControlCard({
+    currentLevel,
+    selectedRegion,
+    hoveredRegion,
+    navigationPath,
+    onBack,
+    onReset,
+    onNavigate,
+    onLevelChange,
+    showLocations = true,
     onToggleLocations,
     locationTypeFilters,
     onLocationTypeFilterChange,
@@ -50,6 +52,7 @@ function ControlCard({
     const [agencies, setAgencies] = useState([])
     const [loadingAgencies, setLoadingAgencies] = useState(false)
     const [agenciesError, setAgenciesError] = useState(null)
+    const [pricingDialogOpen, setPricingDialogOpen] = useState(false)
 
     // Load active agencies and filter to those with coordinates
     useEffect(() => {
@@ -58,7 +61,7 @@ function ControlCard({
                 setLoadingAgencies(true)
                 const data = await (await import('../utils/api')).fetchActiveAgencies()
                 console.log('data from API:', data);
-                
+
                 // Filter agencies that have coordinate info (latitude/longitude or lat/lng)
                 const filtered = (data || []).filter(a => {
                     const lat = a.lat
@@ -80,7 +83,7 @@ function ControlCard({
     const getRegionNameForLevel = (region, level) => {
         if (!region) return null
         const props = region.properties
-        
+
         if (level === 'governorate') {
             return {
                 en: props.gov_en || 'Unknown',
@@ -97,7 +100,7 @@ function ControlCard({
                 ar: props.sec_ar || ''
             }
         }
-        
+
         return {
             en: props.gov_en || props.mun_en || props.sec_en || 'Unknown',
             ar: props.gov_ar || props.mun_ar || props.sec_ar || ''
@@ -114,13 +117,13 @@ function ControlCard({
     // Get the selected region name - show the parent region name for drill-down levels
     // or the selected item itself for sectors
     const selectedName = selectedRegion ? (
-        currentLevel === 'governorate' 
+        currentLevel === 'governorate'
             ? getRegionNameForLevel(selectedRegion, 'governorate')
             : currentLevel === 'municipality'
-            ? getRegionNameForLevel(selectedRegion, 'governorate')
-            : getRegionNameForLevel(selectedRegion, 'sector') // Show sector name at sector level
+                ? getRegionNameForLevel(selectedRegion, 'governorate')
+                : getRegionNameForLevel(selectedRegion, 'sector') // Show sector name at sector level
     ) : null
-    
+
     const hoveredName = hoveredRegion ? getRegionNameForLevel(hoveredRegion, currentLevel) : null
     const hoveredType = hoveredRegion ? getRegionType(currentLevel) : null
 
@@ -147,7 +150,7 @@ function ControlCard({
     return (
         <div className="control-card">
             <div className='header-card'>
-               {/* Breadcrumb Navigation */}
+                {/* Breadcrumb Navigation */}
                 <div className="breadcrumb">
                     {breadcrumbs.map((crumb, index) => (
                         <div key={index} className="breadcrumb__item">
@@ -167,7 +170,7 @@ function ControlCard({
                 </div>
 
                 {/* Add Locations Toggle (applies to all layers) */}
-                <AddLocationsToggle 
+                <AddLocationsToggle
                     value={enableAddLocations}
                     onChange={onToggleAddLocations}
                     onToggleOn={onToggleAddLocationsOn}
@@ -176,7 +179,7 @@ function ControlCard({
             </div>
 
             {/* Current Level Badge */}
-            <div style={{display:"flex", justifyContent: "space-between", alignItems: "center", marginBlock: "12px"}}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBlock: "12px" }}>
                 <div className={`level-badge level-badge--${currentLevel}`}>
                     <span>{levelInfo.icon}</span>
                     <span>Viewing {levelInfo.label}</span>
@@ -293,8 +296,17 @@ function ControlCard({
             {/* Selected Region Info - show when not hovering or when at sector level */}
             {selectedName && (!hoveredName || currentLevel === 'sector') && (
                 <div className={`region-info ${hoveredName ? 'region-info--selected-small' : ''}`}>
-                    <div className="region-info__label">
-                        {currentLevel === 'sector' ? 'Selected Sector' : 'Selected Region'}
+                    <div className="region-info__header-with-edit">
+                        <div className="region-info__label">
+                            {currentLevel === 'sector' ? 'Selected Sector' : 'Selected Region'}
+                        </div>
+                        <button
+                            className="pricing-edit-btn"
+                            onClick={() => setPricingDialogOpen(true)}
+                            title="Edit pricing"
+                        >
+                            <EditIcon fontSize="small" />
+                        </button>
                     </div>
                     <div className="region-info__name">{selectedName.en}</div>
                     <div className="region-info__name-ar">{selectedName.ar}</div>
@@ -306,19 +318,19 @@ function ControlCard({
                 <div className="view-selector">
                     <div className="view-selector__label">Split Map By:</div>
                     <div className="view-selector__group">
-                        <button 
+                        <button
                             className={`view-selector__btn ${currentLevel === 'governorate' ? 'view-selector__btn--active' : ''}`}
                             onClick={() => onLevelChange('governorate')}
                         >
                             🏛️ Governorates
                         </button>
-                        <button 
+                        <button
                             className={`view-selector__btn ${currentLevel === 'municipality' ? 'view-selector__btn--active' : ''}`}
                             onClick={() => onLevelChange('municipality')}
                         >
                             🏘️ Municipalities
                         </button>
-                        <button 
+                        <button
                             className={`view-selector__btn ${currentLevel === 'sector' ? 'view-selector__btn--active' : ''}`}
                             onClick={() => onLevelChange('sector')}
                         >
@@ -329,7 +341,7 @@ function ControlCard({
             )}
 
             {/* Location Control Component */}
-            <LocationControl 
+            <LocationControl
                 showLocations={showLocations}
                 onToggleLocations={onToggleLocations}
                 locationTypeFilters={locationTypeFilters}
@@ -367,6 +379,13 @@ function ControlCard({
                     </button>
                 )}
             </div>
+
+            {/* Pricing Dialog */}
+            <PricingDialog
+                open={pricingDialogOpen}
+                onClose={() => setPricingDialogOpen(false)}
+                selectedRegion={selectedRegion}
+            />
         </div>
     )
 }
