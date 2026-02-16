@@ -351,3 +351,39 @@ export async function updateAgencyShowInDrivago(agencyId, showInDrivago) {
 
     return response.json()
 }
+
+// ========== General Pricing API ==========
+
+export async function fetchGeneralPricing() {
+    const response = await fetch(`${API_BASE_URL}/general-pricing`, {
+        headers: getAuthHeaders()
+    })
+    if (!response.ok) {
+        throw new Error('Failed to fetch general pricing')
+    }
+    return response.json()
+}
+
+export async function updateGeneralPricing(pricing) {
+    const response = await fetch(`${API_BASE_URL}/general-pricing`, {
+        method: 'PUT',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(pricing)
+    })
+
+    if (!response.ok) {
+        const contentType = response.headers.get('content-type') || ''
+        let text = await response.text().catch(() => '')
+        if (contentType.includes('application/json')) {
+            try {
+                const j = JSON.parse(text)
+                text = j?.error || j?.message || text
+            } catch (e) {
+                // ignore JSON parse errors
+            }
+        }
+        throw new Error(text || 'Failed to update general pricing')
+    }
+
+    return response.json()
+}

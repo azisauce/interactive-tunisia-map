@@ -6,6 +6,7 @@ import DialogActions from '@mui/material/DialogActions'
 import Button from '@mui/material/Button'
 import Typography from '@mui/material/Typography'
 import TextField from '@mui/material/TextField'
+import { fetchGeneralPricing } from '../utils/api'
 
 function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Pricing', body = 'Confirm the pricing action.' }) {
     const items = [
@@ -24,6 +25,19 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
             items.forEach(i => { initial[i.id] = '' })
             setValues(initial)
         }
+    }, [open])
+
+    useEffect(() => {
+        if (!open) return
+
+        ;(async () => {
+            try {
+                const resp = await fetchGeneralPricing()
+                console.log('general pricing response:', resp)
+            } catch (err) {
+                console.error('Failed to fetch general pricing:', err)
+            }
+        })()
     }, [open])
 
     const handleChange = (id, raw) => {
