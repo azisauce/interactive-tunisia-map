@@ -919,6 +919,9 @@ body {
 }
 
 .general-pricing-dialog__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 10px 12px;
   border-radius: 8px;
   color: var(--text-primary);
@@ -934,6 +937,26 @@ body {
 
 .general-pricing-dialog__item:last-child {
   margin-bottom: 0;
+}
+
+.general-pricing-dialog__label {
+  flex: 1 1 auto;
+  margin-right: 12px;
+}
+
+.general-pricing-dialog__number {
+  width: 80px;
+  background-color: #324266;
+  border-radius: 12px;
+}
+
+.general-pricing-dialog__number .MuiOutlinedInput-root {
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
+}
+
+.general-pricing-dialog__number .MuiInputBase-input {
+  color: var(--text-primary);
 }
 
 /* Temporary Draggable Marker Styles */
