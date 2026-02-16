@@ -745,16 +745,14 @@ function TunisiaMap({
             nameAr = ''
         }
 
-        layer.bindTooltip(`${nameEn}<br/><span style="direction:rtl">${nameAr}</span>`, {
-            permanent: false,
-            direction: 'top',
-            className: 'custom-tooltip'
-        })
+        // Tooltip removed: hover name display previously bound here was
+        // causing the browser tooltip to appear on hover. Keeping hover
+        // visual styles and callbacks but not binding any tooltip content.
 
         const addableLevels = new Set(['sector', 'municipality', 'governorate'])
 
         layer.on({
-            mouseover: (e) => {
+                mouseover: (e) => {
                 // Skip hover effects when in edit or add mode
                 if (enableAddLocationsRef.current || isEditingLocationRef.current) return
 
@@ -763,7 +761,7 @@ function TunisiaMap({
                 const hoverStyle = Object.assign({}, baseStyle, levelStyles.hover || {})
                 try { target.setStyle(hoverStyle) } catch (err) { }
                 try { target.bringToFront() } catch (err) { }
-                try { target.openTooltip() } catch (err) { }
+                // Tooltip opening removed (no tooltip content bound)
                 // Notify parent about hover - but only if no popup or temp marker is open to avoid re-rendering
                 // which causes input focus issues
                 if (!pickupPopupPosition && !tempMarkerPosition) {
@@ -777,7 +775,7 @@ function TunisiaMap({
                 const target = e.target
                 const originalStyle = target.__baseStyle || getStyle(feature) || levelStyles.default
                 try { target.setStyle(originalStyle) } catch (err) { }
-                try { target.closeTooltip() } catch (err) { }
+                // Tooltip closing removed
 
                 // Clear hover state
                 if (!pickupPopupPosition && !tempMarkerPosition) {
