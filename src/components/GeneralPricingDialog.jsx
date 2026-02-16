@@ -20,7 +20,11 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
             const initial = {}
             // initialize from current items if we already fetched them
             if (items && items.length > 0) {
-                items.forEach(i => { initial[i.key] = i.price != null ? i.price : '' })
+                items.forEach(i => {
+                    initial[i.key] = i.price != null ? i.price : ''
+                    // initialize editable default count key as well
+                    initial[`${i.key}_count`] = i.default_count != null ? i.default_count : ''
+                })
             }
             setValues(initial)
         }
@@ -32,7 +36,6 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
         ;(async () => {
             try {
                 const resp = await fetchGeneralPricing()
-                console.log('general pricing response:', resp)
                 // resp is expected to be an array of rows: { id, label, price, reference, category }
                 const mapped = (resp || []).map(r => ({
                     key: r.reference || String(r.id),
@@ -52,9 +55,12 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                     return va - vb
                 })
                 setItems(mapped)
-                // initialize values from fetched prices
+                // initialize values from fetched prices and default counts
                 const initial = {}
-                mapped.forEach(m => { initial[m.key] = m.price != null ? m.price : '' })
+                mapped.forEach(m => {
+                    initial[m.key] = m.price != null ? m.price : ''
+                    initial[`${m.key}_count`] = m.default_count != null ? m.default_count : ''
+                })
                 setValues(initial)
                 setInitialValues(initial)
                 // reset expanded state
@@ -82,6 +88,12 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
             const ncur = cur === '' ? '' : Number(cur)
             const norig = orig === '' ? '' : Number(orig)
             if (ncur !== norig) return true
+            // also check default count field
+            const curCount = values[`${k}_count`]
+            const origCount = initialValues[`${k}_count`]
+            const ncurCount = curCount === '' ? '' : Number(curCount)
+            const norigCount = origCount === '' ? '' : Number(origCount)
+            if (ncurCount !== norigCount) return true
         }
         return false
     })()
@@ -119,7 +131,17 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                                 />
                             </div>
                             {expanded[item.key] && (
-                                <div className="general-pricing-dialog__expanded">Default count: {item.default_count}</div>
+                                <div className="general-pricing-dialog__expanded">
+                                    <TextField
+                                        label="Default count"
+                                        className="general-pricing-dialog__default-count"
+                                        type="number"
+                                        size="small"
+                                        inputProps={{ min: 0 }}
+                                        value={values[`${item.key}_count`] ?? ''}
+                                        onChange={e => handleChange(`${item.key}_count`, e.target.value)}
+                                    />
+                                </div>
                             )}
                         </li>
                     ))}

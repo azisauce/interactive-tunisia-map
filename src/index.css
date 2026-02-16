@@ -1012,12 +1012,31 @@ body {
 
 .general-pricing-dialog__expanded {
   margin-top: 8px;
-  margin-left: 44px; /* align with label input area */
   padding: 8px 12px;
-  background: rgba(255,255,255,0.02);
   color: var(--text-secondary);
   border-radius: 8px;
   font-size: 13px;
+  width: 100%;
+}
+
+.general-pricing-dialog__default-count {
+  background: rgba(255, 255, 255, 0.068);
+  border-radius: 8px;
+}
+.css-1xp5r68-MuiFormControl-root-MuiTextField-root {
+  color: var(--text-primary);
+}
+
+.general-pricing-dialog__default-count .MuiInputBase-input {
+  color: var(--text-primary);
+}
+
+/* Label color for the Default count TextField */
+.general-pricing-dialog__default-count .MuiInputLabel-root {
+  color: var(--text-secondary);
+}
+.general-pricing-dialog__default-count .MuiInputLabel-root.Mui-focused {
+  color: var(--primary-light);
 }
 
 /* Temporary Draggable Marker Styles */
