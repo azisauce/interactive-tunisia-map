@@ -53,6 +53,8 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
                     const vb = ib === -1 ? Number.POSITIVE_INFINITY : ib
                     return va - vb
                 })
+                console.log('Mapped and sorted items:', mapped)
+                
                 setItems(mapped)
                 // initialize values from fetched prices and default counts
                 const initial = {}
@@ -92,7 +94,7 @@ function GeneralPricingDialog({ open = false, onClose, onConfirm, title = 'Prici
             if (ncurCount !== norigCount) return true
         }
         return false
-    })()
+    })();
 
     const [isSaving, setIsSaving] = useState(false)
 

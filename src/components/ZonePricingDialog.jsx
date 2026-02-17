@@ -13,27 +13,15 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
     const [initialValues, setInitialValues] = useState({})
     const [isSaving, setIsSaving] = useState(false)
 
-    const getKey = (item, idx) => {
-        if (item == null) return `item_${idx}`
-        if (item.id != null) return String(item.id)
-        const t = item.type != null ? item.type : 'type'
-        const l = item.location_id != null ? String(item.location_id) : 'loc'
-        return `${t}_${l}`
-    }
-
     useEffect(() => {
         if (open) {
             const initial = {}
             // initialize from current items if we already fetched them
             if (items && items.length > 0) {
-                items.forEach((i, idx) => {
-                    const key = getKey(i, idx)
-                    initial[`${key}_subscription_fee`] = i.subscription_fee != null ? i.subscription_fee : ''
-                    initial[`${key}_conduit_exam_fee`] = i.conduit_exam_fee != null ? i.conduit_exam_fee : ''
-                    initial[`${key}_conduit_session_fee`] = i.conduit_session_fee != null ? i.conduit_session_fee : ''
-                    initial[`${key}_recyclage_session_fee`] = i.recyclage_session_fee != null ? i.recyclage_session_fee : ''
-                    initial[`${key}_recyclage_session_count`] = i.recyclage_session_count != null ? i.recyclage_session_count : ''
-                    initial[`${key}_conduit_session_count`] = i.conduit_session_count != null ? i.conduit_session_count : ''
+                items.forEach(i => {
+                    initial[i.key] = i.price != null ? i.price : ''
+                    // initialize editable default count key as well
+                    initial[`${i.key}_count`] = i.default_count != null ? i.default_count : ''
                 })
             }
             setValues(initial)
@@ -51,23 +39,48 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
 
         ;(async () => {
             try {
-                const resp = await fetchZonePricing(payload);
-                console.log('ZonePricingDialog response:', resp);
+                const resp = await fetchZonePricing(payload)
+                console.log('ZonePricingDialog response:', resp)
                 
-                // resp can be an array of rows or a single object (general pricing)
+                // resp can be an array of rows or a single object
                 const rows = Array.isArray(resp) ? resp : (resp ? [resp] : [])
-                setItems(rows)
-
+                
+                // Map zone pricing data into a flat structure similar to GeneralPricingDialog
+                // Each row can have multiple pricing fields, so we create multiple items
+                const mapped = []
+                rows.forEach((r, idx) => {
+                    const baseKey = r.id != null ? String(r.id) : `${r.type || 'type'}_${r.location_id || 'loc'}`
+                    
+                    // Create items for each pricing field
+                    const fields = [
+                        { field: 'subscription_fee', label: 'Subscription Fee', hasCount: false },
+                        { field: 'conduit_exam_fee', label: 'Conduit Exam Fee', hasCount: false },
+                        { field: 'conduit_session_fee', label: 'Conduite Session', hasCount: true, countField: 'conduit_session_count' },
+                        { field: 'recyclage_session_fee', label: 'Recyclage Session', hasCount: true, countField: 'recyclage_session_count' }
+                    ]
+                    
+                    fields.forEach(({ field, label, hasCount, countField }) => {
+                        mapped.push({
+                            key: `${baseKey}_${field}`,
+                            id: r.id,
+                            type: r.type,
+                            location_id: r.location_id,
+                            field: field,
+                            label: label,
+                            price: r[field],
+                            default_count: hasCount ? r[countField] : null
+                        })
+                    })
+                })
+                
+                console.log('Mapped items:', mapped)
+                setItems(mapped)
+                
                 // initialize values from fetched data
                 const initial = {}
-                ;(rows || []).forEach((r, idx) => {
-                    const key = getKey(r, idx)
-                    initial[`${key}_subscription_fee`] = r.subscription_fee != null ? r.subscription_fee : ''
-                    initial[`${key}_conduit_exam_fee`] = r.conduit_exam_fee != null ? r.conduit_exam_fee : ''
-                    initial[`${key}_conduit_session_fee`] = r.conduit_session_fee != null ? r.conduit_session_fee : ''
-                    initial[`${key}_recyclage_session_fee`] = r.recyclage_session_fee != null ? r.recyclage_session_fee : ''
-                    initial[`${key}_recyclage_session_count`] = r.recyclage_session_count != null ? r.recyclage_session_count : ''
-                    initial[`${key}_conduit_session_count`] = r.conduit_session_count != null ? r.conduit_session_count : ''
+                mapped.forEach(m => {
+                    initial[m.key] = m.price != null ? m.price : ''
+                    initial[`${m.key}_count`] = m.default_count != null ? m.default_count : ''
                 })
                 setValues(initial)
                 setInitialValues(initial)
@@ -75,7 +88,7 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
                 console.error('Failed to fetch zone pricing:', err)
             }
         })()
-    }, [open])
+    }, [open, payload])
 
     const handleChange = (id, raw) => {
         let v = raw === '' ? '' : Number(raw)
@@ -85,19 +98,19 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
 
     const hasChanges = (() => {
         if (!items || items.length === 0) return false
-        for (let idx = 0; idx < items.length; idx++) {
-            const item = items[idx]
-            const key = getKey(item, idx)
-            const fields = ['subscription_fee', 'conduit_exam_fee', 'conduit_session_fee', 'recyclage_session_fee', 'recyclage_session_count', 'conduit_session_count']
-            
-            for (const field of fields) {
-                const fieldKey = `${key}_${field}`
-                const cur = values[fieldKey]
-                const orig = initialValues[fieldKey]
-                const ncur = cur === '' ? '' : Number(cur)
-                const norig = orig === '' ? '' : Number(orig)
-                if (ncur !== norig) return true
-            }
+        for (const item of items) {
+            const k = item.key
+            const cur = values[k]
+            const orig = initialValues[k]
+            const ncur = cur === '' ? '' : Number(cur)
+            const norig = orig === '' ? '' : Number(orig)
+            if (ncur !== norig) return true
+            // also check default count field
+            const curCount = values[`${k}_count`]
+            const origCount = initialValues[`${k}_count`]
+            const ncurCount = curCount === '' ? '' : Number(curCount)
+            const norigCount = origCount === '' ? '' : Number(origCount)
+            if (ncurCount !== norigCount) return true
         }
         return false
     })()
@@ -106,91 +119,40 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
         <Dialog
             open={open}
             onClose={onClose}
-            maxWidth="md"
-            fullWidth
             PaperProps={{ className: 'general-pricing-dialog__paper' }}
         >
             <DialogTitle className="general-pricing-dialog__title">{title}</DialogTitle>
             <DialogContent className="general-pricing-dialog__content">
                 <ul className="general-pricing-dialog__list">
-                    {items.length === 0 && (
-                        <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>
-                            No zone pricing data available
-                        </p>
-                    )}
-
-                    {items.map((item, idx) => {
-                        const key = getKey(item, idx)
-                        return (
-                            <li key={key} className="general-pricing-dialog__item">
-                                <div className="general-pricing-dialog__row">
-                                    <span className="general-pricing-dialog__label">Location {item.location_id} — {item.type}</span>
+                    {items.map(item => (
+                        <li key={item.key} className="general-pricing-dialog__item">
+                            <div className="general-pricing-dialog__row">
+                                {item.default_count != null && null}
+                                <span className="general-pricing-dialog__label">{item.label}</span>
+                                <TextField
+                                    className="general-pricing-dialog__number"
+                                    type="number"
+                                    size="small"
+                                    inputProps={{ min: 0 }}
+                                    value={values[item.key] ?? ''}
+                                    onChange={e => handleChange(item.key, e.target.value)}
+                                />
+                            </div>
+                            {item.default_count != null && (
+                                <div className="general-pricing-dialog__expanded">
                                     <TextField
-                                        className="general-pricing-dialog__number"
+                                        label="Default count"
+                                        className="general-pricing-dialog__default-count"
                                         type="number"
                                         size="small"
-                                        inputProps={{ min: 0, step: 0.01 }}
-                                        value={values[`${key}_subscription_fee`] ?? ''}
-                                        onChange={e => handleChange(`${key}_subscription_fee`, e.target.value)}
+                                        inputProps={{ min: 0 }}
+                                        value={values[`${item.key}_count`] ?? ''}
+                                        onChange={e => handleChange(`${item.key}_count`, e.target.value)}
                                     />
                                 </div>
-
-                                <div className="general-pricing-dialog__expanded">
-                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                        <TextField
-                                            label="Conduit Exam Fee"
-                                            className="general-pricing-dialog__number"
-                                            type="number"
-                                            size="small"
-                                            inputProps={{ min: 0, step: 0.01 }}
-                                            value={values[`${key}_conduit_exam_fee`] ?? ''}
-                                            onChange={e => handleChange(`${key}_conduit_exam_fee`, e.target.value)}
-                                        />
-
-                                        <TextField
-                                            label="Conduit Session Fee"
-                                            className="general-pricing-dialog__number"
-                                            type="number"
-                                            size="small"
-                                            inputProps={{ min: 0, step: 0.01 }}
-                                            value={values[`${key}_conduit_session_fee`] ?? ''}
-                                            onChange={e => handleChange(`${key}_conduit_session_fee`, e.target.value)}
-                                        />
-
-                                        <TextField
-                                            label="Conduit Session Count"
-                                            className="general-pricing-dialog__default-count"
-                                            type="number"
-                                            size="small"
-                                            inputProps={{ min: 0 }}
-                                            value={values[`${key}_conduit_session_count`] ?? ''}
-                                            onChange={e => handleChange(`${key}_conduit_session_count`, e.target.value)}
-                                        />
-
-                                        <TextField
-                                            label="Recyclage Session Fee"
-                                            className="general-pricing-dialog__number"
-                                            type="number"
-                                            size="small"
-                                            inputProps={{ min: 0, step: 0.01 }}
-                                            value={values[`${key}_recyclage_session_fee`] ?? ''}
-                                            onChange={e => handleChange(`${key}_recyclage_session_fee`, e.target.value)}
-                                        />
-
-                                        <TextField
-                                            label="Recyclage Session Count"
-                                            className="general-pricing-dialog__default-count"
-                                            type="number"
-                                            size="small"
-                                            inputProps={{ min: 0 }}
-                                            value={values[`${key}_recyclage_session_count`] ?? ''}
-                                            onChange={e => handleChange(`${key}_recyclage_session_count`, e.target.value)}
-                                        />
-                                    </div>
-                                </div>
-                            </li>
-                        )
-                    })}
+                            )}
+                        </li>
+                    ))}
                 </ul>
             </DialogContent>
             <DialogActions className="general-pricing-dialog__actions">
@@ -198,57 +160,71 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
                 <Button
                     variant="contained"
                     onClick={async () => {
-                                if (isSaving) return
+                        if (isSaving) return
+                        // Build payload with only changed fields
+                        // Group changes by zone (id/type/location_id combination)
+                        const changesMap = new Map()
+                        
+                        for (const item of items) {
+                            const k = item.key
+                            const cur = values[k]
+                            const orig = initialValues[k]
+                            const ncur = cur === '' ? '' : Number(cur)
+                            const norig = orig === '' ? '' : Number(orig)
 
-                                // Build payload with only changed fields
-                                const updates = []
-                                const fields = ['subscription_fee', 'conduit_exam_fee', 'conduit_session_fee', 'recyclage_session_fee', 'recyclage_session_count', 'conduit_session_count']
-                                for (let idx = 0; idx < items.length; idx++) {
-                                    const item = items[idx]
-                                    const key = getKey(item, idx)
+                            const curCount = values[`${k}_count`]
+                            const origCount = initialValues[`${k}_count`]
+                            const ncurCount = curCount === '' ? '' : Number(curCount)
+                            const norigCount = origCount === '' ? '' : Number(origCount)
 
-                                    const changed = {}
-                                    for (const field of fields) {
-                                        const fieldKey = `${key}_${field}`
-                                        const cur = values[fieldKey]
-                                        const orig = initialValues[fieldKey]
-                                        const ncur = cur === '' ? '' : Number(cur)
-                                        const norig = orig === '' ? '' : Number(orig)
-
-                                        if (ncur !== norig) {
-                                            changed[field] = ncur === '' ? null : ncur
-                                        }
-                                    }
-
-                                    if (Object.keys(changed).length > 0) {
-                                        const u = { type: item.type, location_id: item.location_id, ...changed }
-                                        if (item.id != null) u.id = item.id
-                                        updates.push(u)
-                                    }
+                            if (ncur !== norig || ncurCount !== norigCount) {
+                                const zoneKey = item.id != null ? String(item.id) : `${item.type}_${item.location_id}`
+                                
+                                if (!changesMap.has(zoneKey)) {
+                                    changesMap.set(zoneKey, {
+                                        id: item.id,
+                                        type: item.type,
+                                        location_id: item.location_id
+                                    })
                                 }
+                                
+                                const zone = changesMap.get(zoneKey)
+                                if (ncur !== norig) {
+                                    zone[item.field] = ncur === '' ? null : ncur
+                                }
+                                if (ncurCount !== norigCount && item.default_count != null) {
+                                    // Map count field names
+                                    const countField = item.field === 'conduit_session_fee' ? 'conduit_session_count' : 'recyclage_session_count'
+                                    zone[countField] = ncurCount === '' ? null : ncurCount
+                                }
+                            }
+                        }
 
-                                if (updates.length === 0) return
+                        const updates = Array.from(changesMap.values())
+                        if (updates.length === 0) return
 
-                                setIsSaving(true)
+                        setIsSaving(true)
                         try {
                             const resp = await updateZonePricing({ updates })
-
                             // update initialValues to reflect saved values so Confirm disables
                             const nextInitial = { ...initialValues }
-                            for (const u of updates) {
-                                const key = u.id != null ? String(u.id) : `${u.type}_${u.location_id != null ? String(u.location_id) : 'loc'}`
-                                const fields2 = ['subscription_fee', 'conduit_exam_fee', 'conduit_session_fee', 'recyclage_session_fee', 'recyclage_session_count', 'conduit_session_count']
-
-                                for (const field of fields2) {
-                                    if (field in u) {
-                                        nextInitial[`${key}_${field}`] = u[field]
+                            for (const item of items) {
+                                const k = item.key
+                                const zoneKey = item.id != null ? String(item.id) : `${item.type}_${item.location_id}`
+                                const update = changesMap.get(zoneKey)
+                                if (update && item.field in update) {
+                                    nextInitial[k] = update[item.field]
+                                }
+                                if (update && item.default_count != null) {
+                                    const countField = item.field === 'conduit_session_fee' ? 'conduit_session_count' : 'recyclage_session_count'
+                                    if (countField in update) {
+                                        nextInitial[`${k}_count`] = update[countField]
                                     }
                                 }
                             }
                             setInitialValues(nextInitial)
                             // reflect saved initial values in values as well (keep inputs)
                             setValues(prev => ({ ...prev, ...nextInitial }))
-
                             if (onConfirm && typeof onConfirm === 'function') onConfirm(resp)
                             // do NOT close the dialog per request
                         } catch (err) {
