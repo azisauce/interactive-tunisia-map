@@ -355,14 +355,22 @@ export async function updateAgencyShowInDrivago(agencyId, showInDrivago) {
 // ========== General Pricing API ==========
 
 export async function fetchGeneralPricing() {
-    const response = await fetch(`${API_BASE_URL}/general-pricing`, {
-        headers: getAuthHeaders()
-    })
-    if (!response.ok) {
-        throw new Error('Failed to fetch general pricing')
+
+    const response = await fetch(
+    `${API_BASE_URL}/general-pricing`,
+    {
+        method: 'GET',
+        headers: getAuthHeaders(),
     }
-    return response.json()
+    )
+
+    if (!response.ok) {
+    throw new Error('Failed to fetch general pricing')
+    }
+
+  return response.json()
 }
+
 
 export async function updateGeneralPricing(pricing) {
     const response = await fetch(`${API_BASE_URL}/general-pricing`, {
@@ -383,6 +391,61 @@ export async function updateGeneralPricing(pricing) {
             }
         }
         throw new Error(text || 'Failed to update general pricing')
+    }
+
+    return response.json()
+}
+
+// ========== Zone Pricing API ==========
+
+export async function fetchZonePricing({
+        type,
+        sec_uid,
+        mun_uid,
+        gov_id,
+        pickup_point_id
+    } = {}) {
+
+    if (sec_uid) type = 'sector'
+    else if (mun_uid) type = 'municipality'
+    else if (gov_id) type = 'governorate'
+
+    const params = new URLSearchParams()
+
+    if (type) params.append('type', type)
+    if (sec_uid) params.append('sec_uid', sec_uid)
+    if (mun_uid) params.append('mun_uid', mun_uid)
+    if (gov_id) params.append('gov_id', gov_id)
+    if (pickup_point_id) params.append('pickup_point_id', pickup_point_id)
+
+    const response = await fetch(`${API_BASE_URL}/zone-pricing?${params.toString()}`, {
+        headers: getAuthHeaders()
+    })
+    if (!response.ok) {
+        throw new Error('Failed to fetch zone pricing')
+    }
+    return response.json()
+}
+
+export async function updateZonePricing(pricing) {
+    const response = await fetch(`${API_BASE_URL}/zone-pricing`, {
+        method: 'PUT',
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(pricing)
+    })
+
+    if (!response.ok) {
+        const contentType = response.headers.get('content-type') || ''
+        let text = await response.text().catch(() => '')
+        if (contentType.includes('application/json')) {
+            try {
+                const j = JSON.parse(text)
+                text = j?.error || j?.message || text
+            } catch (e) {
+                // ignore JSON parse errors
+            }
+        }
+        throw new Error(text || 'Failed to update zone pricing')
     }
 
     return response.json()

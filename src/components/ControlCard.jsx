@@ -8,6 +8,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CloseIcon from '@mui/icons-material/Close';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import GeneralPricingDialog from './GeneralPricingDialog'
+import ZonePricingDialog from './ZonePricingDialog'
 
 function ControlCard({ 
     currentLevel, 
@@ -54,6 +55,8 @@ function ControlCard({
     const [loadingAgencies, setLoadingAgencies] = useState(false)
     const [agenciesError, setAgenciesError] = useState(null)
     const [moneyDialogOpen, setMoneyDialogOpen] = useState(false)
+    const [zoneDialogOpen, setZoneDialogOpen] = useState(false)
+    const [zoneDialogPayload, setZoneDialogPayload] = useState(null)
 
     // Load active agencies and filter to those with coordinates
     useEffect(() => {
@@ -110,6 +113,16 @@ function ControlCard({
         if (level === 'municipality') return 'Municipality'
         if (level === 'sector') return 'Sector'
         return 'Region'
+    }
+
+    const buildZonePayload = (region, level) => {
+        const props = region && region.properties ? region.properties : {}
+        return {
+            type: level || null,
+            sec_uid: props.sec_uid ?? null,
+            mun_uid: props.mun_uid ?? null,
+            gov_id: props.gov_id ?? null,
+        }
     }
 
     // Get the selected region name - show the parent region name for drill-down levels
@@ -201,6 +214,13 @@ function ControlCard({
                 onClose={() => setMoneyDialogOpen(false)}
                 onConfirm={() => { if (onMoneyClick) onMoneyClick() }}
                 title="General Pricing"
+            />
+            <ZonePricingDialog
+                open={zoneDialogOpen}
+                payload={zoneDialogPayload}
+                onClose={() => { setZoneDialogOpen(false); setZoneDialogPayload(null); }}
+                onConfirm={() => { /* optional callback */ }}
+                title="Zone Pricing"
             />
 
             {/* Current Level Badge */}
@@ -332,9 +352,12 @@ function ControlCard({
                         <button
                             type="button"
                             className="region-info__button add-toggle-button"
-                            onClick={() => setMoneyDialogOpen(true)}
-                            aria-label="Region action"
-                            title="Region action"
+                            onClick={() => {
+                                setZoneDialogPayload(buildZonePayload(selectedRegion, currentLevel))
+                                setZoneDialogOpen(true)
+                            }}
+                            aria-label="Region zone pricing"
+                            title="Zone Pricing"
                         >
                             <AttachMoneyIcon style={{ fontSize: 20 }} />
                         </button>
