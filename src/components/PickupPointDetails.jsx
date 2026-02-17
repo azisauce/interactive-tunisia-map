@@ -10,8 +10,10 @@ import PushPinIcon from '@mui/icons-material/PushPin'
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'
 import DeleteIcon from '@mui/icons-material/Delete'
 import LoyaltyIcon from '@mui/icons-material/Loyalty';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney'
 import { deleteLocation, addAgencyToLocation, removeAgencyFromLocation, fetchActiveAgenciesCached as fetchActiveAgencies, updateLocation, updateAgencyShowInDrivago } from '../utils/api'
 import ConfirmDialog from './ConfirmDialog'
+import ZonePricingDialog from './ZonePricingDialog'
 
 function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated, onEditModeChange, onEditCoordsChange, externalEditCoords }) {
     const [loading, setLoading] = useState(false)
@@ -23,6 +25,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
     const [removingAgencyId, setRemovingAgencyId] = useState(null)
     const [loadingAgencies, setLoadingAgencies] = useState(true)
     const [confirm, setConfirm] = useState({ open: false, title: '', message: '', onConfirm: null, confirmText: 'Confirm', cancelText: 'Cancel' })
+    const [zonePricingOpen, setZonePricingOpen] = useState(false)
     
     // Edit mode states
     const [isEditMode, setIsEditMode] = useState(false)
@@ -388,7 +391,7 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                     style={{
                         position: 'absolute',
                         top: 8,
-                        right: 56,
+                        right: point.type === 'pickup_point' && !isEditMode ? 96 : 56,
                         display: 'flex',
                         alignItems: 'center',
                         backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -413,21 +416,33 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                 </div>
             )}
 
-            {/* Edit button in top right corner */}
-            <IconButton
-                onClick={isEditMode ? handleCancelEdit : handleEnterEditMode}
-                style={{
-                    position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    color: isEditMode ? '#ef4444' : 'rgba(255, 255, 255, 0.7)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    padding: 8
-                }}
-                title={isEditMode ? 'Cancel edit' : 'Edit location'}
-            >
-                {isEditMode ? <CloseIcon style={{ fontSize: 20 }} /> : <EditIcon style={{ fontSize: 20 }} />}
-            </IconButton>
+            {/* Action buttons in top right corner */}
+            <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                {point.type === 'pickup_point' && !isEditMode && (
+                    <IconButton
+                        onClick={() => setZonePricingOpen(true)}
+                        style={{
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            padding: 8
+                        }}
+                        title="Zone Pricing"
+                    >
+                        <AttachMoneyIcon style={{ fontSize: 20 }} />
+                    </IconButton>
+                )}
+                <IconButton
+                    onClick={isEditMode ? handleCancelEdit : handleEnterEditMode}
+                    style={{
+                        color: isEditMode ? '#ef4444' : 'rgba(255, 255, 255, 0.7)',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        padding: 8
+                    }}
+                    title={isEditMode ? 'Cancel edit' : 'Edit location'}
+                >
+                    {isEditMode ? <CloseIcon style={{ fontSize: 20 }} /> : <EditIcon style={{ fontSize: 20 }} />}
+                </IconButton>
+            </div>
 
             <div style={{ overflowX: 'hidden', overflowY: 'auto', flex: 1 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -821,6 +836,16 @@ function PickupPointDetails({ point, open = true, onClose, onDeleted, onUpdated,
                 onConfirm={executeConfirm}
                 confirmText={confirm.confirmText}
                 cancelText={confirm.cancelText}
+            />
+            <ZonePricingDialog
+                open={zonePricingOpen}
+                payload={{
+                    type: 'pickup_point',
+                    pickup_point_id: point.id
+                }}
+                onClose={() => setZonePricingOpen(false)}
+                onConfirm={() => {}}
+                title="Zone Pricing"
             />
         </div>
     )
