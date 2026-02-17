@@ -324,8 +324,22 @@ function ControlCard({
                     <div className="region-info__label">
                         {currentLevel === 'sector' ? 'Selected Sector' : 'Selected Region'}
                     </div>
-                    <div className="region-info__name">{selectedName.en}</div>
-                    <div className="region-info__name-ar">{selectedName.ar}</div>
+                    <div className='region-info__content'>
+                        <div className='region-info__details'>
+                            <div className="region-info__name">{selectedName.en}</div>
+                            <div className="region-info__name-ar">{selectedName.ar}</div>
+                        </div>
+                        <button
+                            type="button"
+                            className="region-info__button add-toggle-button"
+                            onClick={() => setMoneyDialogOpen(true)}
+                            aria-label="Region action"
+                            title="Region action"
+                        >
+                            <AttachMoneyIcon style={{ fontSize: 20 }} />
+                        </button>
+
+                    </div>
                 </div>
             )}
 
