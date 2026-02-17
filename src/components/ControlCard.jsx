@@ -90,21 +90,18 @@ function ControlCard({
                 en: props.gov_en || 'Unknown',
                 ar: props.gov_ar || ''
             }
-        } else if (level === 'municipality') {
-            return {
-                en: props.mun_en || 'Unknown',
-                ar: props.mun_ar || ''
+        } else {
+            if (!props.sec_uid) {
+                return {
+                    en: props.mun_en || 'Unknown',
+                    ar: props.mun_ar || ''
+                }
+            } else {
+                return {
+                    en: props.sec_en || 'Unknown',
+                    ar: props.sec_ar || ''
+                }
             }
-        } else if (level === 'sector') {
-            return {
-                en: props.sec_en || 'Unknown',
-                ar: props.sec_ar || ''
-            }
-        }
-        
-        return {
-            en: props.gov_en || props.mun_en || props.sec_en || 'Unknown',
-            ar: props.gov_ar || props.mun_ar || props.sec_ar || ''
         }
     }
 
@@ -117,13 +114,23 @@ function ControlCard({
 
     // Get the selected region name - show the parent region name for drill-down levels
     // or the selected item itself for sectors
-    const selectedName = selectedRegion ? (
-        currentLevel === 'governorate' 
-            ? getRegionNameForLevel(selectedRegion, 'governorate')
-            : currentLevel === 'municipality'
-            ? getRegionNameForLevel(selectedRegion, 'governorate')
-            : getRegionNameForLevel(selectedRegion, 'sector') // Show sector name at sector level
-    ) : null
+    // const selectedName = selectedRegion ? (
+    //     currentLevel === 'governorate' 
+    //         ? getRegionNameForLevel(selectedRegion, 'governorate')
+    //         : currentLevel === 'municipality'
+    //         ? getRegionNameForLevel(selectedRegion, 'governorate')
+    //         : getRegionNameForLevel(selectedRegion, 'sector') // Show sector name at sector level
+    // ) : null;
+    let selectedName = null;
+    switch (currentLevel) {
+        case 'municipality':
+            selectedName = selectedRegion ? getRegionNameForLevel(selectedRegion, 'governorate') : null
+            break;
+        case 'sector':
+            selectedName = selectedRegion ? getRegionNameForLevel(selectedRegion, 'municipality') : null
+            break;
+    }
+    console.log('currentLevel:', currentLevel, 'Selected Region:', selectedRegion, 'Selected Name:', selectedName);
     
     const hoveredName = hoveredRegion ? getRegionNameForLevel(hoveredRegion, currentLevel) : null
     const hoveredType = hoveredRegion ? getRegionType(currentLevel) : null
