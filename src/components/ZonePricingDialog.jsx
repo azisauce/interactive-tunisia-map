@@ -73,7 +73,7 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
                 const mapped = []
                 rows.forEach((r, idx) => {
                     // Use location_id from response if available, otherwise from payload
-                    const finalLocationId = r.location_id != null ? r.location_id : locationId
+                    const finalLocationId = locationId || r.location_id || null
                     const finalType = type || r.type || 'unknown'
                     const baseKey = r.id != null ? String(r.id) : `${finalType}_${finalLocationId || 'loc'}`
                     
