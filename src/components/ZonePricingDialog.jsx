@@ -45,11 +45,37 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
                 // resp can be an array of rows or a single object
                 const rows = Array.isArray(resp) ? resp : (resp ? [resp] : [])
                 
+                // Extract location_id from payload based on type
+                let locationId = null
+                let type = null
+                if (payload) {
+                if (payload.pickup_point_id) { 
+                    locationId = payload.pickup_point_id
+                    type = 'pickup_point' 
+                }
+                else if (payload.sec_uid) {
+                    locationId = payload.sec_uid
+                    type = 'sector'
+                }
+                else if (payload.mun_uid) {
+                    locationId = payload.mun_uid
+                    type = 'municipality'
+                }
+                else if (payload.gov_id) {
+                    locationId = payload.gov_id
+                    type = 'governorate'
+                }
+                }
+                console.log('Extracted locationId from payload:', locationId);
+                
                 // Map zone pricing data into a flat structure similar to GeneralPricingDialog
                 // Each row can have multiple pricing fields, so we create multiple items
                 const mapped = []
                 rows.forEach((r, idx) => {
-                    const baseKey = r.id != null ? String(r.id) : `${r.type || 'type'}_${r.location_id || 'loc'}`
+                    // Use location_id from response if available, otherwise from payload
+                    const finalLocationId = r.location_id != null ? r.location_id : locationId
+                    const finalType = type || r.type || 'unknown'
+                    const baseKey = r.id != null ? String(r.id) : `${finalType}_${finalLocationId || 'loc'}`
                     
                     // Create items for each pricing field
                     const fields = [
@@ -63,8 +89,8 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
                         mapped.push({
                             key: `${baseKey}_${field}`,
                             id: r.id,
-                            type: r.type,
-                            location_id: r.location_id,
+                            type: finalType,
+                            location_id: finalLocationId,
                             field: field,
                             label: label,
                             price: r[field],
@@ -161,9 +187,9 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
                     variant="contained"
                     onClick={async () => {
                         if (isSaving) return
-                        // Build payload with only changed fields
-                        // Group changes by zone (id/type/location_id combination)
-                        const changesMap = new Map()
+                        // Build payload with all fields for zones that have changes
+                        // First, identify zones with changes
+                        const zonesWithChanges = new Set()
                         
                         for (const item of items) {
                             const k = item.key
@@ -179,28 +205,43 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
 
                             if (ncur !== norig || ncurCount !== norigCount) {
                                 const zoneKey = item.id != null ? String(item.id) : `${item.type}_${item.location_id}`
-                                
-                                if (!changesMap.has(zoneKey)) {
-                                    changesMap.set(zoneKey, {
+                                zonesWithChanges.add(zoneKey)
+                            }
+                        }
+
+                        if (zonesWithChanges.size === 0) return
+
+                        // Now build updates with all fields for zones that have changes
+                        const updatesMap = new Map()
+                        
+                        for (const item of items) {
+                            const zoneKey = item.id != null ? String(item.id) : `${item.type}_${item.location_id}`
+                            
+                            if (zonesWithChanges.has(zoneKey)) {
+                                if (!updatesMap.has(zoneKey)) {
+                                    updatesMap.set(zoneKey, {
                                         id: item.id,
                                         type: item.type,
                                         location_id: item.location_id
                                     })
                                 }
                                 
-                                const zone = changesMap.get(zoneKey)
-                                if (ncur !== norig) {
-                                    zone[item.field] = ncur === '' ? null : ncur
-                                }
-                                if (ncurCount !== norigCount && item.default_count != null) {
-                                    // Map count field names
+                                const zone = updatesMap.get(zoneKey)
+                                const k = item.key
+                                const cur = values[k]
+                                const ncur = cur === '' ? '' : Number(cur)
+                                zone[item.field] = ncur === '' ? null : ncur
+                                
+                                if (item.default_count != null) {
+                                    const curCount = values[`${k}_count`]
+                                    const ncurCount = curCount === '' ? '' : Number(curCount)
                                     const countField = item.field === 'conduit_session_fee' ? 'conduit_session_count' : 'recyclage_session_count'
                                     zone[countField] = ncurCount === '' ? null : ncurCount
                                 }
                             }
                         }
 
-                        const updates = Array.from(changesMap.values())
+                        const updates = Array.from(updatesMap.values())
                         if (updates.length === 0) return
 
                         setIsSaving(true)
@@ -211,7 +252,7 @@ function ZonePricingDialog({ open = false, payload = null, onClose, onConfirm, t
                             for (const item of items) {
                                 const k = item.key
                                 const zoneKey = item.id != null ? String(item.id) : `${item.type}_${item.location_id}`
-                                const update = changesMap.get(zoneKey)
+                                const update = updatesMap.get(zoneKey)
                                 if (update && item.field in update) {
                                     nextInitial[k] = update[item.field]
                                 }

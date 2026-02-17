@@ -429,7 +429,7 @@ export async function fetchZonePricing({
 
 export async function updateZonePricing(pricing) {
     const response = await fetch(`${API_BASE_URL}/zone-pricing`, {
-        method: 'PUT',
+        method: 'POST',
         headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(pricing)
     })
