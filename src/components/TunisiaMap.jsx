@@ -913,9 +913,9 @@ function TunisiaMap({
     // When zoom <= threshold: show clusters
     // When zoom > threshold: show individual markers
     const CLUSTER_ZOOM_THRESHOLDS = {
-        governorate: 9,     // At governorate level, cluster until zoom > 9
-        municipality: 12,   // At municipality level, cluster until zoom > 12
-        sector: 14          // At sector level, cluster until zoom > 14
+        governorate: 8,     // At governorate level, cluster until zoom > 9
+        municipality: 9,   // At municipality level, cluster until zoom > 12
+        sector: 10      // At sector level, cluster until zoom > 14
     }
 
     // Determine if we should show clusters or individual markers based on zoom and level
